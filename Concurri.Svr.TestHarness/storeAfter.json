@@ -1,0 +1,17 @@
+{
+"rules":{
+"08254706-c0e2-4958-91e6-060e6f04e7b3": {"RuleId":"08254706-c0e2-4958-91e6-060e6f04e7b3","EntityId":"08254706-c0e2-4958-91e6-060e6f04e7b3","RuleName":"Test for non-existence {\"EntityType\":4,\"EntityId\":\"00dc0ae3-13e8-4c8b-a8f3-db4d94790577\"}","RuleType":1,"NegateResult":true,"ReferenceValues":[{"EntityType":4,"EntityId":"00dc0ae3-13e8-4c8b-a8f3-db4d94790577"}],"LastExecuted":"1980-01-01T00:00:00","GetAltHashCode":"08254706-c0e2-4958-91e6-060e6f04e7b3"}
+}
+,"ruleResults":{
+
+}
+,"operations":{
+"36024759-8616-4810-968c-7bb41f14b24e": {"OperationId":"36024759-8616-4810-968c-7bb41f14b24e","EntityId":"36024759-8616-4810-968c-7bb41f14b24e","RuleId":"08254706-c0e2-4958-91e6-060e6f04e7b3","Operands":[{"SourceValueIds":["00dc0ae3-13e8-4c8b-a8f3-db4d94790577"],"EntityType":4,"EntityId":"00dc0ae3-13e8-4c8b-a8f3-db4d94790577"}],"OperationType":1,"GetAltHashCode":"36024759-8616-4810-968c-7bb41f14b24e"},"d3c768dd-770d-4724-9097-1b8ffbe42391": {"OperationId":"d3c768dd-770d-4724-9097-1b8ffbe42391","EntityId":"d3c768dd-770d-4724-9097-1b8ffbe42391","RuleId":"08254706-c0e2-4958-91e6-060e6f04e7b3","Operands":[{"SourceValueIds":["00dc0ae3-13e8-4c8b-a8f3-db4d94790577","d69f4e3c-f6aa-425e-bb97-628c2671d55a"],"EntityType":4,"EntityId":"f70eddc0-8d94-4c26-b60b-25e81799dfd2"}],"OperationType":1,"GetAltHashCode":"d3c768dd-770d-4724-9097-1b8ffbe42391"},"f970b2e4-000a-4225-a7d6-6782860b060d": {"OperationId":"f970b2e4-000a-4225-a7d6-6782860b060d","EntityId":"f970b2e4-000a-4225-a7d6-6782860b060d","RuleId":"08254706-c0e2-4958-91e6-060e6f04e7b3","Operands":[{"SourceValueIds":["d69f4e3c-f6aa-425e-bb97-628c2671d55a"],"EntityType":4,"EntityId":"d69f4e3c-f6aa-425e-bb97-628c2671d55a"}],"OperationType":1,"GetAltHashCode":"f970b2e4-000a-4225-a7d6-6782860b060d"}
+}
+,"requests":{
+
+}
+,"values":{
+
+}
+}

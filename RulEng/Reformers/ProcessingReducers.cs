@@ -4,6 +4,7 @@ using Newtonsoft.Json.Linq;
 using RulEng.Prescriptions;
 using RulEng.ProcessingState;
 using RulEng.States;
+using RulEng.Helpers;
 
 namespace RulEng.Reducers
 {
@@ -15,7 +16,7 @@ namespace RulEng.Reducers
             var newState = previousState.DeepClone();
 
             // First identify rules for values that don't (yet) exist
-            newState = newState.AllNotExists(prescription as ProcessExistsRule);
+            newState = newState.AllExists(prescription as ProcessExistsRule);
 
             return newState.DeepClone();
         }
@@ -31,20 +32,72 @@ namespace RulEng.Reducers
             return newState.DeepClone();
         }
 
-        private static ProcessingRulEngStore AllNotExists(this ProcessingRulEngStore newState, ProcessExistsRule prescription)
+        /// <summary>
+        /// Perform all Exists and Not Exists Rules
+        /// </summary>
+        /// <param name="newState"></param>
+        /// <param name="prescription"></param>
+        /// <returns></returns>
+        private static ProcessingRulEngStore AllExists(this ProcessingRulEngStore newState, ProcessExistsRule prescription)
         {
-            // First identify rules for entities that don't (yet) exist
-            var entities = newState.Rules.Select(r => (TypeKey)r).ToList();
-            entities.AddRange(newState.Values.Select(v => (TypeKey)v));
-            entities.AddRange(newState.Operations.Select(o => (TypeKey)o));
-            entities.AddRange(newState.Requests.Select(rq => (TypeKey)rq));
-            var rulesToProcessList = newState.Rules
-                .Where(r => r.RuleType == RuleType.Exists && r.NegateResult && entities.Except(r.ReferenceValues).Any() && r.LastExecuted < DateTime.UtcNow);
-
             var actionDate = DateTime.UtcNow;
+
+            // First identify the potentially relevant entities
+            var entities = newState.Rules
+                .Select(r => (TypeKey)r)
+                .ToList()
+                .AddRange(newState.Values.Select(v => (TypeKey)v))
+                .AddRange(newState.Operations.Select(o => (TypeKey)o))
+                .AddRange(newState.Requests.Select(rq => (TypeKey)rq));
+
+            // Get the corresponding Rules
+            var rulesToProcessList = newState.Rules.RulesToProcess(RuleType.Exists, entities);
 
             foreach (var ruleToProcess in rulesToProcessList)
             {
+                //var entitiesToAdd = ruleToProcess.ReferenceValues.Except(entities).ToList();
+                var newRuleResult = new RuleResult
+                {
+                    RuleId = ruleToProcess.RuleId,
+                    LastChanged = actionDate,
+                    Detail = true
+                };
+
+                newState.RuleResults.Add(newRuleResult);
+
+                ruleToProcess.LastExecuted = actionDate;
+            }
+
+            return newState;
+        }
+
+        /// <summary>
+        /// Perform all HasMeaningfulValue and Not HasMeaningfulValue Rules
+        /// </summary>
+        /// <param name="newState"></param>
+        /// <param name="prescription"></param>
+        /// <returns></returns>
+        private static ProcessingRulEngStore AllHasMeaningfulValue(this ProcessingRulEngStore newState, ProcessHasMeaningfulValueRule prescription)
+        {
+            var actionDate = DateTime.UtcNow;
+
+            // First identify the potentially relevant Entities
+            var entities = newState.Values.Select(v => (TypeKey)v).ToList();
+
+            // Get all the rules to process
+            var rulesToProcessList = newState.Rules.RulesToProcess(RuleType.HasMeaningfulValue, entities);
+
+            if (rulesToProcessList.Any(r => r.ReferenceValues.Count() != 1))
+            {
+                throw new Exception("HasMeaningfulValue Rules currently only support testing a single value");
+            }
+
+            foreach (var ruleToProcess in rulesToProcessList)
+            {
+                var refValue = newState.Values.FirstOrDefault(v => v.EntityId == ruleToProcess.ReferenceValues[0].EntityId);
+
+                refValue.Detail
+
                 //var entitiesToAdd = ruleToProcess.ReferenceValues.Except(entities).ToList();
                 var newRuleResult = new RuleResult
                 {

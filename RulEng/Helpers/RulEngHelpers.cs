@@ -1,75 +1,93 @@
 ﻿using System;
 using System.Collections.Generic;
-using Redux;
-using RulEng.States;
 using System.Collections.Immutable;
 using System.Linq;
+using Redux;
+using RulEng.States;
 using RulEng.Prescriptions;
 
 namespace RulEng.Helpers
 {
     public static class RulEngHelpers
     {
-        public static (Rule rule, RuleResult ruleResult, Operation operation, Value value, IRuleProcessing rulePrescription, ICrud operationPrescription) Exists(this object val){
-            var value = new Value(val);
-            var vType = new TypeKey { EntityId = value.ValueId, EntityType = EntityType.Value };
-            var rule = vType.ExistsRule();
-            var ruleResult = new RuleResult(rule);
-            var operation = ruleResult.ExistsOperation(vType);
-
-            var rulePrescription = rule.Exists();
-            var operationPrescription = operation.Create();
-
-            return (rule, ruleResult, operation, value, rulePrescription, operationPrescription);
-        }
-
-        public static (Rule rule, RuleResult ruleResult, Value value, IRuleProcessing rulePrescription) Exists(this object val)
+        /// <summary>
+        /// For a given entity (Rule, Operation, Request, Value) this creates:
+        /// A (not) Exists Rule to test for its presence
+        /// A RuleResult to accept the result of the Exists Rule
+        /// A RulePrescription referencing the Rule to be performed
+        /// </summary>
+        /// <param name="val"></param>
+        /// <returns></returns>
+        public static (Rule rule, RuleResult ruleResult, IRuleProcessing rulePrescription) Exists<T>(this T val) where T : IEntity
         {
-            var value = (val as Value) == null ? new Value(val) : (val as Value);
-            var vType = new TypeKey { EntityId = value.ValueId, EntityType = EntityType.Value };
+            if (!val.IsProcessable())
+            {
+                throw new ArgumentOutOfRangeException("val.Type", "Exists helper creator is only for Processable entity types");
+            }
+
+            var vType = new TypeKey { EntityId = val.EntityId, EntityType = val.Type };
+
             var rule = vType.ExistsRule();
             var ruleResult = new RuleResult(rule);
-
             var rulePrescription = rule.Exists();
 
-            return (rule, ruleResult, value, rulePrescription);
+            return (rule, ruleResult, rulePrescription);
         }
 
         /// <summary>
-        /// Add this Value Exists test to an existing Exists Rule
+        /// Add this Entity Exists test to an existing Exists Rule
         /// </summary>
         /// <param name="val"></param>
         /// <param name="rule"></param>
         /// <returns></returns>
-        public static (RuleResult ruleResult, Operation operation, Value value, IAction operationPrescription) Exists(this object val, Rule rule)
+        public static (RuleResult ruleResult, IAction rulePrescription) Exists<T>(this T entity, Rule rule) where T : IEntity
         {
+            if (!entity.IsProcessable())
+            {
+                throw new ArgumentOutOfRangeException("entity.Type", "Exists helper creator is only for Processable entity types");
+            }
+
             if (rule.RuleType != RuleType.Exists || !rule.NegateResult)
             {
                 throw new ArgumentException("rule was not a 'not' 'Exists' type Rule.  It cannot have an exists test added to it.");
             }
-            var value = new Value(val);
-            var vType = new TypeKey { EntityId = value.ValueId, EntityType = EntityType.Value };
+
+            var vType = new TypeKey { EntityId = entity.EntityId, EntityType = entity.Type };
 
             // Add the test ref data to the end of the refvalues structure
             // and put the result back into the refvalues
             rule.ReferenceValues = rule.ReferenceValues.Add(vType);
-            
-            var ruleResult = new RuleResult(rule);
-            var operation = ruleResult.ExistsOperation(vType);
-            var operationPrescription = operation.Exists();
 
-            return (ruleResult, operation, value, operationPrescription);
+            var ruleResult = new RuleResult(rule);
+            var rulePrescription = rule.Exists();
+
+            return (ruleResult, rulePrescription);
         }
 
-        public static (Operation operation, Value value, IAction operationPrescription) Exists(this object val, RuleResult ruleResult)
+        /// <summary>
+        /// For the result of a given Rule 
+        /// build the corresponding Operation and OperationPrescription
+        /// to effect the creation of the Entity identified
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="ruleResult"></param>
+        /// <param name="entity">The Value from which the Entity will be created</param>
+        /// <returns></returns>
+        public static (Operation operation, ICrud operationPrescription) Create<T>(this RuleResult ruleResult, Value entity) where T : IEntity
         {
-            var value = new Value(val);
-            var vType = new TypeKey() { EntityId = value.ValueId, EntityType = EntityType.Value };
-            var operation = ruleResult.ExistsOperation(vType);
+            var eOfType = default(T);
 
-            var operationPrescription = operation.Exists();
+            var vOper = new OperandKey()
+            {
+                SourceValueIds = ImmutableArray.Create(entity.EntityId),
+                EntityId = entity.EntityId,
+                EntityType = eOfType.Type
+            };
+            var operation = ruleResult.AddOperation(new[] { vOper });
 
-            return (operation, value, operationPrescription);
+            var operationPrescription = operation.Create();
+
+            return (operation, operationPrescription);
         }
 
         /// <summary>
@@ -89,19 +107,39 @@ namespace RulEng.Helpers
             return (operation, entity, operationPrescription);
         }
 
-        public static (Operation operation, IEnumerable<Value> value, IAction operationPrescription) Add(this RuleResult ruleResult, IEnumerable<IEnumerable<Guid>> valueIds)
+        /// <summary>
+        /// For a given Value this creates:
+        /// A HasMeaningfulValue Rule to test its value
+        /// A RuleResult to accept the result of the HasMeaningfulValue Rule
+        /// A RulePrescription referencing the Rule to be performed
+        /// </summary>
+        /// <param name="val"></param>
+        /// <returns></returns>
+        public static (Rule rule, RuleResult ruleResult, IRuleProcessing rulePrescription) HasMeaningfulValue<T>(this T val) where T : Value
+        {
+            var vType = new TypeKey { EntityId = val.EntityId, EntityType = val.Type };
+
+            var rule = vType.HasMeaningfulValueRule();
+            var ruleResult = new RuleResult(rule);
+            var rulePrescription = rule.HasMeaningfulValue();
+
+            return (rule, ruleResult, rulePrescription);
+        }
+
+        public static (Operation operation, IEnumerable<Value> value, OperationMxAddProcessing operationPrescription) Add(this RuleResult ruleResult, IEnumerable<IEnumerable<Guid>> valueIds)
         {
             var values = new List<Value>();
             var vOpers = new List<OperandKey>();
 
-            foreach(var vSet in valueIds.ToArray())
+            foreach (var vSet in valueIds.ToArray())
             {
                 var value = new Value(0);
                 vOpers.Add(new OperandKey() { SourceValueIds = ImmutableArray.Create(vSet.ToArray()), EntityId = value.ValueId, EntityType = EntityType.Value });
             }
 
             var operation = ruleResult.AddOperation(vOpers);
-            var operationPrescription = operation.Exists();
+            var operationPrescription = new OperationMxAddProcessing();
+            operationPrescription.Entities = ImmutableArray.Create(vOpers.ToArray());
 
             return (operation, values, operationPrescription);
         }

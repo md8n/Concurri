@@ -10,6 +10,8 @@ namespace RulEng.States
 
         public Guid EntityId { get => RuleId; set => RuleId = value; }
 
+        public EntityType Type { get => EntityType.RuleResult; }
+
         public DateTime LastChanged { get; set; } = new DateTime(1980, 1, 1);
 
         public bool Detail { get; set; }

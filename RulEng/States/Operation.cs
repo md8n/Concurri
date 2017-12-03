@@ -19,6 +19,8 @@ namespace RulEng.States
 
         public Guid EntityId { get => OperationId; set => OperationId = value; }
 
+        public EntityType Type { get => EntityType.Operation; }
+
         public Guid RuleId { get; set; }
 
         public ImmutableArray<OperandKey> Operands { get; set; }

@@ -10,6 +10,8 @@ namespace RulEng.States
 
         public Guid EntityId { get => ValueId; set => ValueId = value; }
 
+        public EntityType Type { get => EntityType.Value; }
+
         public DateTime LastChanged { get; set; } = new DateTime(1980, 1, 1);
 
         public JToken Detail { get; set; }

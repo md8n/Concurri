@@ -11,6 +11,8 @@ namespace RulEng.States
 
         public Guid EntityId { get => RuleId; set => RuleId = value; }
 
+        public EntityType Type { get => EntityType.Rule; }
+
         public string RuleName { get; set; }
 
         public RuleType RuleType { get; set; }

@@ -1,16 +1,28 @@
 ﻿using Redux;
 using RulEng.Prescriptions;
 using RulEng.States;
+using System.Collections.Immutable;
+using System.Linq;
 
 namespace RulEng.Helpers
 {
     public static class PrescriptionHelpers
     {
-        public static ICrud Exists(this Rule existsRule)
+        public static IRuleProcessing Exists(this Rule existsRule)
         {
-            return new Create<Rule>
+            return new ProcessExistsRule
             {
-                Entity = existsRule
+                Entities = existsRule.ReferenceValues
+            };
+        }
+
+        public static IRuleProcessing HasMeaningfulValue(this Rule hasMeangingfulValueRule)
+        {
+            var valueIds = hasMeangingfulValueRule.ReferenceValues.Select(rv => rv.EntityId);
+
+            return new ProcessHasMeaningfulValueRule
+            {
+                ValueIds = ImmutableList.CreateRange(valueIds)
             };
         }
 

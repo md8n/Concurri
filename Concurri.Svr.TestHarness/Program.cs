@@ -33,22 +33,31 @@ namespace Concurri.Svr.TestHarness
             IAction operationPrescription;
 
             //var requestJObj = JToken.Parse("{\"Q\": \"How can we help?\", \"AA\":[\"New Claim\", \"Existing Claim\"]}");
-            var requestObj = 12;
+            var requestObj = new Value(12);
 
-            (rule, ruleResult, operation, value, rulePrescription, operationPrescription) = requestObj.Exists();
+            (rule, ruleResult, rulePrescription) = requestObj.Exists();
 
             rules.Add(rule);
             ruleResults.Add(ruleResult);
-            operations.Add(operation);
-            values.Add(value);
             rulePrescriptions.Add(rulePrescription);
-            operationPrescriptions.Add(operationPrescription);
 
-            (ruleResult, operation, value, operationPrescription) = 13.Exists(rule);
-            ruleResults.Add(ruleResult);
+            (operation, operationPrescription) = ruleResult.Create<Value>(requestObj);
+
             operations.Add(operation);
-            values.Add(value);
             operationPrescriptions.Add(operationPrescription);
+            values.Add(requestObj);
+
+            requestObj = new Value(13);
+            (ruleResult, rulePrescription) = requestObj.Exists(rule);
+            ruleResults.Add(ruleResult);
+
+            (operation, operationPrescription) = ruleResult.Create<Value>(requestObj);
+
+            operations.Add(operation);
+            operationPrescriptions.Add(operationPrescription);
+            values.Add(requestObj);
+
+
 
             var valIds = new List<Guid> {values[0].ValueId, values[1].ValueId};
             (operation, value, operationPrescription) = ruleResult.Create<Value>(new [] { values[0].ValueId }.ToList());

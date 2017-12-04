@@ -15,8 +15,10 @@ namespace RulEng.Reducers
             // Set up a temporary 'Processing' copy of the Store as our Unit of Work
             var newState = previousState.DeepClone();
 
-            // First identify rules for values that don't (yet) exist
+            // First identify rules for entities that may (not) exist
             newState = newState.AllExists(prescription as ProcessExistsRule);
+            // Then test for meaningful Values
+            newState = newState.AllHasMeaningfulValue(prescription as ProcessHasMeaningfulValueRule);
 
             return newState.DeepClone();
         }
@@ -43,12 +45,10 @@ namespace RulEng.Reducers
             var actionDate = DateTime.UtcNow;
 
             // First identify the potentially relevant entities
-            var entities = newState.Rules
-                .Select(r => (TypeKey)r)
-                .ToList()
-                .AddRange(newState.Values.Select(v => (TypeKey)v))
-                .AddRange(newState.Operations.Select(o => (TypeKey)o))
-                .AddRange(newState.Requests.Select(rq => (TypeKey)rq));
+            var entities = newState.Rules.Select(r => (TypeKey)r).ToList();
+            entities.AddRange(newState.Values.Select(v => (TypeKey)v));
+            entities.AddRange(newState.Operations.Select(o => (TypeKey)o));
+            entities.AddRange(newState.Requests.Select(rq => (TypeKey)rq));
 
             // Get the corresponding Rules
             var rulesToProcessList = newState.Rules.RulesToProcess(RuleType.Exists, entities);
@@ -96,14 +96,12 @@ namespace RulEng.Reducers
             {
                 var refValue = newState.Values.FirstOrDefault(v => v.EntityId == ruleToProcess.ReferenceValues[0].EntityId);
 
-                refValue.Detail
-
                 //var entitiesToAdd = ruleToProcess.ReferenceValues.Except(entities).ToList();
                 var newRuleResult = new RuleResult
                 {
                     RuleId = ruleToProcess.RuleId,
                     LastChanged = actionDate,
-                    Detail = true
+                    Detail = refValue.HasMeaningfulValue()
                 };
 
                 newState.RuleResults.Add(newRuleResult);

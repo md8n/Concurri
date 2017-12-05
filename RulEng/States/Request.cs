@@ -13,7 +13,7 @@ namespace RulEng.States
 
         public EntityType Type { get => EntityType.Request; }
 
-        public Guid RuleId { get; set; }
+        public Guid RuleResultId { get; set; }
 
         public JTokenType ValueType { get; set; }
 

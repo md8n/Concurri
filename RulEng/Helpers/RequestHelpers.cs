@@ -49,7 +49,7 @@ namespace RulEng.Helpers
             return new Request
             {
                 RequestId = Guid.NewGuid(),
-                RuleId = ruleResult.RuleId,
+                RuleResultId = ruleResult.RuleResultId,
                 ValueType = valueType,
                 Query = query
             };
@@ -60,7 +60,7 @@ namespace RulEng.Helpers
             return new Request
             {
                 RequestId = Guid.NewGuid(),
-                RuleId = ruleResult.RuleId,
+                RuleResultId = ruleResult.RuleResultId,
                 ValueType = valueType,
                 Query = query
             };

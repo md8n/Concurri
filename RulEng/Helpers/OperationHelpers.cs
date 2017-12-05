@@ -50,7 +50,7 @@ namespace RulEng.Helpers
             return new Operation
             {
                 OperationId = Guid.NewGuid(),
-                RuleId = ruleResult.RuleId,
+                RuleResultId = ruleResult.RuleResultId,
                 Operands = ImmutableArray.Create(entList.Select(el => new OperandKey{SourceValueIds = ImmutableArray.Create(el.EntityId), EntityId = el.EntityId, EntityType = el.EntityType}).ToArray()),
                 OperationType = OperationType.CreateUpdate
             };
@@ -61,7 +61,7 @@ namespace RulEng.Helpers
             return new Operation
             {
                 OperationId = Guid.NewGuid(),
-                RuleId = ruleResult.RuleId,
+                RuleResultId = ruleResult.RuleResultId,
                 Operands = ImmutableArray.Create(operands.ToArray()),
                 OperationType = OperationType.CreateUpdate
             };

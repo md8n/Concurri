@@ -4,6 +4,7 @@ namespace RulEng.States
 {
     public enum EntityType
     {
+        Error = -1,
         Unknown = 0,
         Rule = 1,
 

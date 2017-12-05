@@ -6,9 +6,11 @@ namespace RulEng.States
 {
     public class RuleResult : IEquatable<RuleResult>, IEntity, IAltHash
     {
+        public Guid RuleResultId { get; set; }
+
         public Guid RuleId { get; set; }
 
-        public Guid EntityId { get => RuleId; set => RuleId = value; }
+        public Guid EntityId { get => RuleResultId; set => RuleResultId = value; }
 
         public EntityType Type { get => EntityType.RuleResult; }
 
@@ -22,21 +24,22 @@ namespace RulEng.States
 
         public RuleResult(bool jToken)
         {
-            RuleId = Guid.NewGuid();
+            RuleResultId = Guid.NewGuid();
             Detail = jToken;
         }
 
         public RuleResult(Rule rule)
         {
+            RuleResultId = Guid.NewGuid();
             RuleId = rule.RuleId;
             Detail = false;
         }
 
-        public string GetAltHashCode => RuleId.ToString();
+        public string GetAltHashCode => RuleResultId.ToString();
 
         public override int GetHashCode()
         {
-            return RuleId.GetHashCode();
+            return RuleResultId.GetHashCode();
         }
 
         /// <summary>

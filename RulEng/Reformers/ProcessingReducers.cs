@@ -120,16 +120,16 @@ namespace RulEng.Reducers
                 .Select(v => v.RuleId)
                 .ToList();
             var operationprescriptionsToProcessList = newState.Operations
-                .Where(a => ruleIds.Contains(a.RuleId))
+                .Where(a => ruleIds.Contains(a.RuleResultId))
                 .ToList();
             var requestprescriptionsToProcessList = newState.Requests
-                .Where(a => ruleIds.Contains(a.RuleId))
+                .Where(a => ruleIds.Contains(a.RuleResultId))
                 .ToList();
 
             foreach (var ruleToProcess in ruleIds)
             {
                 var relevantOps = operationprescriptionsToProcessList
-                    .Where(o => o.RuleId == ruleToProcess)
+                    .Where(o => o.RuleResultId == ruleToProcess)
                     .ToList();
 
                 // Always do Assign Operation Prescriptions first

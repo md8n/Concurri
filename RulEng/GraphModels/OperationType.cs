@@ -14,7 +14,7 @@ namespace RulEng.GraphModels
         public OperationType()
         {
             Field(x => x.OperationId).Description("Unique ID of the Operation.");
-            Field(x => x.RuleId).Description("ID of the Rule this Operation references.");
+            Field(x => x.RuleResultId).Description("ID of the RuleResult this Operation references.");
             // TODO: check whether these next two are correct
             Field<ListGraphType<OperandKeyType>>("Operands");
             Field<ListGraphType<TypeKeyType>>("TargetEntities");

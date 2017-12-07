@@ -7,5 +7,7 @@ namespace RulEng.States
         Guid EntityId { get; set; }
 
         EntityType Type { get; }
+
+        DateTime LastChanged { get; set; }
     }
 }

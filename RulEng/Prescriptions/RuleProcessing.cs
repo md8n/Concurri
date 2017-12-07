@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Immutable;
+﻿using System.Collections.Immutable;
 using RulEng.States;
 
 /// <summary>
@@ -8,51 +7,51 @@ using RulEng.States;
 namespace RulEng.Prescriptions
 {
     /// <summary>
-    /// For each entity, test whether it exists
+    /// For each Entity, test whether it exists
     /// </summary>
     public class ProcessExistsRule : IRuleProcessing
     {
-        public IImmutableList<ITypeKey> Entities { get; set; }
+        public IImmutableList<IRulePrescription> Entities { get; set; }
     }
 
     /// <summary>
-    /// For each value, test whether it has a meaningful value (determined by the type of the value)
+    /// For each Value, test whether it has a meaningful Value (determined by the type of the Value.detail)
     /// </summary>
     public class ProcessHasMeaningfulValueRule : IRuleProcessing
     {
-        public IImmutableList<Guid> ValueIds { get; set; }
+        public IImmutableList<IRulePrescription> Entities { get; set; }
     }
 
     /// <summary>
-    /// For each pair of values, perform a A < B comparison relevant to their type
+    /// For each pair of Values, perform a A < B comparison relevant to their type
     /// </summary>
-    public class ProcessLessThanRule : IRuleProcessing
+    public class ProcessLessThanRule : IRuleValueProcessing
     {
-        public IImmutableList<IRuleCompare> ValueIds { get; set; }
+        public IImmutableList<IRulePrescription> Entities { get; set; }
     }
 
     /// <summary>
-    /// For each pair of values, perform a comparison relevant to their type
+    /// For each pair of Values, perform a comparison relevant to their type
     /// </summary>
-    public class ProcessEqualRule : IRuleProcessing
+    public class ProcessEqualRule : IRuleValueProcessing
     {
-        public IImmutableList<IRuleCompare> ValueIds { get; set; }
+        public IImmutableList<IRulePrescription> Entities { get; set; }
     }
 
     /// <summary>
-    /// For each pair of values, perform a A > B comparison relevant to their type
+    /// For each pair of Values, perform a A > B comparison relevant to their type
     /// </summary>
-    public class ProcessGreaterThanRule : IRuleProcessing
+    public class ProcessGreaterThanRule : IRuleValueProcessing
     {
-        public IImmutableList<IRuleCompare> ValueIds { get; set; }
+        public IImmutableList<IRulePrescription> Entities { get; set; }
     }
 
     /// <summary>
     /// For each pair of values, perform a B.exec(A) comparison - B is the Regex, A is (converted to) a string
     /// </summary>
-    public class ProcessRegexMatchRule : IRuleProcessing
+    public class ProcessRegexMatchRule : IRuleValueProcessing
     {
-        public IImmutableList<IRuleCompare> ValueIds { get; set; }
+        public IImmutableList<IRulePrescription> Entities { get; set; }
     }
 
     /// <summary>
@@ -60,7 +59,7 @@ namespace RulEng.Prescriptions
     /// </summary>
     public class ProcessAndRule : IRuleProcessing
     {
-        public IImmutableList<IRuleCollect> RuleResultIds { get; set; }
+        public IImmutableList<IRulePrescription> Entities { get; set; }
     }
 
     /// <summary>
@@ -68,7 +67,7 @@ namespace RulEng.Prescriptions
     /// </summary>
     public class ProcessOrRule : IRuleProcessing
     {
-        public IImmutableList<IRuleCollect> RuleResultIds { get; set; }
+        public IImmutableList<IRulePrescription> Entities { get; set; }
     }
 
     /// <summary>
@@ -76,6 +75,6 @@ namespace RulEng.Prescriptions
     /// </summary>
     public class ProcessXorRule : IRuleProcessing
     {
-        public IImmutableList<IRuleCollect> RuleResultIds { get; set; }
+        public IImmutableList<IRulePrescription> Entities { get; set; }
     }
 }

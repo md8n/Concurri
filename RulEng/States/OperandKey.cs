@@ -8,5 +8,6 @@ namespace RulEng.States
         public ImmutableArray<Guid> SourceValueIds { get; set; }
         public EntityType EntityType { get; set; }
         public Guid EntityId { get; set; }
+        public DateTime LastChanged { get; set; } = new DateTime(1980, 1, 1);
     }
 }

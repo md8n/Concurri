@@ -25,7 +25,7 @@ namespace RulEng.Helpers
                 throw new ArgumentOutOfRangeException("val.Type", "Exists helper creator is only for Processable entity types");
             }
 
-            var vType = new TypeKey { EntityId = val.EntityId, EntityType = val.Type };
+            var vType = new TypeKey { EntityId = val.EntityId, EntityType = val.Type, LastChanged = val.LastChanged };
 
             var rule = vType.ExistsRule();
             var ruleResult = new RuleResult(rule);
@@ -52,11 +52,9 @@ namespace RulEng.Helpers
                 throw new ArgumentException("rule was not a 'not' 'Exists' type Rule.  It cannot have an exists test added to it.");
             }
 
-            var vType = new TypeKey { EntityId = entity.EntityId, EntityType = entity.Type };
-
             // Add the test ref data to the end of the refvalues structure
             // and put the result back into the refvalues
-            rule.ReferenceValues = rule.ReferenceValues.Add(vType);
+            rule.ReferenceValues = rule.ReferenceValues.Add( entity.RulePrescription() );
 
             var ruleResult = new RuleResult(rule);
             var rulePrescription = rule.Exists();
@@ -117,7 +115,7 @@ namespace RulEng.Helpers
         /// <returns></returns>
         public static (Rule rule, RuleResult ruleResult, IRuleProcessing rulePrescription) HasMeaningfulValue<T>(this T val) where T : Value
         {
-            var vType = new TypeKey { EntityId = val.EntityId, EntityType = val.Type };
+            var vType = new TypeKey { EntityId = val.EntityId, EntityType = val.Type, LastChanged = val.LastChanged };
 
             var rule = vType.HasMeaningfulValueRule();
             var ruleResult = new RuleResult(rule);

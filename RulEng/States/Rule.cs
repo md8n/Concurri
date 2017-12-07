@@ -13,13 +13,15 @@ namespace RulEng.States
 
         public EntityType Type { get => EntityType.Rule; }
 
+        public DateTime LastChanged { get; set; } = new DateTime(1980, 1, 1);
+
         public string RuleName { get; set; }
 
         public RuleType RuleType { get; set; }
 
         public bool NegateResult { get; set; }
 
-        public ImmutableArray<ITypeKey> ReferenceValues { get; set; } = new ImmutableArray<ITypeKey>();
+        public ImmutableArray<IRulePrescription> ReferenceValues { get; set; } = new ImmutableArray<IRulePrescription>();
 
         /// <summary>
         /// The last time this rule was executed
@@ -71,7 +73,7 @@ namespace RulEng.States
 
         public static implicit operator TypeKey(Rule rule)
         {
-            return new TypeKey() { EntityId = rule.RuleId, EntityType = EntityType.Rule };
+            return new TypeKey() { EntityId = rule.RuleId, EntityType = EntityType.Rule, LastChanged = rule.LastChanged };
         }
     }
 }

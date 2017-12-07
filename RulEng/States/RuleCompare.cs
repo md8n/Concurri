@@ -1,13 +1,25 @@
 ﻿using System;
+using System.Collections.Immutable;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
 namespace RulEng.States
 {
-    public class RuleCompare : IRuleCompare
+    public class RuleCompare : IRulePrescription
     {
-        public Guid ValueAId { get; set; }
-        public Guid ValueBId { get; set; }
+        /// <summary>
+        /// The Id of the RuleResult that will receive the result of the Compare Rule
+        /// </summary>
+        public Guid RuleResultId { get; set; }
+
+        public int MinEntitiesRequired => 2;
+
+        public int? MaxEntitiesUsed { get => 2; set { } }
+
+        /// <summary>
+        /// The Ids of all of the Values that will be used in calculating the result of the Compare Rule
+        /// </summary>
+        public ImmutableList<ITypeKey> EntityIds { get; set; }
 
         public override string ToString()
         {

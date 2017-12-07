@@ -6,5 +6,6 @@ namespace RulEng.States
     {
         EntityType EntityType { get; set; }
         Guid EntityId { get; set; }
+        DateTime LastChanged { get; set; }
     }
 }

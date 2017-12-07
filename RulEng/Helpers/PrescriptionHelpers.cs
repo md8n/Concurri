@@ -18,11 +18,9 @@ namespace RulEng.Helpers
 
         public static IRuleProcessing HasMeaningfulValue(this Rule hasMeangingfulValueRule)
         {
-            var valueIds = hasMeangingfulValueRule.ReferenceValues.Select(rv => rv.EntityId);
-
             return new ProcessHasMeaningfulValueRule
             {
-                ValueIds = ImmutableList.CreateRange(valueIds)
+                Entities = ImmutableList.CreateRange(hasMeangingfulValueRule.ReferenceValues)
             };
         }
 

@@ -13,6 +13,8 @@ namespace RulEng.States
 
         public EntityType Type { get => EntityType.Request; }
 
+        public DateTime LastChanged { get; set; } = new DateTime(1980, 1, 1);
+
         public Guid RuleResultId { get; set; }
 
         public JTokenType ValueType { get; set; }
@@ -70,7 +72,7 @@ namespace RulEng.States
 
         public static implicit operator TypeKey(Request request)
         {
-            return new TypeKey() { EntityId = request.RequestId, EntityType = EntityType.Request };
+            return new TypeKey() { EntityId = request.RequestId, EntityType = EntityType.Request, LastChanged = request.LastChanged };
         }
     }
 }

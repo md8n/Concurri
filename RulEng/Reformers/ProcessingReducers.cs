@@ -5,6 +5,7 @@ using RulEng.Prescriptions;
 using RulEng.ProcessingState;
 using RulEng.States;
 using RulEng.Helpers;
+using System.Collections.Generic;
 
 namespace RulEng.Reducers
 {
@@ -32,6 +33,25 @@ namespace RulEng.Reducers
             newState = newState.AllOperations(prescription);
 
             return newState.DeepClone();
+        }
+
+        private static ICollection<TypeKey> GetRelevantEntities(this ProcessingRulEngStore newState, IRuleValueProcessing prescription)
+        {
+            var actionDate = DateTime.UtcNow;
+
+            // First identify the potentially relevant entities
+            var entityIds = prescription.Entities
+                .Where(vi => vi.EntityIds.Count >= 2)
+                .SelectMany(vi => vi.EntityIds.Take(2))
+                .Select(ei => ei.EntityId)
+                .Distinct()
+                .ToList();
+
+            return newState.Values
+                .Where(v => entityIds.Contains(v.EntityId))
+                .Select(v => (TypeKey)v)
+                .ToList();
+
         }
 
         /// <summary>
@@ -94,7 +114,7 @@ namespace RulEng.Reducers
 
             foreach (var ruleToProcess in rulesToProcessList)
             {
-                var refValue = newState.Values.FirstOrDefault(v => v.EntityId == ruleToProcess.ReferenceValues[0].EntityId);
+                var refValue = newState.Values.FirstOrDefault(v => v.EntityId == ruleToProcess.ReferenceValues[0].EntityIds[0].EntityId);
 
                 //var entitiesToAdd = ruleToProcess.ReferenceValues.Except(entities).ToList();
                 var newRuleResult = new RuleResult
@@ -103,6 +123,62 @@ namespace RulEng.Reducers
                     LastChanged = actionDate,
                     Detail = refValue.HasMeaningfulValue()
                 };
+
+                newState.RuleResults.Add(newRuleResult);
+
+                ruleToProcess.LastExecuted = actionDate;
+            }
+
+            return newState;
+        }
+
+        /// <summary>
+        /// Perform all LessThan and Not LessThan Rules
+        /// </summary>
+        /// <param name="newState"></param>
+        /// <param name="prescription"></param>
+        /// <returns></returns>
+        private static ProcessingRulEngStore AllLessThan(this ProcessingRulEngStore newState, ProcessLessThanRule prescription)
+        {
+            var actionDate = DateTime.UtcNow;
+
+            // First identify the potentially relevant entities
+            var entityIds = prescription.Entities
+                .Where(vi => vi.EntityIds.Count >= vi.MinEntitiesRequired)
+                .SelectMany(vi => vi.EntityIds.Take(vi.MaxEntitiesUsed.Value))
+                .Select(ei => ei.EntityId)
+                .Distinct()
+                .ToList();
+
+            var entities = newState.Values
+                .Where(v => entityIds.Contains(v.EntityId))
+                .Select(v => (TypeKey)v)
+                .ToList();
+
+            // Get the corresponding Rules
+            var rulesToProcessList = newState.Rules.RulesToProcess(RuleType.LessThan, entities);
+
+            foreach (var presValues in prescription.Entities)
+            {
+                var presEntities = presValues.EntityIds
+                    .Take(presValues.MaxEntitiesUsed.Value)
+                    .Select(e => e.EntityId)
+                    .ToArray();
+                var rulesToProcess = rulesToProcessList
+                    .Where(r => r.ReferenceValues.Select(rv => rv.EntityIds.Take(presValues.MaxEntitiesUsed.Value).Select(e => e.EntityId)).Any(ei => ei.SequenceEqual(presEntities)));
+                //var entitiesToAdd = ruleToProcess.ReferenceValues.Except(entities).ToList();
+
+                foreach(var ruleToProcess in rulesToProcess)
+                {
+                    var newRuleResult = new RuleResult
+                    {
+                        RuleResultId = ruleToProcess.ReferenceValues,
+                        RuleId = ruleToProcess.RuleId,
+                        LastChanged = actionDate,
+                        Detail = true
+                    };
+                }
+
 
                 newState.RuleResults.Add(newRuleResult);
 

@@ -118,7 +118,7 @@ namespace RulEng.States
 
         public static implicit operator TypeKey (Value value)
         {
-            return new TypeKey() { EntityId = value.ValueId, EntityType = EntityType.Value };
+            return new TypeKey() { EntityId = value.ValueId, EntityType = EntityType.Value, LastChanged = value.LastChanged };
         }
     }
 }

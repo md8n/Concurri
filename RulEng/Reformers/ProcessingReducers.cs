@@ -142,43 +142,116 @@ namespace RulEng.Reducers
         {
             var actionDate = DateTime.UtcNow;
 
-            // First identify the potentially relevant entities
-            var entityIds = prescription.Entities
-                .Where(vi => vi.EntityIds.Count >= vi.MinEntitiesRequired)
-                .SelectMany(vi => vi.EntityIds.Take(vi.MaxEntitiesUsed.Value))
-                .Select(ei => ei.EntityId)
+            // First get the potentially relevant entities in a cleaned form
+            var ruleResultEntitySets = prescription.Entities
+                .Where(vi => vi.EntityIds.Where(ve => ve.EntityType == EntityType.Value).Count() >= vi.MinEntitiesRequired)
+                .Select(pe => new {
+                    RuleResultId = pe.RuleResultId,
+                    Entities = new List<Value>(),
+                    EntityIds = pe.EntityIds
+                        .Where(ve => ve.EntityType == EntityType.Value)
+                        .Take(pe.MaxEntitiesUsed.Value)
+                        .Select(ve => ve.EntityId)
+                })
                 .Distinct()
                 .ToList();
 
-            var entities = newState.Values
-                .Where(v => entityIds.Contains(v.EntityId))
+            foreach(var ruleResultEntitySet in ruleResultEntitySets)
+            {
+                ruleResultEntitySet.Entities
+                    .AddRange(newState.Values.Where(v => ruleResultEntitySet.EntityIds.Contains(v.EntityId)));
+            }
+
+            var entities = ruleResultEntitySets
+                .SelectMany(v => v.Entities)
+                .Distinct()
                 .Select(v => (TypeKey)v)
                 .ToList();
 
             // Get the corresponding Rules
             var rulesToProcessList = newState.Rules.RulesToProcess(RuleType.LessThan, entities);
 
-            foreach (var presValues in prescription.Entities)
+            foreach (var presValues in ruleResultEntitySets)
             {
-                var presEntities = presValues.EntityIds
-                    .Take(presValues.MaxEntitiesUsed.Value)
-                    .Select(e => e.EntityId)
-                    .ToArray();
-                var rulesToProcess = rulesToProcessList
-                    .Where(r => r.ReferenceValues.Select(rv => rv.EntityIds.Take(presValues.MaxEntitiesUsed.Value).Select(e => e.EntityId)).Any(ei => ei.SequenceEqual(presEntities)));
-                //var entitiesToAdd = ruleToProcess.ReferenceValues.Except(entities).ToList();
+                var presEntities = presValues.Entities.ToArray();
+                var ruleToProcess = rulesToProcessList
+                    .SingleOrDefault(r => r.ReferenceValues.Any(rv => rv.RuleResultId == presValues.RuleResultId));
 
-                foreach(var ruleToProcess in rulesToProcess)
+                // There should be only 1 Rule to process, there could potentially be none
+                if (ruleToProcess == null)
                 {
-                    var newRuleResult = new RuleResult
-                    {
-                        RuleResultId = ruleToProcess.ReferenceValues,
-                        RuleId = ruleToProcess.RuleId,
-                        LastChanged = actionDate,
-                        Detail = true
-                    };
+                    continue;
                 }
 
+                var result = true;
+                for (var ix = 1; ix < presEntities.Length; ix++)
+                {
+                    if (presEntities[ix - 1].Detail.Type != presEntities[ix].Detail.Type)
+                    {
+                        result = false;
+                        break;
+                    }
+
+                    if (presEntities[ix - 1].Detail.IsNumeric())
+                    {
+                        if (presEntities[ix - 1].Detail.GetNumeric() < presEntities[ix].Detail.GetNumeric())
+                        {
+                            continue;
+                        }
+                        else
+                        {
+                            result = false;
+                            break;
+                        }
+                    }
+
+                    if (presEntities[ix - 1].Detail.IsDate())
+                    {
+                        if (presEntities[ix - 1].Detail.GetDate() < presEntities[ix].Detail.GetDate())
+                        {
+                            continue;
+                        }
+                        else
+                        {
+                            result = false;
+                            break;
+                        }
+                    }
+
+                    if (presEntities[ix - 1].Detail.IsText())
+                    {
+                        if (string.CompareOrdinal(presEntities[ix - 1].Detail.GetText(), presEntities[ix].Detail.GetText()) < 0)
+                        {
+                            continue;
+                        }
+                        else
+                        {
+                            result = false;
+                            break;
+                        }
+                    }
+
+                    //if (presEntities[ix - 1].Detail.IsGuid())
+                    //{
+                    //    if (presEntities[ix - 1].Detail.GetGuid() < presEntities[ix].Detail.GetGuid())
+                    //    {
+                    //        continue;
+                    //    }
+                    //    else
+                    //    {
+                    //        result = false;
+                    //        break;
+                    //    }
+                    //}
+                }
+
+                var newRuleResult = new RuleResult
+                {
+                    RuleResultId = presValues.RuleResultId,
+                    RuleId = ruleToProcess.RuleId,
+                    LastChanged = actionDate,
+                    Detail = ruleToProcess.NegateResult ? !result : result
+                };
 
                 newState.RuleResults.Add(newRuleResult);
 

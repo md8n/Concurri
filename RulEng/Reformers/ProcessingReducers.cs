@@ -28,6 +28,8 @@ namespace RulEng.Reducers
             newState = newState.AllEqual(prescription as ProcessEqualRule);
             newState = newState.AllGreaterThan(prescription as ProcessGreaterThanRule);
 
+            newState = newState.AllRegexMatch(prescription as ProcessRegexMatchRule);
+
             return newState.DeepClone();
         }
 
@@ -181,6 +183,7 @@ namespace RulEng.Reducers
             foreach (var presValues in ruleResultEntitySets)
             {
                 var presEntities = presValues.Entities.ToArray();
+
                 var ruleToProcess = rulesToProcessList
                     .SingleOrDefault(r => r.ReferenceValues.Any(rv => rv.RuleResultId == presValues.RuleResultId));
 
@@ -191,63 +194,67 @@ namespace RulEng.Reducers
                 }
 
                 var result = true;
-                for (var ix = 1; ix < presEntities.Length; ix++)
+
+                // All the Details must be of the same type
+                var firstDetailType = presEntities[0].Detail.Type;
+                if (!presEntities.All(pe => pe.Detail.Type == firstDetailType))
                 {
-                    if (presEntities[ix - 1].Detail.Type != presEntities[ix].Detail.Type)
+                    result = false;
+                }
+                else
+                {
+                    for (var ix = 1; ix < presEntities.Length; ix++)
                     {
-                        result = false;
-                        break;
-                    }
+                        if (presEntities[ix - 1].Detail.IsNumeric())
+                        {
+                            if (presEntities[ix - 1].Detail.GetNumeric() < presEntities[ix].Detail.GetNumeric())
+                            {
+                                continue;
+                            }
+                            else
+                            {
+                                result = false;
+                                break;
+                            }
+                        }
 
-                    if (presEntities[ix - 1].Detail.IsNumeric())
-                    {
-                        if (presEntities[ix - 1].Detail.GetNumeric() < presEntities[ix].Detail.GetNumeric())
+                        if (presEntities[ix - 1].Detail.IsDate())
                         {
-                            continue;
+                            if (presEntities[ix - 1].Detail.GetDate() < presEntities[ix].Detail.GetDate())
+                            {
+                                continue;
+                            }
+                            else
+                            {
+                                result = false;
+                                break;
+                            }
                         }
-                        else
-                        {
-                            result = false;
-                            break;
-                        }
-                    }
 
-                    if (presEntities[ix - 1].Detail.IsDate())
-                    {
-                        if (presEntities[ix - 1].Detail.GetDate() < presEntities[ix].Detail.GetDate())
+                        if (presEntities[ix - 1].Detail.IsText())
                         {
-                            continue;
+                            if (string.CompareOrdinal(presEntities[ix - 1].Detail.GetText(), presEntities[ix].Detail.GetText()) < 0)
+                            {
+                                continue;
+                            }
+                            else
+                            {
+                                result = false;
+                                break;
+                            }
                         }
-                        else
-                        {
-                            result = false;
-                            break;
-                        }
-                    }
 
-                    if (presEntities[ix - 1].Detail.IsText())
-                    {
-                        if (string.CompareOrdinal(presEntities[ix - 1].Detail.GetText(), presEntities[ix].Detail.GetText()) < 0)
+                        if (presEntities[ix - 1].Detail.IsGuid())
                         {
-                            continue;
-                        }
-                        else
-                        {
-                            result = false;
-                            break;
-                        }
-                    }
-
-                    if (presEntities[ix - 1].Detail.IsGuid())
-                    {
-                        if (string.CompareOrdinal(presEntities[ix - 1].Detail.GetGuid().ToString(), presEntities[ix].Detail.GetGuid().ToString()) < 0)
-                        {
-                            continue;
-                        }
-                        else
-                        {
-                            result = false;
-                            break;
+                            if (string.CompareOrdinal(presEntities[ix - 1].Detail.GetGuid().ToString(), presEntities[ix].Detail.GetGuid().ToString()) < 0)
+                            {
+                                continue;
+                            }
+                            else
+                            {
+                                result = false;
+                                break;
+                            }
                         }
                     }
                 }
@@ -320,63 +327,67 @@ namespace RulEng.Reducers
                 }
 
                 var result = true;
-                for (var ix = 1; ix < presEntities.Length; ix++)
+
+                // All the Details must be of the same type
+                var firstDetailType = presEntities[0].Detail.Type;
+                if (!presEntities.All(pe => pe.Detail.Type == firstDetailType))
                 {
-                    if (presEntities[ix - 1].Detail.Type != presEntities[ix].Detail.Type)
+                    result = false;
+                }
+                else
+                {
+                    for (var ix = 1; ix < presEntities.Length; ix++)
                     {
-                        result = false;
-                        break;
-                    }
+                        if (presEntities[ix - 1].Detail.IsNumeric())
+                        {
+                            if (presEntities[ix - 1].Detail.GetNumeric() == presEntities[ix].Detail.GetNumeric())
+                            {
+                                continue;
+                            }
+                            else
+                            {
+                                result = false;
+                                break;
+                            }
+                        }
 
-                    if (presEntities[ix - 1].Detail.IsNumeric())
-                    {
-                        if (presEntities[ix - 1].Detail.GetNumeric() == presEntities[ix].Detail.GetNumeric())
+                        if (presEntities[ix - 1].Detail.IsDate())
                         {
-                            continue;
+                            if (presEntities[ix - 1].Detail.GetDate() == presEntities[ix].Detail.GetDate())
+                            {
+                                continue;
+                            }
+                            else
+                            {
+                                result = false;
+                                break;
+                            }
                         }
-                        else
-                        {
-                            result = false;
-                            break;
-                        }
-                    }
 
-                    if (presEntities[ix - 1].Detail.IsDate())
-                    {
-                        if (presEntities[ix - 1].Detail.GetDate() == presEntities[ix].Detail.GetDate())
+                        if (presEntities[ix - 1].Detail.IsText())
                         {
-                            continue;
+                            if (string.CompareOrdinal(presEntities[ix - 1].Detail.GetText(), presEntities[ix].Detail.GetText()) == 0)
+                            {
+                                continue;
+                            }
+                            else
+                            {
+                                result = false;
+                                break;
+                            }
                         }
-                        else
-                        {
-                            result = false;
-                            break;
-                        }
-                    }
 
-                    if (presEntities[ix - 1].Detail.IsText())
-                    {
-                        if (string.CompareOrdinal(presEntities[ix - 1].Detail.GetText(), presEntities[ix].Detail.GetText()) == 0)
+                        if (presEntities[ix - 1].Detail.IsGuid())
                         {
-                            continue;
-                        }
-                        else
-                        {
-                            result = false;
-                            break;
-                        }
-                    }
-
-                    if (presEntities[ix - 1].Detail.IsGuid())
-                    {
-                        if (string.CompareOrdinal(presEntities[ix - 1].Detail.GetGuid().ToString(), presEntities[ix].Detail.GetGuid().ToString()) == 0)
-                        {
-                            continue;
-                        }
-                        else
-                        {
-                            result = false;
-                            break;
+                            if (string.CompareOrdinal(presEntities[ix - 1].Detail.GetGuid().ToString(), presEntities[ix].Detail.GetGuid().ToString()) == 0)
+                            {
+                                continue;
+                            }
+                            else
+                            {
+                                result = false;
+                                break;
+                            }
                         }
                     }
                 }
@@ -449,14 +460,15 @@ namespace RulEng.Reducers
                 }
 
                 var result = true;
+
+                // All the Details must be of the same type
+                var firstDetailType = presEntities[0].Detail.Type;
+                if (!presEntities.All(pe => pe.Detail.Type == firstDetailType))
+                {
+                    result = false;
+                }
                 for (var ix = 1; ix < presEntities.Length; ix++)
                 {
-                    if (presEntities[ix - 1].Detail.Type != presEntities[ix].Detail.Type)
-                    {
-                        result = false;
-                        break;
-                    }
-
                     if (presEntities[ix - 1].Detail.IsNumeric())
                     {
                         if (presEntities[ix - 1].Detail.GetNumeric() > presEntities[ix].Detail.GetNumeric())
@@ -578,7 +590,14 @@ namespace RulEng.Reducers
                 }
 
                 var result = true;
+
+                // All the Details must be of the same type
+                var secondDetailType = presEntities[1].Detail.Type;
                 if (!presEntities[0].Detail.Type.IsText())
+                {
+                    result = false;
+                }
+                else if (!presEntities.Skip(2).All(pe => pe.Detail.Type == secondDetailType))
                 {
                     result = false;
                 }

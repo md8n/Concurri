@@ -1,11 +1,14 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
+
 using Newtonsoft.Json.Linq;
+
 using RulEng.Prescriptions;
 using RulEng.ProcessingState;
 using RulEng.States;
 using RulEng.Helpers;
-using System.Collections.Generic;
 
 namespace RulEng.Reducers
 {
@@ -395,7 +398,7 @@ namespace RulEng.Reducers
         }
 
         /// <summary>
-        /// Perform all GreaterThan and Not GreaterThan Rules
+        /// Perform all Greater Than and Not Greater Than Rules
         /// </summary>
         /// <param name="newState"></param>
         /// <param name="prescription"></param>
@@ -495,7 +498,105 @@ namespace RulEng.Reducers
 
                     if (presEntities[ix - 1].Detail.IsGuid())
                     {
-                        if (string.CompareOrdinal(presEntities[ix - 1].Detail.GetGuid().ToString(), presEntities[ix].Detail.GetGuid().ToString()) < 0)
+                        if (string.CompareOrdinal(presEntities[ix - 1].Detail.GetGuid().ToString(), presEntities[ix].Detail.GetGuid().ToString()) > 0)
+                        {
+                            continue;
+                        }
+                        else
+                        {
+                            result = false;
+                            break;
+                        }
+                    }
+                }
+
+                var newRuleResult = new RuleResult
+                {
+                    RuleResultId = presValues.RuleResultId,
+                    RuleId = ruleToProcess.RuleId,
+                    LastChanged = actionDate,
+                    Detail = ruleToProcess.NegateResult ? !result : result
+                };
+
+                newState.RuleResults.Add(newRuleResult);
+
+                ruleToProcess.LastExecuted = actionDate;
+            }
+
+            return newState;
+        }
+
+        /// <summary>
+        /// Perform all RegexMatch and Not RegexMatch Rules
+        /// </summary>
+        /// <param name="newState"></param>
+        /// <param name="prescription"></param>
+        /// <returns></returns>
+        private static ProcessingRulEngStore AllRegexMatch(this ProcessingRulEngStore newState, ProcessRegexMatchRule prescription)
+        {
+            var actionDate = DateTime.UtcNow;
+
+            // First get the potentially relevant entities in a cleaned form
+            var ruleResultEntitySets = prescription.Entities
+                .Where(vi => vi.EntityIds.Where(ve => ve.EntityType == EntityType.Value).Count() >= vi.MinEntitiesRequired)
+                .Select(pe => new {
+                    RuleResultId = pe.RuleResultId,
+                    Entities = new List<Value>(),
+                    EntityIds = pe.EntityIds
+                        .Where(ve => ve.EntityType == EntityType.Value)
+                        .Take(pe.MaxEntitiesUsed.Value)
+                        .Select(ve => ve.EntityId)
+                })
+                .Distinct()
+                .ToList();
+
+            foreach (var ruleResultEntitySet in ruleResultEntitySets)
+            {
+                ruleResultEntitySet.Entities
+                    .AddRange(newState.Values.Where(v => ruleResultEntitySet.EntityIds.Contains(v.EntityId)));
+            }
+
+            var entities = ruleResultEntitySets
+                .SelectMany(v => v.Entities)
+                .Distinct()
+                .Select(v => (TypeKey)v)
+                .ToList();
+
+            // Get the corresponding Rules
+            var rulesToProcessList = newState.Rules.RulesToProcess(RuleType.RegularExpression, entities);
+
+            foreach (var presValues in ruleResultEntitySets)
+            {
+                var presEntities = presValues.Entities.ToArray();
+                var ruleToProcess = rulesToProcessList
+                    .SingleOrDefault(r => r.ReferenceValues.Any(rv => rv.RuleResultId == presValues.RuleResultId));
+
+                // There should be only 1 Rule to process, there could potentially be none
+                if (ruleToProcess == null)
+                {
+                    continue;
+                }
+
+                var result = true;
+                if (!presEntities[0].Detail.Type.IsText())
+                {
+                    result = false;
+                }
+                else
+                {
+                    var regex = new Regex(presEntities[0].Detail.GetText());
+
+                    for (var ix = 1; ix < presEntities.Length; ix++)
+                    {
+                        // TODO: Change this to test for regex and testable type
+                        if (!presEntities[ix].Detail.IsArray())
+                        {
+                            result = false;
+                            break;
+                        }
+
+                        var testValue = presEntities[ix].Detail.ToTextValue();
+                        if (regex.IsMatch(testValue))
                         {
                             continue;
                         }

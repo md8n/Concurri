@@ -74,5 +74,31 @@ namespace RulEng.Helpers
         {
             return token.IsGuid() ? (Guid?)token : null;
         }
+
+        public static string ToTextValue(this JToken token)
+        {
+            if (token.IsText())
+            {
+                return (string)token;
+            }
+
+            if (token.IsNumeric())
+            {
+                var decTok = (decimal?)token;
+                return decTok.HasValue ? decTok.ToString() : null;
+            }
+            if (token.IsDate())
+            {
+                var dateTok = (DateTime?)token;
+                return dateTok.HasValue ? dateTok.Value.ToString("u") : null;
+            }
+            if (token.IsGuid())
+            {
+                var guidTok = (Guid?)token;
+                return guidTok.HasValue ? guidTok.Value.ToString() : null;
+            }
+
+            return null;
+        }
     }
 }

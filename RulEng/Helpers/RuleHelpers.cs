@@ -9,29 +9,12 @@ namespace RulEng.Helpers
 {
     public static class RuleHelpers
     {
-        public static Rule UpdateMaxEntitiesUsed(this Rule rule)
-        {
-            // Ensure the MaxEntitiesUsed value is set (for Collection prescriptions)
-            foreach (var refValue in rule.ReferenceValues.Where(rv => !rv.MaxEntitiesUsed.HasValue))
-            {
-                refValue.MaxEntitiesUsed = refValue.EntityIds.Count;
-            }
-
-            return rule;
-        }
-
         public static List<Rule> RulesToProcess(this HashSet<Rule> rules, RuleType ruleType, List<TypeKey> entities)
         {
             var currentTime = DateTime.UtcNow;
 
-            // Ensure the MaxEntitiesUsed value is set (for Collection prescriptions)
-            foreach (var rule in rules.Where(r => r.ReferenceValues.Any(rv => !rv.MaxEntitiesUsed.HasValue)))
-            {
-                rule.UpdateMaxEntitiesUsed();
-            }
-
             var ruleRefEntities = rules
-                .SelectMany(r => r.ReferenceValues.SelectMany(rv => rv.EntityIds.Take(rv.MaxEntitiesUsed.Value)).Distinct())
+                .SelectMany(r => r.ReferenceValues.SelectMany(rv => rv.EntityIds).Distinct())
                 .Distinct()
                 .ToList();
 
@@ -70,7 +53,7 @@ namespace RulEng.Helpers
                 LastChanged = entity.LastChanged,
                 LastExecuted = entity.LastChanged,
                 NegateResult = negateResult,
-                ReferenceValues = ImmutableArray.Create(entity.RulePrescription())
+                ReferenceValues = ImmutableArray.Create((IRulePrescription)entity.RulePrescription<RuleUnary>())
             };
 
             return rule;
@@ -87,6 +70,8 @@ namespace RulEng.Helpers
             var nText = negateResult ? "non-" : "";
             var earliestDate = entities.Select(e => e.LastChanged).OrderBy(e => e).First();
 
+            var refValues = entities.RulePresciptions<RuleUnary>();
+
             var rule = new Rule
             {
                 RuleId = Guid.NewGuid(),
@@ -95,7 +80,7 @@ namespace RulEng.Helpers
                 LastChanged = earliestDate,
                 LastExecuted = earliestDate,
                 NegateResult = negateResult,
-                ReferenceValues = entities.RulePresciptions()
+                ReferenceValues = ImmutableArray.CreateRange(refValues.Select(r => (IRulePrescription)r))
             };
 
             return rule;
@@ -117,7 +102,7 @@ namespace RulEng.Helpers
                 LastChanged = value.LastChanged,
                 LastExecuted = value.LastChanged,
                 NegateResult = negateResult,
-                ReferenceValues = ImmutableArray.Create(value.RulePrescription())
+                ReferenceValues = ImmutableArray.Create((IRulePrescription)value.RulePrescription<RuleUnary>())
             };
 
             return rule;

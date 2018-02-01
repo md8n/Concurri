@@ -14,9 +14,9 @@ namespace RulEng.Helpers
         /// </summary>
         /// <param name="entity"></param>
         /// <returns></returns>
-        public static IRulePrescription RulePrescription (this ITypeKey entity)
+        public static T RulePrescription<T>(this ITypeKey entity) where T: IRulePrescription, new()
         {
-            IRulePrescription refValue = new RulePrescription { RuleResultId = Guid.NewGuid(), EntityIds = ImmutableList.Create(entity) };
+            var refValue = new T { RuleResultId = Guid.NewGuid(), EntityIds = ImmutableList.Create(entity) };
 
             return refValue;
         }
@@ -26,9 +26,11 @@ namespace RulEng.Helpers
         /// </summary>
         /// <param name="entities"></param>
         /// <returns></returns>
-        public static ImmutableArray<IRulePrescription> RulePresciptions (this IEnumerable<ITypeKey> entities)
+        public static T[] RulePresciptions<T>(this IEnumerable<ITypeKey> entities) where T : IRulePrescription, new()
         {
-            return ImmutableArray.CreateRange(entities.Select(e => e.RulePrescription()));
+            var refValues = entities.Select(e => e.RulePrescription<T>()).ToArray();
+
+            return refValues;
         }
 
         /// <summary>
@@ -37,7 +39,7 @@ namespace RulEng.Helpers
         /// <typeparam name="T"></typeparam>
         /// <param name="entity"></param>
         /// <returns></returns>
-        public static IRulePrescription RulePrescription<T>(this T entity) where T : IEntity
+        public static U RulePrescription<T, U>(this T entity) where T : IEntity where U : IRulePrescription, new()
         {
             if (!entity.IsProcessable())
             {
@@ -45,14 +47,16 @@ namespace RulEng.Helpers
             }
 
             var entTypeKey = new TypeKey { EntityId = entity.EntityId, EntityType = entity.Type, LastChanged = entity.LastChanged };
-            IRulePrescription refValue = new RulePrescription { RuleResultId = Guid.NewGuid(), EntityIds = ImmutableList.Create((ITypeKey)entTypeKey) };
+            var refValue = new U { RuleResultId = Guid.NewGuid(), EntityIds = ImmutableList.Create((ITypeKey)entTypeKey) };
 
             return refValue;
         }
 
-        public static ImmutableArray<IRulePrescription> RulePresciptions<T>(this IEnumerable<T> entities) where T : IEntity
+        public static ImmutableArray<U> RulePresciptions<T, U>(this IEnumerable<T> entities) where T : IEntity where U : IRulePrescription, new()
         {
-            return ImmutableArray.CreateRange(entities.Select(e => e.RulePrescription()));
+            var refValues = entities.Select(e => e.RulePrescription<T, U>()).ToArray();
+
+            return ImmutableArray.CreateRange(refValues);
         }
 
     }

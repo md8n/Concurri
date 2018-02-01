@@ -14,8 +14,6 @@ namespace RulEng.States
 
         public int MinEntitiesRequired => 2;
 
-        public int? MaxEntitiesUsed { get => 2; set { } }
-
         /// <summary>
         /// The Ids of all of the Values that will be used in calculating the result of the Compare Rule
         /// </summary>

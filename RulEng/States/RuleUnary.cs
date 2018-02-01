@@ -5,17 +5,17 @@ using Newtonsoft.Json.Linq;
 
 namespace RulEng.States
 {
-    public class RuleCollect : IRulePrescription
+    public class RuleUnary : IRulePrescription
     {
         /// <summary>
-        /// The Id of the RuleResult that will receive the result of the Collection Rule
+        /// The Id of the RuleResult that will receive the result of the Unary Rule
         /// </summary>
         public Guid RuleResultId { get; set; }
 
-        public int MinEntitiesRequired => 2;
+        public int MinEntitiesRequired => 1;
 
         /// <summary>
-        /// The Ids of all of the RuleResults that will be used in calculating the result of the Collection Rule
+        /// The Ids of all of the RuleResults that will be used in calculating the result of the Unary Rule
         /// </summary>
         public ImmutableList<ITypeKey> EntityIds { get; set; }
 

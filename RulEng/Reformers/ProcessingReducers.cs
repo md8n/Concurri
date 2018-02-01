@@ -159,7 +159,6 @@ namespace RulEng.Reducers
                     Entities = new List<Value>(),
                     EntityIds = pe.EntityIds
                         .Where(ve => ve.EntityType == EntityType.Value)
-                        .Take(pe.MaxEntitiesUsed.Value)
                         .Select(ve => ve.EntityId)
                 })
                 .Distinct()
@@ -293,7 +292,6 @@ namespace RulEng.Reducers
                     Entities = new List<Value>(),
                     EntityIds = pe.EntityIds
                         .Where(ve => ve.EntityType == EntityType.Value)
-                        .Take(pe.MaxEntitiesUsed.Value)
                         .Select(ve => ve.EntityId)
                 })
                 .Distinct()
@@ -426,7 +424,6 @@ namespace RulEng.Reducers
                     Entities = new List<Value>(),
                     EntityIds = pe.EntityIds
                         .Where(ve => ve.EntityType == EntityType.Value)
-                        .Take(pe.MaxEntitiesUsed.Value)
                         .Select(ve => ve.EntityId)
                 })
                 .Distinct()
@@ -556,7 +553,6 @@ namespace RulEng.Reducers
                     Entities = new List<Value>(),
                     EntityIds = pe.EntityIds
                         .Where(ve => ve.EntityType == EntityType.Value)
-                        .Take(pe.MaxEntitiesUsed.Value)
                         .Select(ve => ve.EntityId)
                 })
                 .Distinct()

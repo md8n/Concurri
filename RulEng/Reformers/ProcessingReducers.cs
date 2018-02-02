@@ -30,6 +30,10 @@ namespace RulEng.Reducers
 
             newState = newState.AllRegexMatch(prescription as ProcessRegexMatchRule);
 
+            newState = newState.AllAnd(prescription as ProcessAndRule);
+            newState = newState.AllOr(prescription as ProcessOrRule);
+            newState = newState.AllXor(prescription as ProcessXorRule);
+
             return newState.DeepClone();
         }
 
@@ -255,6 +259,24 @@ namespace RulEng.Reducers
                                 break;
                             }
                         }
+
+                        if (presEntities[ix - 1].Detail.IsBool())
+                        {
+                            var min1Val = !presEntities[ix - 1].Detail.GetBool().HasValue
+                                ? -1 : presEntities[ix - 1].Detail.GetBool().Value ? 0 : 1;
+                            var currVal = !presEntities[ix].Detail.GetBool().HasValue
+                                ? -1 : presEntities[ix].Detail.GetBool().Value ? 0 : 1;
+
+                            if (min1Val < currVal)
+                            {
+                                continue;
+                            }
+                            else
+                            {
+                                result = false;
+                                break;
+                            }
+                        }
                     }
                 }
 
@@ -387,6 +409,25 @@ namespace RulEng.Reducers
                                 break;
                             }
                         }
+
+                        if (presEntities[ix - 1].Detail.IsBool())
+                        {
+                            var min1Val = !presEntities[ix - 1].Detail.GetBool().HasValue
+                                ? -1 : presEntities[ix - 1].Detail.GetBool().Value ? 0 : 1;
+                            var currVal = !presEntities[ix].Detail.GetBool().HasValue
+                                ? -1 : presEntities[ix].Detail.GetBool().Value ? 0 : 1;
+
+                            if (min1Val == currVal)
+                            {
+                                continue;
+                            }
+                            else
+                            {
+                                result = false;
+                                break;
+                            }
+                        }
+
                     }
                 }
 
@@ -517,6 +558,24 @@ namespace RulEng.Reducers
                             break;
                         }
                     }
+
+                    if (presEntities[ix - 1].Detail.IsBool())
+                    {
+                        var min1Val = !presEntities[ix - 1].Detail.GetBool().HasValue
+                            ? -1 : presEntities[ix - 1].Detail.GetBool().Value ? 0 : 1;
+                        var currVal = !presEntities[ix].Detail.GetBool().HasValue
+                            ? -1 : presEntities[ix].Detail.GetBool().Value ? 0 : 1;
+                        if (min1Val > currVal)
+                        {
+                            continue;
+                        }
+                        else
+                        {
+                            result = false;
+                            break;
+                        }
+                    }
+
                 }
 
                 var newRuleResult = new RuleResult
@@ -638,6 +697,391 @@ namespace RulEng.Reducers
 
             return newState;
         }
+
+        /// <summary>
+        /// Perform all And and Not And Rules
+        /// </summary>
+        /// <param name="newState"></param>
+        /// <param name="prescription"></param>
+        /// <returns></returns>
+        private static ProcessingRulEngStore AllAnd(this ProcessingRulEngStore newState, ProcessAndRule prescription)
+        {
+            var actionDate = DateTime.UtcNow;
+
+            // First get the potentially relevant entities in a cleaned form
+            var ruleResultEntitySets = prescription.Entities
+                .Where(vi => vi.EntityIds.Where(ve => ve.EntityType == EntityType.Value).Count() >= vi.MinEntitiesRequired)
+                .Select(pe => new {
+                    RuleResultId = pe.RuleResultId,
+                    Entities = new List<Value>(),
+                    EntityIds = pe.EntityIds
+                        .Where(ve => ve.EntityType == EntityType.Value)
+                        .Select(ve => ve.EntityId)
+                })
+                .Distinct()
+                .ToList();
+
+            foreach (var ruleResultEntitySet in ruleResultEntitySets)
+            {
+                ruleResultEntitySet.Entities
+                    .AddRange(newState.Values.Where(v => ruleResultEntitySet.EntityIds.Contains(v.EntityId)));
+            }
+
+            var entities = ruleResultEntitySets
+                .SelectMany(v => v.Entities)
+                .Distinct()
+                .Select(v => (TypeKey)v)
+                .ToList();
+
+            // Get the corresponding Rules
+            var rulesToProcessList = newState.Rules.RulesToProcess(RuleType.And, entities);
+
+            foreach (var presValues in ruleResultEntitySets)
+            {
+                var presEntities = presValues.Entities.ToArray();
+                var ruleToProcess = rulesToProcessList
+                    .SingleOrDefault(r => r.ReferenceValues.Any(rv => rv.RuleResultId == presValues.RuleResultId));
+
+                // There should be only 1 Rule to process, there could potentially be none
+                if (ruleToProcess == null)
+                {
+                    continue;
+                }
+
+                var result = true;
+
+                // All the Details must be of the same type
+                var firstDetailType = presEntities[0].Detail.Type;
+                if (!presEntities.All(pe => pe.Detail.Type == firstDetailType))
+                {
+                    result = false;
+                }
+
+                // Next all entities are handled as follows:
+                // null = -1, zeroth = 0, something = 1
+                var ents = new List<int>();
+                if (presEntities[0].Detail.IsNumeric())
+                {
+                    for (var ix = 0; ix < presEntities.Length; ix++)
+                    {
+                        var entState = !presEntities[ix - 1].Detail.GetNumeric().HasValue
+                            ? -1 : presEntities[ix - 1].Detail.GetNumeric().Value == 0 ? 0 : 1;
+                    }
+                }
+                else if (presEntities[0].Detail.IsDate())
+                {
+                    var defDate = new DateTime(1980, 1, 1);
+                    for (var ix = 0; ix < presEntities.Length; ix++)
+                    {
+                        var entState = !presEntities[ix - 1].Detail.GetDate().HasValue
+                            ? -1 : presEntities[ix - 1].Detail.GetDate().Value == defDate ? 0 : 1;
+                        ents.Add(entState);
+                    }
+                }
+                else if (presEntities[0].Detail.IsText())
+                {
+                    for (var ix = 0; ix < presEntities.Length; ix++)
+                    {
+                        var entState = presEntities[ix - 1].Detail.GetText() == null
+                            ? -1 : string.IsNullOrWhiteSpace(presEntities[ix - 1].Detail.GetText()) ? 0 : 1;
+                        ents.Add(entState);
+                    }
+                }
+                else if (presEntities[0].Detail.IsGuid())
+                {
+                    var defGuid = Guid.Empty;
+                    for (var ix = 0; ix < presEntities.Length; ix++)
+                    {
+                        var entState = !presEntities[ix - 1].Detail.GetGuid().HasValue
+                            ? -1 : presEntities[ix - 1].Detail.GetGuid().Value == defGuid ? 0 : 1;
+                        ents.Add(entState);
+                    }
+                }
+                else if (presEntities[0].Detail.IsBool())
+                {
+                    for (var ix = 0; ix < presEntities.Length; ix++)
+                    {
+                        var entState = !presEntities[ix - 1].Detail.GetBool().HasValue
+                            ? -1 : presEntities[ix - 1].Detail.GetBool().Value ? 0 : 1;
+                        ents.Add(entState);
+                    }
+                }
+
+                result = ents.All(e => e == ents[0]);
+
+                var newRuleResult = new RuleResult
+                {
+                    RuleResultId = presValues.RuleResultId,
+                    RuleId = ruleToProcess.RuleId,
+                    LastChanged = actionDate,
+                    Detail = ruleToProcess.NegateResult ? !result : result
+                };
+
+                newState.RuleResults.Add(newRuleResult);
+
+                ruleToProcess.LastExecuted = actionDate;
+            }
+
+            return newState;
+        }
+
+        /// <summary>
+        /// Perform all Or and Not Or Rules
+        /// </summary>
+        /// <param name="newState"></param>
+        /// <param name="prescription"></param>
+        /// <returns></returns>
+        private static ProcessingRulEngStore AllOr(this ProcessingRulEngStore newState, ProcessOrRule prescription)
+        {
+            var actionDate = DateTime.UtcNow;
+
+            // First get the potentially relevant entities in a cleaned form
+            var ruleResultEntitySets = prescription.Entities
+                .Where(vi => vi.EntityIds.Where(ve => ve.EntityType == EntityType.Value).Count() >= vi.MinEntitiesRequired)
+                .Select(pe => new {
+                    RuleResultId = pe.RuleResultId,
+                    Entities = new List<Value>(),
+                    EntityIds = pe.EntityIds
+                        .Where(ve => ve.EntityType == EntityType.Value)
+                        .Select(ve => ve.EntityId)
+                })
+                .Distinct()
+                .ToList();
+
+            foreach (var ruleResultEntitySet in ruleResultEntitySets)
+            {
+                ruleResultEntitySet.Entities
+                    .AddRange(newState.Values.Where(v => ruleResultEntitySet.EntityIds.Contains(v.EntityId)));
+            }
+
+            var entities = ruleResultEntitySets
+                .SelectMany(v => v.Entities)
+                .Distinct()
+                .Select(v => (TypeKey)v)
+                .ToList();
+
+            // Get the corresponding Rules
+            var rulesToProcessList = newState.Rules.RulesToProcess(RuleType.Or, entities);
+
+            foreach (var presValues in ruleResultEntitySets)
+            {
+                var presEntities = presValues.Entities.ToArray();
+                var ruleToProcess = rulesToProcessList
+                    .SingleOrDefault(r => r.ReferenceValues.Any(rv => rv.RuleResultId == presValues.RuleResultId));
+
+                // There should be only 1 Rule to process, there could potentially be none
+                if (ruleToProcess == null)
+                {
+                    continue;
+                }
+
+                var result = true;
+
+                // All the Details must be of the same type
+                var firstDetailType = presEntities[0].Detail.Type;
+                if (!presEntities.All(pe => pe.Detail.Type == firstDetailType))
+                {
+                    result = false;
+                }
+
+                // Next all entities are handled as follows:
+                // null = -1, zeroth = 0, something = 1
+                var ents = new List<int>();
+                if (presEntities[0].Detail.IsNumeric())
+                {
+                    for (var ix = 0; ix < presEntities.Length; ix++)
+                    {
+                        var entState = !presEntities[ix - 1].Detail.GetNumeric().HasValue
+                            ? -1 : presEntities[ix - 1].Detail.GetNumeric().Value == 0 ? 0 : 1;
+                    }
+                }
+                else if (presEntities[0].Detail.IsDate())
+                {
+                    var defDate = new DateTime(1980, 1, 1);
+                    for (var ix = 0; ix < presEntities.Length; ix++)
+                    {
+                        var entState = !presEntities[ix - 1].Detail.GetDate().HasValue
+                            ? -1 : presEntities[ix - 1].Detail.GetDate().Value == defDate ? 0 : 1;
+                        ents.Add(entState);
+                    }
+                }
+                else if (presEntities[0].Detail.IsText())
+                {
+                    for (var ix = 0; ix < presEntities.Length; ix++)
+                    {
+                        var entState = presEntities[ix - 1].Detail.GetText() == null
+                            ? -1 : presEntities[ix - 1].Detail.GetText() == "" ? 0 : 1;
+                        ents.Add(entState);
+                    }
+                }
+                else if (presEntities[0].Detail.IsGuid())
+                {
+                    var defGuid = Guid.Empty;
+                    for (var ix = 0; ix < presEntities.Length; ix++)
+                    {
+                        var entState = !presEntities[ix - 1].Detail.GetGuid().HasValue
+                            ? -1 : presEntities[ix - 1].Detail.GetGuid().Value == defGuid ? 0 : 1;
+                        ents.Add(entState);
+                    }
+                }
+                else if (presEntities[0].Detail.IsBool())
+                {
+                    var defGuid = Guid.Empty;
+                    for (var ix = 0; ix < presEntities.Length; ix++)
+                    {
+                        var entState = !presEntities[ix - 1].Detail.GetBool().HasValue
+                            ? -1 : presEntities[ix - 1].Detail.GetBool().Value ? 0 : 1;
+                        ents.Add(entState);
+                    }
+                }
+
+                result = ents.Any(e => e == 1);
+
+                var newRuleResult = new RuleResult
+                {
+                    RuleResultId = presValues.RuleResultId,
+                    RuleId = ruleToProcess.RuleId,
+                    LastChanged = actionDate,
+                    Detail = ruleToProcess.NegateResult ? !result : result
+                };
+
+                newState.RuleResults.Add(newRuleResult);
+
+                ruleToProcess.LastExecuted = actionDate;
+            }
+
+            return newState;
+        }
+
+        /// <summary>
+        /// Perform all Xor and Not Xor Rules
+        /// </summary>
+        /// <param name="newState"></param>
+        /// <param name="prescription"></param>
+        /// <returns></returns>
+        private static ProcessingRulEngStore AllXor(this ProcessingRulEngStore newState, ProcessXorRule prescription)
+        {
+            var actionDate = DateTime.UtcNow;
+
+            // First get the potentially relevant entities in a cleaned form
+            var ruleResultEntitySets = prescription.Entities
+                .Where(vi => vi.EntityIds.Where(ve => ve.EntityType == EntityType.Value).Count() >= vi.MinEntitiesRequired)
+                .Select(pe => new {
+                    RuleResultId = pe.RuleResultId,
+                    Entities = new List<Value>(),
+                    EntityIds = pe.EntityIds
+                        .Where(ve => ve.EntityType == EntityType.Value)
+                        .Select(ve => ve.EntityId)
+                })
+                .Distinct()
+                .ToList();
+
+            foreach (var ruleResultEntitySet in ruleResultEntitySets)
+            {
+                ruleResultEntitySet.Entities
+                    .AddRange(newState.Values.Where(v => ruleResultEntitySet.EntityIds.Contains(v.EntityId)));
+            }
+
+            var entities = ruleResultEntitySets
+                .SelectMany(v => v.Entities)
+                .Distinct()
+                .Select(v => (TypeKey)v)
+                .ToList();
+
+            // Get the corresponding Rules
+            var rulesToProcessList = newState.Rules.RulesToProcess(RuleType.Xor, entities);
+
+            foreach (var presValues in ruleResultEntitySets)
+            {
+                var presEntities = presValues.Entities.ToArray();
+                var ruleToProcess = rulesToProcessList
+                    .SingleOrDefault(r => r.ReferenceValues.Any(rv => rv.RuleResultId == presValues.RuleResultId));
+
+                // There should be only 1 Rule to process, there could potentially be none
+                if (ruleToProcess == null)
+                {
+                    continue;
+                }
+
+                var result = true;
+
+                // All the Details must be of the same type
+                var firstDetailType = presEntities[0].Detail.Type;
+                if (!presEntities.All(pe => pe.Detail.Type == firstDetailType))
+                {
+                    result = false;
+                }
+
+                // Next all entities are handled as follows:
+                // null = -1, zeroth = 0, something = 1
+                var ents = new List<int>();
+                if (presEntities[0].Detail.IsNumeric())
+                {
+                    for (var ix = 0; ix < presEntities.Length; ix++)
+                    {
+                        var entState = !presEntities[ix - 1].Detail.GetNumeric().HasValue
+                            ? -1 : presEntities[ix - 1].Detail.GetNumeric().Value == 0 ? 0 : 1;
+                    }
+                }
+                else if (presEntities[0].Detail.IsDate())
+                {
+                    var defDate = new DateTime(1980, 1, 1);
+                    for (var ix = 0; ix < presEntities.Length; ix++)
+                    {
+                        var entState = !presEntities[ix - 1].Detail.GetDate().HasValue
+                            ? -1 : presEntities[ix - 1].Detail.GetDate().Value == defDate ? 0 : 1;
+                        ents.Add(entState);
+                    }
+                }
+                else if (presEntities[0].Detail.IsText())
+                {
+                    for (var ix = 0; ix < presEntities.Length; ix++)
+                    {
+                        var entState = presEntities[ix - 1].Detail.GetText() == null
+                            ? -1 : presEntities[ix - 1].Detail.GetText() == "" ? 0 : 1;
+                        ents.Add(entState);
+                    }
+                }
+                else if (presEntities[0].Detail.IsGuid())
+                {
+                    var defGuid = Guid.Empty;
+                    for (var ix = 0; ix < presEntities.Length; ix++)
+                    {
+                        var entState = !presEntities[ix - 1].Detail.GetGuid().HasValue
+                            ? -1 : presEntities[ix - 1].Detail.GetGuid().Value == defGuid ? 0 : 1;
+                        ents.Add(entState);
+                    }
+                }
+                else if (presEntities[0].Detail.IsBool())
+                {
+                    var defGuid = Guid.Empty;
+                    for (var ix = 0; ix < presEntities.Length; ix++)
+                    {
+                        var entState = !presEntities[ix - 1].Detail.GetBool().HasValue
+                            ? -1 : presEntities[ix - 1].Detail.GetBool().Value ? 0 : 1;
+                        ents.Add(entState);
+                    }
+                }
+
+                result = ents.Count - ents.Distinct().Count() == 0;
+
+                var newRuleResult = new RuleResult
+                {
+                    RuleResultId = presValues.RuleResultId,
+                    RuleId = ruleToProcess.RuleId,
+                    LastChanged = actionDate,
+                    Detail = ruleToProcess.NegateResult ? !result : result
+                };
+
+                newState.RuleResults.Add(newRuleResult);
+
+                ruleToProcess.LastExecuted = actionDate;
+            }
+
+            return newState;
+        }
+
+
 
         private static ProcessingRulEngStore AllOperations(this ProcessingRulEngStore newState, IOpReqProcessing prescription)
         {

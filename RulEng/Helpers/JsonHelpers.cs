@@ -55,6 +55,16 @@ namespace RulEng.Helpers
             return type == JTokenType.Date;
         }
 
+        public static bool IsBool(this JToken token)
+        {
+            return token == null ? false : token.Type.IsBool();
+        }
+
+        public static bool IsBool(this JTokenType type)
+        {
+            return type == JTokenType.Boolean;
+        }
+
         public static decimal? GetNumeric(this JToken token)
         {
             return token.IsNumeric() ? (decimal?)token : null;
@@ -73,6 +83,11 @@ namespace RulEng.Helpers
         public static Guid? GetGuid(this JToken token)
         {
             return token.IsGuid() ? (Guid?)token : null;
+        }
+
+        public static bool? GetBool(this JToken token)
+        {
+            return token.IsBool() ? (bool?)token : null;
         }
 
         public static string ToTextValue(this JToken token)

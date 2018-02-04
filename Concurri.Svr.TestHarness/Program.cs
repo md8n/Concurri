@@ -2,10 +2,9 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using Newtonsoft.Json.Linq;
 using Redux;
 using RulEng.Helpers;
-using RulEng.Reducers;
+using RulEng.Reformers;
 using RulEng.States;
 
 namespace Concurri.Svr.TestHarness

@@ -43,7 +43,7 @@ namespace RulEng.Helpers
         {
             if (!entity.IsProcessable())
             {
-                throw new ArgumentOutOfRangeException("entity.Type", "RulePrescription helper creator is only for Processable entity types");
+                throw new ArgumentOutOfRangeException(nameof(entity), "RulePrescription helper creator is only for Processable entity types");
             }
 
             var entTypeKey = new TypeKey { EntityId = entity.EntityId, EntityType = entity.Type, LastChanged = entity.LastChanged };

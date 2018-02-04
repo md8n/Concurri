@@ -22,7 +22,7 @@ namespace RulEng.Helpers
         {
             if (!val.IsProcessable())
             {
-                throw new ArgumentOutOfRangeException("val.Type", "Exists helper creator is only for Processable entity types");
+                throw new ArgumentOutOfRangeException(nameof(val), "Exists helper creator is only for Processable entity types");
             }
 
             var vType = new TypeKey { EntityId = val.EntityId, EntityType = val.Type, LastChanged = val.LastChanged };
@@ -37,14 +37,14 @@ namespace RulEng.Helpers
         /// <summary>
         /// Add this Entity Exists test to an existing Exists Rule
         /// </summary>
-        /// <param name="val"></param>
+        /// <param name="entity"></param>
         /// <param name="rule"></param>
         /// <returns></returns>
         public static (RuleResult ruleResult, IAction rulePrescription) Exists<T>(this T entity, Rule rule) where T : IEntity
         {
             if (!entity.IsProcessable())
             {
-                throw new ArgumentOutOfRangeException("entity.Type", "Exists helper creator is only for Processable entity types");
+                throw new ArgumentOutOfRangeException(nameof(entity), "Exists helper creator is only for Processable entity types");
             }
 
             if (rule.RuleType != RuleType.Exists || !rule.NegateResult)
@@ -54,7 +54,7 @@ namespace RulEng.Helpers
 
             // Add the test ref data to the end of the refvalues structure
             // and put the result back into the refvalues
-            rule.ReferenceValues = rule.ReferenceValues.Add( entity.RulePrescription() );
+            rule.ReferenceValues = rule.ReferenceValues.Add( entity.RulePrescription<T, RuleUnary>() );
 
             var ruleResult = new RuleResult(rule);
             var rulePrescription = rule.Exists();
@@ -75,7 +75,7 @@ namespace RulEng.Helpers
         {
             var eOfType = default(T);
 
-            var vOper = new OperandKey()
+            var vOper = new OperandKey
             {
                 SourceValueIds = ImmutableArray.Create(entity.EntityId),
                 EntityId = entity.EntityId,
@@ -92,12 +92,12 @@ namespace RulEng.Helpers
         /// Build the Create Operation, Entity and Prescription to match the RuleResult
         /// </summary>
         /// <param name="ruleResult"></param>
-        /// <param name="valueIds"></param>
+        /// <param name="entityIds"></param>
         /// <returns></returns>
         public static (Operation operation, T value, ICrud operationPrescription) Create<T>(this RuleResult ruleResult, IEnumerable<Guid> entityIds) where T : IEntity
         {
             var entity = default(T);
-            var vOper = new OperandKey() { SourceValueIds = ImmutableArray.Create(entityIds.ToArray()), EntityId = entity.EntityId, EntityType = EntityType.Value };
+            var vOper = new OperandKey { SourceValueIds = ImmutableArray.Create(entityIds.ToArray()), EntityId = entity.EntityId, EntityType = EntityType.Value };
             var operation = ruleResult.AddOperation(new[] { vOper });
 
             var operationPrescription = operation.Create();
@@ -132,12 +132,12 @@ namespace RulEng.Helpers
             foreach (var vSet in valueIds.ToArray())
             {
                 var value = new Value(0);
-                vOpers.Add(new OperandKey() { SourceValueIds = ImmutableArray.Create(vSet.ToArray()), EntityId = value.ValueId, EntityType = EntityType.Value });
+                vOpers.Add(new OperandKey { SourceValueIds = ImmutableArray.Create(vSet.ToArray()), EntityId = value.ValueId, EntityType = EntityType.Value });
             }
 
             var operation = ruleResult.AddOperation(vOpers);
-            var operationPrescription = new OperationMxAddProcessing();
-            operationPrescription.Entities = ImmutableArray.Create(vOpers.ToArray());
+            var operationPrescription =
+                new OperationMxAddProcessing {Entities = ImmutableArray.Create(vOpers.ToArray())};
 
             return (operation, values, operationPrescription);
         }

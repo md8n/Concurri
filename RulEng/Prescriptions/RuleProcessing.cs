@@ -6,6 +6,7 @@ using RulEng.States;
 /// </summary>
 namespace RulEng.Prescriptions
 {
+    /// <inheritdoc />
     /// <summary>
     /// For each Entity, test whether it exists
     /// </summary>
@@ -14,6 +15,7 @@ namespace RulEng.Prescriptions
         public IImmutableList<IRulePrescription> Entities { get; set; }
     }
 
+    /// <inheritdoc />
     /// <summary>
     /// For each Value, test whether it has a meaningful Value (determined by the type of the Value.detail)
     /// </summary>
@@ -22,9 +24,8 @@ namespace RulEng.Prescriptions
         public IImmutableList<IRulePrescription> Entities { get; set; }
     }
 
-    /// <summary>
-    /// For each pair of Values, perform a A < B comparison relevant to their type
-    /// </summary>
+    /// <inheritdoc />
+    /// <![CDATA[Name cannot begin with the ' ' character, hexadecimal value 0x20. Line 3, position 39.]]>
     public class ProcessLessThanRule : IRuleValueProcessing
     {
         public IImmutableList<IRulePrescription> Entities { get; set; }

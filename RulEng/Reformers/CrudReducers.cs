@@ -3,20 +3,18 @@ using System.Linq;
 using RulEng.Prescriptions;
 using RulEng.States;
 
-namespace RulEng.Reducers
+namespace RulEng.Reformers
 {
     public static class CrudReducers
     {
         public static ImmutableHashSet<T> CrudReducer<T>(ImmutableHashSet<T> state, ICrud prescription) where T: IEntity
         {
-            if (prescription is Create<T> createEntityPrescription)
+            switch (prescription)
             {
-                return CreateEntityReducer(state, createEntityPrescription);
-            }
-
-            if (prescription is Delete<T> deleteEntityPrescription)
-            {
-                return DeleteEntityReducer(state, deleteEntityPrescription);
+                case Create<T> createEntityPrescription:
+                    return CreateEntityReducer(state, createEntityPrescription);
+                case Delete<T> deleteEntityPrescription:
+                    return DeleteEntityReducer(state, deleteEntityPrescription);
             }
 
             return state;

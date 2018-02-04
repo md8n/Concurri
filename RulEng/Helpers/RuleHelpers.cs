@@ -97,7 +97,7 @@ namespace RulEng.Helpers
             var rule = new Rule
             {
                 RuleId = Guid.NewGuid(),
-                RuleName = $"Test for meaningful value of Value {((TypeKey)value).ToString()}",
+                RuleName = $"Test for meaningful value of Value {(TypeKey)value}",
                 RuleType = RuleType.HasMeaningfulValue,
                 LastChanged = value.LastChanged,
                 LastExecuted = value.LastChanged,

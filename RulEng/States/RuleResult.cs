@@ -12,7 +12,7 @@ namespace RulEng.States
 
         public Guid EntityId { get => RuleResultId; set => RuleResultId = value; }
 
-        public EntityType Type { get => EntityType.RuleResult; }
+        public EntityType Type => EntityType.RuleResult;
 
         public DateTime LastChanged { get; set; } = new DateTime(1980, 1, 1);
 
@@ -49,11 +49,10 @@ namespace RulEng.States
         /// <returns></returns>
         public override bool Equals(object obj)
         {
-            var a = obj as Value;
-
-            return a != null && Equals(a);
+            return obj is Value a && Equals(a);
         }
 
+        /// <inheritdoc />
         /// <summary>
         /// Shallow equality - only compares the Id
         /// </summary>

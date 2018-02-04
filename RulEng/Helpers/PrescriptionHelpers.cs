@@ -1,8 +1,6 @@
-﻿using Redux;
+﻿using System.Collections.Immutable;
 using RulEng.Prescriptions;
 using RulEng.States;
-using System.Collections.Immutable;
-using System.Linq;
 
 namespace RulEng.Helpers
 {

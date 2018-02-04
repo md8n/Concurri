@@ -7,7 +7,7 @@ namespace RulEng.Helpers
     {
         public static bool IsArray(this JToken token)
         {
-            return token == null ? false : token.Type.IsArray();
+            return token?.Type.IsArray() ?? false;
         }
 
         public static bool IsArray(this JTokenType type)
@@ -17,7 +17,7 @@ namespace RulEng.Helpers
 
         public static bool IsNumeric(this JToken token)
         {
-            return token == null ? false : token.Type.IsNumeric();
+            return token?.Type.IsNumeric() ?? false;
         }
 
         public static bool IsNumeric(this JTokenType type)
@@ -27,7 +27,7 @@ namespace RulEng.Helpers
 
         public static bool IsText(this JToken token)
         {
-            return token == null ? false : token.Type.IsText();
+            return token?.Type.IsText() ?? false;
         }
 
         public static bool IsText(this JTokenType type)
@@ -37,7 +37,7 @@ namespace RulEng.Helpers
 
         public static bool IsGuid(this JToken token)
         {
-            return token == null ? false : token.Type.IsGuid();
+            return token?.Type.IsGuid() ?? false;
         }
 
         public static bool IsGuid(this JTokenType type)
@@ -47,7 +47,7 @@ namespace RulEng.Helpers
 
         public static bool IsDate(this JToken token)
         {
-            return token == null ? false : token.Type.IsDate();
+            return token?.Type.IsDate() ?? false;
         }
 
         public static bool IsDate(this JTokenType type)
@@ -57,7 +57,7 @@ namespace RulEng.Helpers
 
         public static bool IsBool(this JToken token)
         {
-            return token == null ? false : token.Type.IsBool();
+            return token?.Type.IsBool() ?? false;
         }
 
         public static bool IsBool(this JTokenType type)
@@ -105,12 +105,12 @@ namespace RulEng.Helpers
             if (token.IsDate())
             {
                 var dateTok = (DateTime?)token;
-                return dateTok.HasValue ? dateTok.Value.ToString("u") : null;
+                return dateTok?.ToString("u");
             }
             if (token.IsGuid())
             {
                 var guidTok = (Guid?)token;
-                return guidTok.HasValue ? guidTok.Value.ToString() : null;
+                return guidTok?.ToString();
             }
 
             return null;

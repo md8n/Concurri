@@ -7,6 +7,7 @@ namespace RulEng.States
 {
     public class RuleUnary : IRulePrescription
     {
+        /// <inheritdoc />
         /// <summary>
         /// The Id of the RuleResult that will receive the result of the Unary Rule
         /// </summary>
@@ -14,6 +15,7 @@ namespace RulEng.States
 
         public int MinEntitiesRequired => 1;
 
+        /// <inheritdoc />
         /// <summary>
         /// The Ids of all of the RuleResults that will be used in calculating the result of the Unary Rule
         /// </summary>

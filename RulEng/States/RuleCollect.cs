@@ -7,6 +7,7 @@ namespace RulEng.States
 {
     public class RuleCollect : IRulePrescription
     {
+        /// <inheritdoc />
         /// <summary>
         /// The Id of the RuleResult that will receive the result of the Collection Rule
         /// </summary>
@@ -14,6 +15,7 @@ namespace RulEng.States
 
         public int MinEntitiesRequired => 2;
 
+        /// <inheritdoc />
         /// <summary>
         /// The Ids of all of the RuleResults that will be used in calculating the result of the Collection Rule
         /// </summary>

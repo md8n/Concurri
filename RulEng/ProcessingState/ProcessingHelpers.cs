@@ -17,7 +17,7 @@ namespace RulEng.ProcessingState
         {
             return source == null 
                 ? ImmutableHashSet.Create<T>() 
-                : ImmutableHashSet.CreateRange<T>(source);
+                : ImmutableHashSet.CreateRange(source);
         }
 
         public static ProcessingRulEngStore DeepClone(this RulEngStore rvStore)
@@ -25,7 +25,7 @@ namespace RulEng.ProcessingState
             var newStore = new ProcessingRulEngStore
             {
                 Rules = rvStore?.Rules.ToHashSet(),
-                RuleResults = rvStore.RuleResults.ToHashSet(),
+                RuleResults = rvStore?.RuleResults.ToHashSet(),
                 Operations = rvStore?.Operations.ToHashSet(),
                 Requests = rvStore?.Requests.ToHashSet(),
                 Values = rvStore?.Values.ToHashSet()

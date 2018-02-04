@@ -19,7 +19,7 @@ namespace RulEng.States
 
         public Guid EntityId { get => OperationId; set => OperationId = value; }
 
-        public EntityType Type { get => EntityType.Operation; }
+        public EntityType Type => EntityType.Operation;
 
         public DateTime LastChanged { get; set; } = new DateTime(1980, 1, 1);
 
@@ -51,9 +51,7 @@ namespace RulEng.States
         /// <returns></returns>
         public override bool Equals(object obj)
         {
-            var a = obj as Operation;
-
-            return a != null && Equals(a);
+            return obj is Operation a && Equals(a);
         }
 
         /// <summary>
@@ -79,7 +77,7 @@ namespace RulEng.States
 
         public static implicit operator TypeKey(Operation operation)
         {
-            return new TypeKey() { EntityId = operation.OperationId, EntityType = EntityType.Operation, LastChanged = operation.LastChanged };
+            return new TypeKey { EntityId = operation.OperationId, EntityType = EntityType.Operation, LastChanged = operation.LastChanged };
         }
     }
 }

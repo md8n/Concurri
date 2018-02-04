@@ -11,7 +11,7 @@ namespace RulEng.States
 
         public Guid EntityId { get => RuleId; set => RuleId = value; }
 
-        public EntityType Type { get => EntityType.Rule; }
+        public EntityType Type => EntityType.Rule;
 
         public DateTime LastChanged { get; set; } = new DateTime(1980, 1, 1);
 
@@ -47,9 +47,7 @@ namespace RulEng.States
         /// <returns></returns>
         public override bool Equals(object obj)
         {
-            var a = obj as Rule;
-
-            return a != null && Equals(a);
+            return obj is Rule a && Equals(a);
         }
 
         /// <summary>
@@ -73,7 +71,7 @@ namespace RulEng.States
 
         public static implicit operator TypeKey(Rule rule)
         {
-            return new TypeKey() { EntityId = rule.RuleId, EntityType = EntityType.Rule, LastChanged = rule.LastChanged };
+            return new TypeKey { EntityId = rule.RuleId, EntityType = EntityType.Rule, LastChanged = rule.LastChanged };
         }
     }
 }

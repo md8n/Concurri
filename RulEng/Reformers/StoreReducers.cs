@@ -3,7 +3,7 @@ using Redux;
 using RulEng.Prescriptions;
 using RulEng.States;
 
-namespace RulEng.Reducers
+namespace RulEng.Reformers
 {
     public static class StoreReducers
     {

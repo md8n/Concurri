@@ -1,10 +1,7 @@
-﻿using Newtonsoft.Json.Linq;
-using RulEng.ProcessingState;
+﻿using System;
+
+using Newtonsoft.Json.Linq;
 using RulEng.States;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 
 namespace RulEng.Helpers
 {
@@ -12,7 +9,7 @@ namespace RulEng.Helpers
     {
         public static bool HasMeaningfulValue(this Value value)
         {
-            if (value == null || value.Detail == null)
+            if (value?.Detail == null)
             {
                 return false;
             }
@@ -65,6 +62,10 @@ namespace RulEng.Helpers
                 case JTokenType.TimeSpan: // 17	A TimeSpan value.
                     var jTimeSpan = detail.Value<TimeSpan?>();
                     return jTimeSpan.HasValue;
+                case JTokenType.Constructor:
+                case JTokenType.Property:
+                case JTokenType.Raw:
+                case JTokenType.Bytes:
                 default:
                     return false;
             }

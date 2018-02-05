@@ -188,97 +188,9 @@ namespace RulEng.Reformers
                 var ruleToProcess = rulesToProcessList
                     .SingleOrDefault(r => r.ReferenceValues.Any(rv => rv.RuleResultId == presValues.RuleResultId));
 
-                // There should be only 1 Rule to process, there could potentially be none
-                if (ruleToProcess == null)
-                {
-                    continue;
-                }
-
-                var result = true;
-
-                // All the Details must be of the same type
-                var firstDetailType = presEntities[0].Detail.Type;
-                if (presEntities.Any(pe => pe.Detail.Type != firstDetailType))
-                {
-                    result = false;
-                }
-                else
-                {
-                    for (var ix = 1; ix < presEntities.Length; ix++)
-                    {
-                        if (presEntities[ix - 1].Detail.IsNumeric())
-                        {
-                            if (presEntities[ix - 1].Detail.GetNumeric() < presEntities[ix].Detail.GetNumeric())
-                            {
-                                continue;
-                            }
-
-                            result = false;
-                            break;
-                        }
-
-                        if (presEntities[ix - 1].Detail.IsDate())
-                        {
-                            if (presEntities[ix - 1].Detail.GetDate() < presEntities[ix].Detail.GetDate())
-                            {
-                                continue;
-                            }
-
-                            result = false;
-                            break;
-                        }
-
-                        if (presEntities[ix - 1].Detail.IsText())
-                        {
-                            if (string.CompareOrdinal(presEntities[ix - 1].Detail.GetText(), presEntities[ix].Detail.GetText()) < 0)
-                            {
-                                continue;
-                            }
-
-                            result = false;
-                            break;
-                        }
-
-                        if (presEntities[ix - 1].Detail.IsGuid())
-                        {
-                            if (string.CompareOrdinal(presEntities[ix - 1].Detail.GetGuid().ToString(), presEntities[ix].Detail.GetGuid().ToString()) < 0)
-                            {
-                                continue;
-                            }
-
-                            result = false;
-                            break;
-                        }
-
-                        if (presEntities[ix - 1].Detail.IsBool())
-                        {
-                            var min1Val = !presEntities[ix - 1].Detail.GetBool().HasValue
-                                ? -1 : presEntities[ix - 1].Detail.GetBool().Value ? 0 : 1;
-                            var currVal = !presEntities[ix].Detail.GetBool().HasValue
-                                ? -1 : presEntities[ix].Detail.GetBool().Value ? 0 : 1;
-
-                            if (min1Val < currVal)
-                            {
-                                continue;
-                            }
-
-                            result = false;
-                            break;
-                        }
-                    }
-                }
-
-                var newRuleResult = new RuleResult
-                {
-                    RuleResultId = presValues.RuleResultId,
-                    RuleId = ruleToProcess.RuleId,
-                    LastChanged = actionDate,
-                    Detail = ruleToProcess.NegateResult ? !result : result
-                };
+                var newRuleResult = ruleToProcess.LessThanTest(presEntities, presValues.RuleResultId, actionDate);
 
                 newState.RuleResults.Add(newRuleResult);
-
-                ruleToProcess.LastExecuted = actionDate;
             }
 
             return newState;
@@ -469,94 +381,9 @@ namespace RulEng.Reformers
                 var ruleToProcess = rulesToProcessList
                     .SingleOrDefault(r => r.ReferenceValues.Any(rv => rv.RuleResultId == presValues.RuleResultId));
 
-                // There should be only 1 Rule to process, there could potentially be none
-                if (ruleToProcess == null)
-                {
-                    continue;
-                }
-
-                var result = true;
-
-                // All the Details must be of the same type
-                var firstDetailType = presEntities[0].Detail.Type;
-                if (presEntities.Any(pe => pe.Detail.Type != firstDetailType))
-                {
-                    result = false;
-                }
-                for (var ix = 1; ix < presEntities.Length; ix++)
-                {
-                    if (presEntities[ix - 1].Detail.IsNumeric())
-                    {
-                        if (presEntities[ix - 1].Detail.GetNumeric() > presEntities[ix].Detail.GetNumeric())
-                        {
-                            continue;
-                        }
-
-                        result = false;
-                        break;
-                    }
-
-                    if (presEntities[ix - 1].Detail.IsDate())
-                    {
-                        if (presEntities[ix - 1].Detail.GetDate() > presEntities[ix].Detail.GetDate())
-                        {
-                            continue;
-                        }
-
-                        result = false;
-                        break;
-                    }
-
-                    if (presEntities[ix - 1].Detail.IsText())
-                    {
-                        if (string.CompareOrdinal(presEntities[ix - 1].Detail.GetText(), presEntities[ix].Detail.GetText()) > 0)
-                        {
-                            continue;
-                        }
-
-                        result = false;
-                        break;
-                    }
-
-                    if (presEntities[ix - 1].Detail.IsGuid())
-                    {
-                        if (string.CompareOrdinal(presEntities[ix - 1].Detail.GetGuid().ToString(), presEntities[ix].Detail.GetGuid().ToString()) > 0)
-                        {
-                            continue;
-                        }
-
-                        result = false;
-                        break;
-                    }
-
-                    if (presEntities[ix - 1].Detail.IsBool())
-                    {
-                        var min1Val = !presEntities[ix - 1].Detail.GetBool().HasValue
-                            ? -1 : presEntities[ix - 1].Detail.GetBool().Value ? 0 : 1;
-                        var currVal = !presEntities[ix].Detail.GetBool().HasValue
-                            ? -1 : presEntities[ix].Detail.GetBool().Value ? 0 : 1;
-                        if (min1Val > currVal)
-                        {
-                            continue;
-                        }
-
-                        result = false;
-                        break;
-                    }
-
-                }
-
-                var newRuleResult = new RuleResult
-                {
-                    RuleResultId = presValues.RuleResultId,
-                    RuleId = ruleToProcess.RuleId,
-                    LastChanged = actionDate,
-                    Detail = ruleToProcess.NegateResult ? !result : result
-                };
+                var newRuleResult = ruleToProcess.LessThanTest(presEntities, presValues.RuleResultId, actionDate);
 
                 newState.RuleResults.Add(newRuleResult);
-
-                ruleToProcess.LastExecuted = actionDate;
             }
 
             return newState;
@@ -681,7 +508,7 @@ namespace RulEng.Reformers
                     RuleResultId = pe.RuleResultId,
                     Entities = new List<Value>(),
                     EntityIds = pe.EntityIds
-                        .Where(ve => ve.EntityType == EntityType.Value)
+                        .Where(ve => ve.EntityType == EntityType.RuleResult)
                         .Select(ve => ve.EntityId)
                 })
                 .Distinct()
@@ -716,58 +543,19 @@ namespace RulEng.Reformers
 
                 var result = true;
 
-                // All the Details must be of the same type
-                var firstDetailType = presEntities[0].Detail.Type;
-                if (presEntities.Any(pe => pe.Detail.Type != firstDetailType))
+                // All the Details must be boolean and have a value
+                if (presEntities.Any(pe => pe.Detail.Type != JTokenType.Boolean))
+                {
+                    result = false;
+                }
+                if (presEntities.Any(pe => !pe.Detail.GetBool().HasValue))
                 {
                     result = false;
                 }
 
-                // Next all entities are handled as follows:
-                // null = -1, zeroth = 0, something = 1
-                var ents = new List<int>();
-                if (presEntities[0].Detail.IsNumeric())
-                {
-                    ents.AddRange(presEntities.Select((t, ix) => !presEntities[ix - 1].Detail.GetNumeric().HasValue
-                        ? -1
-                        : presEntities[ix - 1].Detail.GetNumeric().Value == 0
-                            ? 0
-                            : 1));
-                }
-                else if (presEntities[0].Detail.IsDate())
-                {
-                    var defDate = new DateTime(1980, 1, 1);
-                    ents.AddRange(presEntities.Select((t, ix) => !presEntities[ix - 1].Detail.GetDate().HasValue
-                        ? -1
-                        : presEntities[ix - 1].Detail.GetDate().Value == defDate
-                            ? 0
-                            : 1));
-                }
-                else if (presEntities[0].Detail.IsText())
-                {
-                    ents.AddRange(presEntities.Select((t, ix) => presEntities[ix - 1].Detail.GetText() == null
-                        ? -1
-                        : string.IsNullOrWhiteSpace(presEntities[ix - 1].Detail.GetText())
-                            ? 0
-                            : 1));
-                }
-                else if (presEntities[0].Detail.IsGuid())
-                {
-                    var defGuid = Guid.Empty;
-                    ents.AddRange(presEntities.Select((t, ix) => !presEntities[ix - 1].Detail.GetGuid().HasValue
-                        ? -1
-                        : presEntities[ix - 1].Detail.GetGuid().Value == defGuid
-                            ? 0
-                            : 1));
-                }
-                else if (presEntities[0].Detail.IsBool())
-                {
-                    ents.AddRange(presEntities.Select((t, ix) => !presEntities[ix - 1].Detail.GetBool().HasValue
-                        ? -1
-                        : presEntities[ix - 1].Detail.GetBool().Value
-                            ? 0
-                            : 1));
-                }
+                // Next all RuleResults are handled as follows:
+                var ents = new List<bool>();
+                    ents.AddRange(presEntities.Select((t, ix) => presEntities[ix - 1].Detail.GetBool().Value));
 
                 result = ents.All(e => e == ents[0]);
 
@@ -804,7 +592,7 @@ namespace RulEng.Reformers
                     pe.RuleResultId,
                     Entities = new List<Value>(),
                     EntityIds = pe.EntityIds
-                        .Where(ve => ve.EntityType == EntityType.Value)
+                        .Where(ve => ve.EntityType == EntityType.RuleResult)
                         .Select(ve => ve.EntityId)
                 })
                 .Distinct()
@@ -839,60 +627,20 @@ namespace RulEng.Reformers
 
                 var result = true;
 
-                // All the Details must be of the same type
-                var firstDetailType = presEntities[0].Detail.Type;
-                if (presEntities.Any(pe => pe.Detail.Type != firstDetailType))
+                // All the Details must be boolean and have a value
+                if (presEntities.Any(pe => pe.Detail.Type != JTokenType.Boolean))
+                {
+                    result = false;
+                }
+                if (presEntities.Any(pe => !pe.Detail.GetBool().HasValue))
                 {
                     result = false;
                 }
 
-                // Next all entities are handled as follows:
-                // null = -1, zeroth = 0, something = 1
-                var ents = new List<int>();
-                if (presEntities[0].Detail.IsNumeric())
-                {
-                    ents.AddRange(presEntities.Select((t, ix) => !presEntities[ix - 1].Detail.GetNumeric().HasValue
-                        ? -1
-                        : presEntities[ix - 1].Detail.GetNumeric().Value == 0
-                            ? 0
-                            : 1));
-                }
-                else if (presEntities[0].Detail.IsDate())
-                {
-                    var defDate = new DateTime(1980, 1, 1);
-                    ents.AddRange(presEntities.Select((t, ix) => !presEntities[ix - 1].Detail.GetDate().HasValue
-                        ? -1
-                        : presEntities[ix - 1].Detail.GetDate().Value == defDate
-                            ? 0
-                            : 1));
-                }
-                else if (presEntities[0].Detail.IsText())
-                {
-                    ents.AddRange(presEntities.Select((t, ix) => presEntities[ix - 1].Detail.GetText() == null
-                        ? -1
-                        : presEntities[ix - 1].Detail.GetText() == ""
-                            ? 0
-                            : 1));
-                }
-                else if (presEntities[0].Detail.IsGuid())
-                {
-                    var defGuid = Guid.Empty;
-                    ents.AddRange(presEntities.Select((t, ix) => !presEntities[ix - 1].Detail.GetGuid().HasValue
-                        ? -1
-                        : presEntities[ix - 1].Detail.GetGuid().Value == defGuid
-                            ? 0
-                            : 1));
-                }
-                else if (presEntities[0].Detail.IsBool())
-                {
-                    ents.AddRange(presEntities.Select((t, ix) => !presEntities[ix - 1].Detail.GetBool().HasValue
-                        ? -1
-                        : presEntities[ix - 1].Detail.GetBool().Value
-                            ? 0
-                            : 1));
-                }
+                var ents = new List<bool>();
+                    ents.AddRange(presEntities.Select((t, ix) => presEntities[ix - 1].Detail.GetBool().Value));
 
-                result = ents.Any(e => e == 1);
+                result = ents.Any(e => e == true);
 
                 var newRuleResult = new RuleResult
                 {
@@ -927,7 +675,7 @@ namespace RulEng.Reformers
                     RuleResultId = pe.RuleResultId,
                     Entities = new List<Value>(),
                     EntityIds = pe.EntityIds
-                        .Where(ve => ve.EntityType == EntityType.Value)
+                        .Where(ve => ve.EntityType == EntityType.RuleResult)
                         .Select(ve => ve.EntityId)
                 })
                 .Distinct()
@@ -962,58 +710,18 @@ namespace RulEng.Reformers
 
                 var result = true;
 
-                // All the Details must be of the same type
-                var firstDetailType = presEntities[0].Detail.Type;
-                if (presEntities.Any(pe => pe.Detail.Type != firstDetailType))
+                // All the Details must be boolean and have a value
+                if (presEntities.Any(pe => pe.Detail.Type != JTokenType.Boolean))
+                {
+                    result = false;
+                }
+                if (presEntities.Any(pe => !pe.Detail.GetBool().HasValue))
                 {
                     result = false;
                 }
 
-                // Next all entities are handled as follows:
-                // null = -1, zeroth = 0, something = 1
-                var ents = new List<int>();
-                if (presEntities[0].Detail.IsNumeric())
-                {
-                    ents.AddRange(presEntities.Select((t, ix) => !presEntities[ix - 1].Detail.GetNumeric().HasValue
-                        ? -1
-                        : presEntities[ix - 1].Detail.GetNumeric().Value == 0
-                            ? 0
-                            : 1));
-                }
-                else if (presEntities[0].Detail.IsDate())
-                {
-                    var defDate = new DateTime(1980, 1, 1);
-                    ents.AddRange(presEntities.Select((t, ix) => !presEntities[ix - 1].Detail.GetDate().HasValue
-                        ? -1
-                        : presEntities[ix - 1].Detail.GetDate().Value == defDate
-                            ? 0
-                            : 1));
-                }
-                else if (presEntities[0].Detail.IsText())
-                {
-                    ents.AddRange(presEntities.Select((t, ix) => presEntities[ix - 1].Detail.GetText() == null
-                        ? -1
-                        : presEntities[ix - 1].Detail.GetText() == ""
-                            ? 0
-                            : 1));
-                }
-                else if (presEntities[0].Detail.IsGuid())
-                {
-                    var defGuid = Guid.Empty;
-                    ents.AddRange(presEntities.Select((t, ix) => !presEntities[ix - 1].Detail.GetGuid().HasValue
-                        ? -1
-                        : presEntities[ix - 1].Detail.GetGuid().Value == defGuid
-                            ? 0
-                            : 1));
-                }
-                else if (presEntities[0].Detail.IsBool())
-                {
-                    ents.AddRange(presEntities.Select((t, ix) => !presEntities[ix - 1].Detail.GetBool().HasValue
-                        ? -1
-                        : presEntities[ix - 1].Detail.GetBool().Value
-                            ? 0
-                            : 1));
-                }
+                var ents = new List<bool>();
+                ents.AddRange(presEntities.Select((t, ix) => presEntities[ix - 1].Detail.GetBool().Value));
 
                 result = ents.Count - ents.Distinct().Count() == 0;
 

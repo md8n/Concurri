@@ -2,6 +2,7 @@
 using System.Collections.Immutable;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using RulEng.Helpers;
 
 namespace RulEng.States
 {
@@ -13,7 +14,7 @@ namespace RulEng.States
 
         public EntityType Type => EntityType.Rule;
 
-        public DateTime LastChanged { get; set; } = new DateTime(1980, 1, 1);
+        public DateTime LastChanged { get; set; } = DefaultHelpers.DefDate();
 
         public string RuleName { get; set; }
 
@@ -26,13 +27,13 @@ namespace RulEng.States
         /// <summary>
         /// The last time this rule was executed
         /// </summary>
-        public DateTime LastExecuted { get; set; } = new DateTime(1980, 1, 1);
+        public DateTime LastExecuted { get; set; } = DefaultHelpers.DefDate();
 
         public string GetAltHashCode => RuleId.ToString();
 
         public Rule()
         {
-            LastExecuted = new DateTime(1980, 1, 1);
+            LastExecuted = DefaultHelpers.DefDate();
         }
 
         public override int GetHashCode()

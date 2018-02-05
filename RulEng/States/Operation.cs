@@ -2,6 +2,7 @@
 using System.Collections.Immutable;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using RulEng.Helpers;
 
 namespace RulEng.States
 {
@@ -21,7 +22,7 @@ namespace RulEng.States
 
         public EntityType Type => EntityType.Operation;
 
-        public DateTime LastChanged { get; set; } = new DateTime(1980, 1, 1);
+        public DateTime LastChanged { get; set; } = DefaultHelpers.DefDate();
 
         public Guid RuleResultId { get; set; }
 

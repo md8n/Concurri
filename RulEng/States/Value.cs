@@ -1,6 +1,7 @@
 ﻿using System;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using RulEng.Helpers;
 
 namespace RulEng.States
 {
@@ -12,7 +13,7 @@ namespace RulEng.States
 
         public EntityType Type => EntityType.Value;
 
-        public DateTime LastChanged { get; set; } = new DateTime(1980, 1, 1);
+        public DateTime LastChanged { get; set; } = DefaultHelpers.DefDate();
 
         public JToken Detail { get; set; }
 

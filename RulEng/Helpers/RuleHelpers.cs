@@ -4,6 +4,8 @@ using System.Collections.Generic;
 
 using RulEng.States;
 using System.Linq;
+using RulEng.Prescriptions;
+using RulEng.ProcessingState;
 
 namespace RulEng.Helpers
 {
@@ -107,6 +109,5 @@ namespace RulEng.Helpers
 
             return rule;
         }
-
     }
 }

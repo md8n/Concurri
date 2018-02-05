@@ -46,25 +46,6 @@ namespace RulEng.Reformers
             return newState.DeepClone();
         }
 
-        private static ICollection<TypeKey> GetRelevantEntities(this ProcessingRulEngStore newState, IRuleValueProcessing prescription)
-        {
-            var actionDate = DateTime.UtcNow;
-
-            // First identify the potentially relevant entities
-            var entityIds = prescription.Entities
-                .Where(vi => vi.EntityIds.Count >= 2)
-                .SelectMany(vi => vi.EntityIds.Take(2))
-                .Select(ei => ei.EntityId)
-                .Distinct()
-                .ToList();
-
-            return newState.Values
-                .Where(v => entityIds.Contains(v.EntityId))
-                .Select(v => (TypeKey)v)
-                .ToList();
-
-        }
-
         /// <summary>
         /// Perform all Exists and Not Exists Rules
         /// </summary>
@@ -157,11 +138,12 @@ namespace RulEng.Reformers
             var ruleResultEntitySets = prescription.Entities
                 .Where(vi => vi.EntityIds.Count(ve => ve.EntityType == EntityType.Value) >= vi.MinEntitiesRequired)
                 .Select(pe => new {
-                    RuleResultId = pe.RuleResultId,
+                    pe.RuleResultId,
                     Entities = new List<Value>(),
                     EntityIds = pe.EntityIds
                         .Where(ve => ve.EntityType == EntityType.Value)
                         .Select(ve => ve.EntityId)
+                        .ToList()
                 })
                 .Distinct()
                 .ToList();
@@ -210,7 +192,7 @@ namespace RulEng.Reformers
             var ruleResultEntitySets = prescription.Entities
                 .Where(vi => vi.EntityIds.Count(ve => ve.EntityType == EntityType.Value) >= vi.MinEntitiesRequired)
                 .Select(pe => new {
-                    RuleResultId = pe.RuleResultId,
+                    pe.RuleResultId,
                     Entities = new List<Value>(),
                     EntityIds = pe.EntityIds
                         .Where(ve => ve.EntityType == EntityType.Value)
@@ -246,92 +228,9 @@ namespace RulEng.Reformers
                     continue;
                 }
 
-                var result = true;
-
-                // All the Details must be of the same type
-                var firstDetailType = presEntities[0].Detail.Type;
-                if (presEntities.Any(pe => pe.Detail.Type != firstDetailType))
-                {
-                    result = false;
-                }
-                else
-                {
-                    for (var ix = 1; ix < presEntities.Length; ix++)
-                    {
-                        if (presEntities[ix - 1].Detail.IsNumeric())
-                        {
-                            if (presEntities[ix - 1].Detail.GetNumeric() == presEntities[ix].Detail.GetNumeric())
-                            {
-                                continue;
-                            }
-
-                            result = false;
-                            break;
-                        }
-
-                        if (presEntities[ix - 1].Detail.IsDate())
-                        {
-                            if (presEntities[ix - 1].Detail.GetDate() == presEntities[ix].Detail.GetDate())
-                            {
-                                continue;
-                            }
-
-                            result = false;
-                            break;
-                        }
-
-                        if (presEntities[ix - 1].Detail.IsText())
-                        {
-                            if (string.CompareOrdinal(presEntities[ix - 1].Detail.GetText(), presEntities[ix].Detail.GetText()) == 0)
-                            {
-                                continue;
-                            }
-
-                            result = false;
-                            break;
-                        }
-
-                        if (presEntities[ix - 1].Detail.IsGuid())
-                        {
-                            if (string.CompareOrdinal(presEntities[ix - 1].Detail.GetGuid().ToString(), presEntities[ix].Detail.GetGuid().ToString()) == 0)
-                            {
-                                continue;
-                            }
-
-                            result = false;
-                            break;
-                        }
-
-                        if (presEntities[ix - 1].Detail.IsBool())
-                        {
-                            var min1Val = !presEntities[ix - 1].Detail.GetBool().HasValue
-                                ? -1 : presEntities[ix - 1].Detail.GetBool().Value ? 0 : 1;
-                            var currVal = !presEntities[ix].Detail.GetBool().HasValue
-                                ? -1 : presEntities[ix].Detail.GetBool().Value ? 0 : 1;
-
-                            if (min1Val == currVal)
-                            {
-                                continue;
-                            }
-
-                            result = false;
-                            break;
-                        }
-
-                    }
-                }
-
-                var newRuleResult = new RuleResult
-                {
-                    RuleResultId = presValues.RuleResultId,
-                    RuleId = ruleToProcess.RuleId,
-                    LastChanged = actionDate,
-                    Detail = ruleToProcess.NegateResult ? !result : result
-                };
+                var newRuleResult = ruleToProcess.EqualTest(presEntities, presValues.RuleResultId, actionDate);
 
                 newState.RuleResults.Add(newRuleResult);
-
-                ruleToProcess.LastExecuted = actionDate;
             }
 
             return newState;
@@ -351,7 +250,7 @@ namespace RulEng.Reformers
             var ruleResultEntitySets = prescription.Entities
                 .Where(vi => vi.EntityIds.Count(ve => ve.EntityType == EntityType.Value) >= vi.MinEntitiesRequired)
                 .Select(pe => new {
-                    RuleResultId = pe.RuleResultId,
+                    pe.RuleResultId,
                     Entities = new List<Value>(),
                     EntityIds = pe.EntityIds
                         .Where(ve => ve.EntityType == EntityType.Value)
@@ -403,7 +302,7 @@ namespace RulEng.Reformers
             var ruleResultEntitySets = prescription.Entities
                 .Where(vi => vi.EntityIds.Count(ve => ve.EntityType == EntityType.Value) >= vi.MinEntitiesRequired)
                 .Select(pe => new {
-                    RuleResultId = pe.RuleResultId,
+                    pe.RuleResultId,
                     Entities = new List<Value>(),
                     EntityIds = pe.EntityIds
                         .Where(ve => ve.EntityType == EntityType.Value)
@@ -503,10 +402,10 @@ namespace RulEng.Reformers
 
             // First get the potentially relevant entities in a cleaned form
             var ruleResultEntitySets = prescription.Entities
-                .Where(vi => vi.EntityIds.Count(ve => ve.EntityType == EntityType.Value) >= vi.MinEntitiesRequired)
+                .Where(vi => vi.EntityIds.Count(ve => ve.EntityType == EntityType.RuleResult) >= vi.MinEntitiesRequired)
                 .Select(pe => new {
-                    RuleResultId = pe.RuleResultId,
-                    Entities = new List<Value>(),
+                    pe.RuleResultId,
+                    Entities = new List<RuleResult>(),
                     EntityIds = pe.EntityIds
                         .Where(ve => ve.EntityType == EntityType.RuleResult)
                         .Select(ve => ve.EntityId)
@@ -517,7 +416,7 @@ namespace RulEng.Reformers
             foreach (var ruleResultEntitySet in ruleResultEntitySets)
             {
                 ruleResultEntitySet.Entities
-                    .AddRange(newState.Values.Where(v => ruleResultEntitySet.EntityIds.Contains(v.EntityId)));
+                    .AddRange(newState.RuleResults.Where(v => ruleResultEntitySet.EntityIds.Contains(v.EntityId)));
             }
 
             var entities = ruleResultEntitySets
@@ -541,23 +440,8 @@ namespace RulEng.Reformers
                     continue;
                 }
 
-                var result = true;
-
-                // All the Details must be boolean and have a value
-                if (presEntities.Any(pe => pe.Detail.Type != JTokenType.Boolean))
-                {
-                    result = false;
-                }
-                if (presEntities.Any(pe => !pe.Detail.GetBool().HasValue))
-                {
-                    result = false;
-                }
-
-                // Next all RuleResults are handled as follows:
-                var ents = new List<bool>();
-                    ents.AddRange(presEntities.Select((t, ix) => presEntities[ix - 1].Detail.GetBool().Value));
-
-                result = ents.All(e => e == ents[0]);
+                var ents = presEntities.Select((t, ix) => presEntities[ix - 1].Detail).ToList();
+                var result = ents.All(e => e == ents[0]);
 
                 var newRuleResult = new RuleResult
                 {
@@ -587,10 +471,10 @@ namespace RulEng.Reformers
 
             // First get the potentially relevant entities in a cleaned form
             var ruleResultEntitySets = prescription.Entities
-                .Where(vi => vi.EntityIds.Count(ve => ve.EntityType == EntityType.Value) >= vi.MinEntitiesRequired)
+                .Where(vi => vi.EntityIds.Count(ve => ve.EntityType == EntityType.RuleResult) >= vi.MinEntitiesRequired)
                 .Select(pe => new {
                     pe.RuleResultId,
-                    Entities = new List<Value>(),
+                    Entities = new List<RuleResult>(),
                     EntityIds = pe.EntityIds
                         .Where(ve => ve.EntityType == EntityType.RuleResult)
                         .Select(ve => ve.EntityId)
@@ -601,7 +485,7 @@ namespace RulEng.Reformers
             foreach (var ruleResultEntitySet in ruleResultEntitySets)
             {
                 ruleResultEntitySet.Entities
-                    .AddRange(newState.Values.Where(v => ruleResultEntitySet.EntityIds.Contains(v.EntityId)));
+                    .AddRange(newState.RuleResults.Where(v => ruleResultEntitySet.EntityIds.Contains(v.EntityId)));
             }
 
             var entities = ruleResultEntitySets
@@ -625,22 +509,7 @@ namespace RulEng.Reformers
                     continue;
                 }
 
-                var result = true;
-
-                // All the Details must be boolean and have a value
-                if (presEntities.Any(pe => pe.Detail.Type != JTokenType.Boolean))
-                {
-                    result = false;
-                }
-                if (presEntities.Any(pe => !pe.Detail.GetBool().HasValue))
-                {
-                    result = false;
-                }
-
-                var ents = new List<bool>();
-                    ents.AddRange(presEntities.Select((t, ix) => presEntities[ix - 1].Detail.GetBool().Value));
-
-                result = ents.Any(e => e == true);
+                var result = presEntities.Select((t, ix) => presEntities[ix - 1].Detail).Any(e => e);
 
                 var newRuleResult = new RuleResult
                 {
@@ -670,10 +539,10 @@ namespace RulEng.Reformers
 
             // First get the potentially relevant entities in a cleaned form
             var ruleResultEntitySets = prescription.Entities
-                .Where(vi => vi.EntityIds.Count(ve => ve.EntityType == EntityType.Value) >= vi.MinEntitiesRequired)
+                .Where(vi => vi.EntityIds.Count(ve => ve.EntityType == EntityType.RuleResult) >= vi.MinEntitiesRequired)
                 .Select(pe => new {
-                    RuleResultId = pe.RuleResultId,
-                    Entities = new List<Value>(),
+                    pe.RuleResultId,
+                    Entities = new List<RuleResult>(),
                     EntityIds = pe.EntityIds
                         .Where(ve => ve.EntityType == EntityType.RuleResult)
                         .Select(ve => ve.EntityId)
@@ -684,7 +553,7 @@ namespace RulEng.Reformers
             foreach (var ruleResultEntitySet in ruleResultEntitySets)
             {
                 ruleResultEntitySet.Entities
-                    .AddRange(newState.Values.Where(v => ruleResultEntitySet.EntityIds.Contains(v.EntityId)));
+                    .AddRange(newState.RuleResults.Where(v => ruleResultEntitySet.EntityIds.Contains(v.EntityId)));
             }
 
             var entities = ruleResultEntitySets
@@ -708,22 +577,8 @@ namespace RulEng.Reformers
                     continue;
                 }
 
-                var result = true;
-
-                // All the Details must be boolean and have a value
-                if (presEntities.Any(pe => pe.Detail.Type != JTokenType.Boolean))
-                {
-                    result = false;
-                }
-                if (presEntities.Any(pe => !pe.Detail.GetBool().HasValue))
-                {
-                    result = false;
-                }
-
-                var ents = new List<bool>();
-                ents.AddRange(presEntities.Select((t, ix) => presEntities[ix - 1].Detail.GetBool().Value));
-
-                result = ents.Count - ents.Distinct().Count() == 0;
+                var ents = presEntities.Select((t, ix) => presEntities[ix - 1].Detail).ToList();
+                var result = ents.Count - ents.Distinct().Count() == 0;
 
                 var newRuleResult = new RuleResult
                 {
@@ -740,8 +595,6 @@ namespace RulEng.Reformers
 
             return newState;
         }
-
-
 
         private static ProcessingRulEngStore AllOperations(this ProcessingRulEngStore newState, IOpReqProcessing prescription)
         {

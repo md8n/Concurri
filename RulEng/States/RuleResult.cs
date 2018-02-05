@@ -72,5 +72,10 @@ namespace RulEng.States
         {
             return JObject.FromObject(this).ToString(Formatting.None);
         }
+
+        public static implicit operator TypeKey(RuleResult ruleResult)
+        {
+            return new TypeKey { EntityId = ruleResult.RuleResultId, EntityType = EntityType.RuleResult, LastChanged = ruleResult.LastChanged };
+        }
     }
 }

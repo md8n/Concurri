@@ -280,7 +280,7 @@ namespace RulEng.Reformers
                 var ruleToProcess = rulesToProcessList
                     .SingleOrDefault(r => r.ReferenceValues.Any(rv => rv.RuleResultId == presValues.RuleResultId));
 
-                var newRuleResult = ruleToProcess.LessThanTest(presEntities, presValues.RuleResultId, actionDate);
+                var newRuleResult = ruleToProcess.GreaterThanTest(presEntities, presValues.RuleResultId, actionDate);
 
                 newState.RuleResults.Add(newRuleResult);
             }
@@ -440,8 +440,8 @@ namespace RulEng.Reformers
                     continue;
                 }
 
-                var ents = presEntities.Select((t, ix) => presEntities[ix - 1].Detail).ToList();
-                var result = ents.All(e => e == ents[0]);
+                var ents = presEntities.Select(pe => pe.Detail);
+                var result = ents.All(e => e);
 
                 var newRuleResult = new RuleResult
                 {
@@ -509,7 +509,8 @@ namespace RulEng.Reformers
                     continue;
                 }
 
-                var result = presEntities.Select((t, ix) => presEntities[ix - 1].Detail).Any(e => e);
+                var ents = presEntities.Select(pe => pe.Detail);
+                var result = ents.Any(e => e == true);
 
                 var newRuleResult = new RuleResult
                 {
@@ -577,7 +578,7 @@ namespace RulEng.Reformers
                     continue;
                 }
 
-                var ents = presEntities.Select((t, ix) => presEntities[ix - 1].Detail).ToList();
+                var ents = presEntities.Select(pe => pe.Detail).ToList();
                 var result = ents.Count - ents.Distinct().Count() == 0;
 
                 var newRuleResult = new RuleResult

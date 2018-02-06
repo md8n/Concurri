@@ -75,7 +75,7 @@ namespace RulEng.States
 
         public static implicit operator TypeKey(RuleResult ruleResult)
         {
-            return new TypeKey { EntityId = ruleResult.RuleResultId, EntityType = EntityType.Value, LastChanged = ruleResult.LastChanged };
+            return new TypeKey { EntityId = ruleResult.RuleResultId, EntityType = EntityType.RuleResult, LastChanged = ruleResult.LastChanged };
         }
     }
 }

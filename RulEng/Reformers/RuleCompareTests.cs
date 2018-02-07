@@ -1,13 +1,12 @@
 ﻿using RulEng.Helpers;
 using RulEng.States;
 using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
+using System.Text.RegularExpressions;
 
 namespace RulEng.Reformers
 {
-    public static class RuleTests
+    public static class RuleCompareTests
     {
         /// <summary>
         /// Processes the supplied Less Than Rule, sets it lastExecuted time, and returns the result
@@ -225,8 +224,6 @@ namespace RulEng.Reformers
             };
         }
 
-
-
         /// <summary>
         /// Processes the supplied Greater Than Rule, sets it lastExecuted time, and returns the result
         /// </summary>
@@ -321,6 +318,74 @@ namespace RulEng.Reformers
                         result = false;
                         break;
                     }
+                }
+            }
+
+            ruleToProcess.LastExecuted = actionDate.Value;
+
+            return new RuleResult
+            {
+                RuleResultId = ruleResultId,
+                RuleId = ruleToProcess.RuleId,
+                LastChanged = actionDate.Value,
+                Detail = ruleToProcess.NegateResult ? !result : result
+            };
+        }
+
+        /// <summary>
+        /// Processes the supplied Regex Rule, sets it lastExecuted time, and returns the result
+        /// </summary>
+        /// <param name="ruleToProcess"></param>
+        /// <param name="presEntities"></param>
+        /// <param name="ruleResultId"></param>
+        /// <param name="actionDate"></param>
+        /// <returns></returns>
+        public static RuleResult RegexTest(this Rule ruleToProcess, Value[] presEntities, Guid ruleResultId, DateTime? actionDate)
+        {
+            // There should be only 1 Rule to process, there could potentially be none
+            if (ruleToProcess == null)
+            {
+                return null;
+            }
+
+            if (!actionDate.HasValue || actionDate.Value == DefaultHelpers.DefDate())
+            {
+                actionDate = DateTime.UtcNow;
+            }
+
+            var result = true;
+
+            // All the Details must be of the same type
+            var secondDetailType = presEntities[1].Detail.Type;
+            if (!presEntities[0].Detail.Type.IsText())
+            {
+                result = false;
+            }
+            else if (presEntities.Skip(2).Any(pe => pe.Detail.Type != secondDetailType))
+            {
+                result = false;
+            }
+            else
+            {
+                var regex = new Regex(presEntities[0].Detail.GetText());
+
+                for (var ix = 1; ix < presEntities.Length; ix++)
+                {
+                    // TODO: Change this to test for regex and testable type
+                    if (!presEntities[ix].Detail.IsArray())
+                    {
+                        result = false;
+                        break;
+                    }
+
+                    var testValue = presEntities[ix].Detail.ToTextValue();
+                    if (regex.IsMatch(testValue))
+                    {
+                        continue;
+                    }
+
+                    result = false;
+                    break;
                 }
             }
 

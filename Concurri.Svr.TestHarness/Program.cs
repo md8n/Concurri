@@ -9,11 +9,11 @@ using RulEng.States;
 
 namespace Concurri.Svr.TestHarness
 {
-    public class Program
+    public static class Program
     {
-        public static IStore<RulEngStore> rvStore { get; private set; }
+        private static IStore<RulEngStore> RvStore { get; set; }
 
-        public static void Main(string[] args)
+        public static void Main()
         {
             Console.WriteLine("Hello World!");
 
@@ -71,22 +71,22 @@ namespace Concurri.Svr.TestHarness
             //var procAllRules = new ProcessAllRulesPrescription();
             //var procAllOperations = new ProcessAllOperationsPrescription();
 
-            rvStore = new Store<RulEngStore>(StoreReducers.ReduceStore, null);
+            RvStore = new Store<RulEngStore>(StoreReducers.ReduceStore);
 
             RulEngStore changes;
-            rvStore.Subscribe(state => changes = state);
+            RvStore.Subscribe(state => changes = state);
 
-            var act = rvStore.Dispatch(rulePrescription);
+            var act = RvStore.Dispatch(rulePrescription);
             foreach (var prescription in operationPrescriptions)
             {
-                act = rvStore.Dispatch(prescription);
+                act = RvStore.Dispatch(prescription);
             }
 
-            File.WriteAllText("storeBefore.json", rvStore.GetState().ToString());
+            File.WriteAllText("storeBefore.json", RvStore.GetState().ToString());
             //act = rvStore.Dispatch(procAllRules);
             // File.WriteAllText("storeMiddle.json", rvStore.GetState().ToString());
             //act = rvStore.Dispatch(procAllOperations);
-            File.WriteAllText("storeAfter.json", rvStore.GetState().ToString());
+            File.WriteAllText("storeAfter.json", RvStore.GetState().ToString());
         }
     }
 }

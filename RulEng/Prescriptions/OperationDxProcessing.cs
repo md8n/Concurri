@@ -1,9 +1,8 @@
-﻿using System.Collections.Immutable;
+﻿// These define Prescriptions (Redux Actions) performed by Operations and Requests
+
+using System.Collections.Immutable;
 using RulEng.States;
 
-/// <summary>
-/// These define Prescriptions (Redux Actions) performed by Operations and Requests
-/// </summary>
 namespace RulEng.Prescriptions
 {
     /// <summary>

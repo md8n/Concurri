@@ -18,15 +18,14 @@ namespace RulEng.Reformers
             // Actions that only target one of the 'tables' (e.g. CRUD) are passed the specific item impacted
             // Actions that target multiple 'tables' (e.g. Processing) are passed the whole structure
 
-            var crud = action as ICrud;
-            if (crud != null)
+            if (action is ICrud crud)
             {
                 return new RulEngStore
                 {
-                    Rules = CrudReducers.CrudReducer<Rule>(state.Rules, crud),
-                    Operations = CrudReducers.CrudReducer<Operation>(state.Operations, crud),
-                    Requests = CrudReducers.CrudReducer<Request>(state.Requests, crud),
-                    Values = CrudReducers.CrudReducer<Value>(state.Values, crud)
+                    Rules = CrudReducers.CrudReducer(state.Rules, crud),
+                    Operations = CrudReducers.CrudReducer(state.Operations, crud),
+                    Requests = CrudReducers.CrudReducer(state.Requests, crud),
+                    Values = CrudReducers.CrudReducer(state.Values, crud)
                 };
             }
 
@@ -35,16 +34,12 @@ namespace RulEng.Reformers
                 return state;
             }
 
-            var rulesAction = action as IRuleProcessing;
-            if (rulesAction != null)
+            switch (action)
             {
-                return ProcessingReducers.ProcessAllRulesReducer(state, rulesAction);
-            }
-
-            var opReqAction = action as IOpReqProcessing;
-            if (opReqAction != null)
-            {
-                return ProcessingReducers.ProcessAllOperationsReducer(state, opReqAction);
+                case IRuleProcessing rulesAction:
+                    return ProcessingReducers.ProcessAllRulesReducer(state, rulesAction);
+                case IOpReqProcessing opReqAction:
+                    return ProcessingReducers.ProcessAllOperationsReducer(state, opReqAction);
             }
 
             return state;

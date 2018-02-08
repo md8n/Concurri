@@ -15,10 +15,11 @@ namespace RulEng.Reformers
         /// </summary>
         /// <param name="newState"></param>
         /// <param name="prescription"></param>
+        /// <param name="ruleType"></param>
         /// <returns></returns>
         public static ProcessingRulEngStore AllCompare(this ProcessingRulEngStore newState, IRuleValueProcessing prescription, RuleType ruleType)
         {
-            var compareRuleTypes = new RuleType[] { RuleType.LessThan, RuleType.Equal, RuleType.GreaterThan, RuleType.RegularExpression };
+            var compareRuleTypes = new [] { RuleType.LessThan, RuleType.Equal, RuleType.GreaterThan, RuleType.RegularExpression };
 
             if (!compareRuleTypes.Contains(ruleType)) {
                 throw new ArgumentOutOfRangeException(nameof(ruleType), $"{nameof(ruleType)} must be a comparison RuleType");

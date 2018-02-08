@@ -15,10 +15,11 @@ namespace RulEng.Reformers
         /// </summary>
         /// <param name="newState"></param>
         /// <param name="prescription"></param>
+        /// <param name="ruleType"></param>
         /// <returns></returns>
         public static ProcessingRulEngStore AllCollection(this ProcessingRulEngStore newState, IRuleRuleResultProcessing prescription, RuleType ruleType)
         {
-            var collectionRuleTypes = new RuleType[] { RuleType.And, RuleType.Or, RuleType.Xor };
+            var collectionRuleTypes = new[] { RuleType.And, RuleType.Or, RuleType.Xor };
 
             if (!collectionRuleTypes.Contains(ruleType))
             {

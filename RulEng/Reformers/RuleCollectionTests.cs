@@ -64,7 +64,7 @@ namespace RulEng.Reformers
             }
 
             var ents = presEntities.Select(pe => pe.Detail);
-            var result = ents.Any(e => e == true);
+            var result = ents.Any(e => e);
 
             ruleToProcess.LastExecuted = actionDate.Value;
 

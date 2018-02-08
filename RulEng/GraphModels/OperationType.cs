@@ -1,11 +1,9 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Text;
-using RulEng.States;
 using GraphQL.Types;
 using Newtonsoft.Json.Linq;
 using Redux;
+using RulEng.States;
 
 namespace RulEng.GraphModels
 {

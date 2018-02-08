@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
-using RulEng.Prescriptions;
 using RulEng.States;
 
 namespace RulEng.Helpers
@@ -37,9 +36,10 @@ namespace RulEng.Helpers
         /// Create a RulePrescription (implicitly defining a RuleResult) from a Processable Entity
         /// </summary>
         /// <typeparam name="T"></typeparam>
+        /// <typeparam name="TU"></typeparam>
         /// <param name="entity"></param>
         /// <returns></returns>
-        public static U RulePrescription<T, U>(this T entity) where T : IEntity where U : IRulePrescription, new()
+        public static TU RulePrescription<T, TU>(this T entity) where T : IEntity where TU : IRulePrescription, new()
         {
             if (!entity.IsProcessable())
             {
@@ -47,14 +47,14 @@ namespace RulEng.Helpers
             }
 
             var entTypeKey = new TypeKey { EntityId = entity.EntityId, EntityType = entity.Type, LastChanged = entity.LastChanged };
-            var refValue = new U { RuleResultId = Guid.NewGuid(), EntityIds = ImmutableList.Create((ITypeKey)entTypeKey) };
+            var refValue = new TU { RuleResultId = Guid.NewGuid(), EntityIds = ImmutableList.Create((ITypeKey)entTypeKey) };
 
             return refValue;
         }
 
-        public static ImmutableArray<U> RulePresciptions<T, U>(this IEnumerable<T> entities) where T : IEntity where U : IRulePrescription, new()
+        public static ImmutableArray<TU> RulePresciptions<T, TU>(this IEnumerable<T> entities) where T : IEntity where TU : IRulePrescription, new()
         {
-            var refValues = entities.Select(e => e.RulePrescription<T, U>()).ToArray();
+            var refValues = entities.Select(e => e.RulePrescription<T, TU>()).ToArray();
 
             return ImmutableArray.CreateRange(refValues);
         }

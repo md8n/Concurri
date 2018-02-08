@@ -1,10 +1,8 @@
-﻿using System;
+﻿// These define Prescriptions (Redux Actions) performed by Mutation Operations
+
 using System.Collections.Immutable;
 using RulEng.States;
 
-/// <summary>
-/// These define Prescriptions (Redux Actions) performed by Mutation Operations
-/// </summary>
 namespace RulEng.Prescriptions
 {
     /// <summary>

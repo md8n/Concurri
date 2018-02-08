@@ -1,9 +1,8 @@
-﻿using System.Collections.Immutable;
+﻿// These define Prescriptions (Redux Actions) performed by Rules
+
+using System.Collections.Immutable;
 using RulEng.States;
 
-/// <summary>
-/// These define Prescriptions (Redux Actions) performed by Rules
-/// </summary>
 namespace RulEng.Prescriptions
 {
     /// <inheritdoc />
@@ -25,7 +24,6 @@ namespace RulEng.Prescriptions
     }
 
     /// <inheritdoc />
-    /// <![CDATA[Name cannot begin with the ' ' character, hexadecimal value 0x20. Line 3, position 39.]]>
     public class ProcessLessThanRule : IRuleValueProcessing
     {
         public IImmutableList<IRulePrescription> Entities { get; set; }

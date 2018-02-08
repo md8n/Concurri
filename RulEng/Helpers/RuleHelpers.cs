@@ -1,11 +1,9 @@
 ﻿using System;
 using System.Collections.Immutable;
 using System.Collections.Generic;
+using System.Linq;
 
 using RulEng.States;
-using System.Linq;
-using RulEng.Prescriptions;
-using RulEng.ProcessingState;
 
 namespace RulEng.Helpers
 {
@@ -50,7 +48,7 @@ namespace RulEng.Helpers
             var rule = new Rule
             {
                 RuleId = Guid.NewGuid(),
-                RuleName = $"Test for {nText}existence of {entity.EntityType.ToString()} {((TypeKey)entity).ToString()}",
+                RuleName = $"Test for {nText}existence of {entity.EntityType.ToString()} {((TypeKey)entity)}",
                 RuleType = RuleType.Exists,
                 LastChanged = entity.LastChanged,
                 LastExecuted = entity.LastChanged,

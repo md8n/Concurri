@@ -20,4 +20,11 @@ namespace RulEng.Prescriptions
     {
     }
 
+    /// <inheritdoc />
+    /// <summary>
+    /// These define Prescriptions (Redux Actions) to be performed by Rules only targetting RuleResults
+    /// </summary>
+    public interface IRuleRuleResultProcessing : IRuleProcessing
+    {
+    }
 }

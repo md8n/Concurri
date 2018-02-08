@@ -11,13 +11,20 @@ namespace RulEng.Reformers
     public static class ProcessingCollectionReducers
     {
         /// <summary>
-        /// Perform all And and Not And Rules
+        /// Perform all Collection Rules
         /// </summary>
         /// <param name="newState"></param>
         /// <param name="prescription"></param>
         /// <returns></returns>
-        public static ProcessingRulEngStore AllAnd(this ProcessingRulEngStore newState, ProcessAndRule prescription)
+        public static ProcessingRulEngStore AllCollection(this ProcessingRulEngStore newState, IRuleRuleResultProcessing prescription, RuleType ruleType)
         {
+            var collectionRuleTypes = new RuleType[] { RuleType.And, RuleType.Or, RuleType.Xor };
+
+            if (!collectionRuleTypes.Contains(ruleType))
+            {
+                throw new ArgumentOutOfRangeException(nameof(ruleType), $"{nameof(ruleType)} must be a collection RuleType");
+            }
+
             var actionDate = DateTime.UtcNow;
 
             // First get the potentially relevant entities in a cleaned form
@@ -54,164 +61,25 @@ namespace RulEng.Reformers
                 var ruleToProcess = rulesToProcessList
                     .SingleOrDefault(r => r.ReferenceValues.Any(rv => rv.RuleResultId == presValues.RuleResultId));
 
-                // There should be only 1 Rule to process, there could potentially be none
-                if (ruleToProcess == null)
+                RuleResult newRuleResult = null;
+
+                switch (ruleType)
                 {
-                    continue;
+                    case RuleType.And:
+                        newRuleResult = ruleToProcess.AndTest(presEntities, presValues.RuleResultId, actionDate);
+                        break;
+                    case RuleType.Or:
+                        newRuleResult = ruleToProcess.OrTest(presEntities, presValues.RuleResultId, actionDate);
+                        break;
+                    case RuleType.Xor:
+                        newRuleResult = ruleToProcess.XorTest(presEntities, presValues.RuleResultId, actionDate);
+                        break;
                 }
 
-                var ents = presEntities.Select(pe => pe.Detail);
-                var result = ents.All(e => e);
-
-                var newRuleResult = new RuleResult
+                if (newRuleResult != null)
                 {
-                    RuleResultId = presValues.RuleResultId,
-                    RuleId = ruleToProcess.RuleId,
-                    LastChanged = actionDate,
-                    Detail = ruleToProcess.NegateResult ? !result : result
-                };
-
-                newState.RuleResults.Add(newRuleResult);
-
-                ruleToProcess.LastExecuted = actionDate;
-            }
-
-            return newState;
-        }
-
-        /// <summary>
-        /// Perform all Or and Not Or Rules
-        /// </summary>
-        /// <param name="newState"></param>
-        /// <param name="prescription"></param>
-        /// <returns></returns>
-        public static ProcessingRulEngStore AllOr(this ProcessingRulEngStore newState, ProcessOrRule prescription)
-        {
-            var actionDate = DateTime.UtcNow;
-
-            // First get the potentially relevant entities in a cleaned form
-            var ruleResultEntitySets = prescription.Entities
-                .Where(vi => vi.EntityIds.Count(ve => ve.EntityType == EntityType.RuleResult) >= vi.MinEntitiesRequired)
-                .Select(pe => new {
-                    pe.RuleResultId,
-                    Entities = new List<RuleResult>(),
-                    EntityIds = pe.EntityIds
-                        .Where(ve => ve.EntityType == EntityType.RuleResult)
-                        .Select(ve => ve.EntityId)
-                })
-                .Distinct()
-                .ToList();
-
-            foreach (var ruleResultEntitySet in ruleResultEntitySets)
-            {
-                ruleResultEntitySet.Entities
-                    .AddRange(newState.RuleResults.Where(v => ruleResultEntitySet.EntityIds.Contains(v.EntityId)));
-            }
-
-            var entities = ruleResultEntitySets
-                .SelectMany(v => v.Entities)
-                .Distinct()
-                .Select(v => (TypeKey)v)
-                .ToList();
-
-            // Get the corresponding Rules
-            var rulesToProcessList = newState.Rules.RulesToProcess(RuleType.Or, entities);
-
-            foreach (var presValues in ruleResultEntitySets)
-            {
-                var presEntities = presValues.Entities.ToArray();
-                var ruleToProcess = rulesToProcessList
-                    .SingleOrDefault(r => r.ReferenceValues.Any(rv => rv.RuleResultId == presValues.RuleResultId));
-
-                // There should be only 1 Rule to process, there could potentially be none
-                if (ruleToProcess == null)
-                {
-                    continue;
+                    newState.RuleResults.Add(newRuleResult);
                 }
-
-                var ents = presEntities.Select(pe => pe.Detail);
-                var result = ents.Any(e => e == true);
-
-                var newRuleResult = new RuleResult
-                {
-                    RuleResultId = presValues.RuleResultId,
-                    RuleId = ruleToProcess.RuleId,
-                    LastChanged = actionDate,
-                    Detail = ruleToProcess.NegateResult ? !result : result
-                };
-
-                newState.RuleResults.Add(newRuleResult);
-
-                ruleToProcess.LastExecuted = actionDate;
-            }
-
-            return newState;
-        }
-
-        /// <summary>
-        /// Perform all Xor and Not Xor Rules
-        /// </summary>
-        /// <param name="newState"></param>
-        /// <param name="prescription"></param>
-        /// <returns></returns>
-        public static ProcessingRulEngStore AllXor(this ProcessingRulEngStore newState, ProcessXorRule prescription)
-        {
-            var actionDate = DateTime.UtcNow;
-
-            // First get the potentially relevant entities in a cleaned form
-            var ruleResultEntitySets = prescription.Entities
-                .Where(vi => vi.EntityIds.Count(ve => ve.EntityType == EntityType.RuleResult) >= vi.MinEntitiesRequired)
-                .Select(pe => new {
-                    pe.RuleResultId,
-                    Entities = new List<RuleResult>(),
-                    EntityIds = pe.EntityIds
-                        .Where(ve => ve.EntityType == EntityType.RuleResult)
-                        .Select(ve => ve.EntityId)
-                })
-                .Distinct()
-                .ToList();
-
-            foreach (var ruleResultEntitySet in ruleResultEntitySets)
-            {
-                ruleResultEntitySet.Entities
-                    .AddRange(newState.RuleResults.Where(v => ruleResultEntitySet.EntityIds.Contains(v.EntityId)));
-            }
-
-            var entities = ruleResultEntitySets
-                .SelectMany(v => v.Entities)
-                .Distinct()
-                .Select(v => (TypeKey)v)
-                .ToList();
-
-            // Get the corresponding Rules
-            var rulesToProcessList = newState.Rules.RulesToProcess(RuleType.Xor, entities);
-
-            foreach (var presValues in ruleResultEntitySets)
-            {
-                var presEntities = presValues.Entities.ToArray();
-                var ruleToProcess = rulesToProcessList
-                    .SingleOrDefault(r => r.ReferenceValues.Any(rv => rv.RuleResultId == presValues.RuleResultId));
-
-                // There should be only 1 Rule to process, there could potentially be none
-                if (ruleToProcess == null)
-                {
-                    continue;
-                }
-
-                var ents = presEntities.Select(pe => pe.Detail).ToList();
-                var result = ents.Count - ents.Distinct().Count() == 0;
-
-                var newRuleResult = new RuleResult
-                {
-                    RuleResultId = presValues.RuleResultId,
-                    RuleId = ruleToProcess.RuleId,
-                    LastChanged = actionDate,
-                    Detail = ruleToProcess.NegateResult ? !result : result
-                };
-
-                newState.RuleResults.Add(newRuleResult);
-
-                ruleToProcess.LastExecuted = actionDate;
             }
 
             return newState;

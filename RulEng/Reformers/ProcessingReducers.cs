@@ -1,8 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
 using Newtonsoft.Json.Linq;
-using RulEng.Helpers;
 using RulEng.Prescriptions;
 using RulEng.ProcessingState;
 using RulEng.States;
@@ -24,12 +22,11 @@ namespace RulEng.Reformers
             newState = newState.AllCompare(prescription as ProcessLessThanRule, RuleType.LessThan);
             newState = newState.AllCompare(prescription as ProcessEqualRule, RuleType.Equal);
             newState = newState.AllCompare(prescription as ProcessGreaterThanRule, RuleType.GreaterThan);
-
             newState = newState.AllCompare(prescription as ProcessRegexMatchRule, RuleType.RegularExpression);
 
-            newState = newState.AllAnd(prescription as ProcessAndRule);
-            newState = newState.AllOr(prescription as ProcessOrRule);
-            newState = newState.AllXor(prescription as ProcessXorRule);
+            newState = newState.AllCollection(prescription as ProcessAndRule, RuleType.And);
+            newState = newState.AllCollection(prescription as ProcessOrRule, RuleType.Or);
+            newState = newState.AllCollection(prescription as ProcessXorRule, RuleType.Xor);
 
             return newState.DeepClone();
         }

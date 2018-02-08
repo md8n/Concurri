@@ -58,7 +58,7 @@ namespace RulEng.Prescriptions
     /// <summary>
     /// For each list of rule results, test they are all true
     /// </summary>
-    public class ProcessAndRule : IRuleProcessing
+    public class ProcessAndRule : IRuleRuleResultProcessing
     {
         public IImmutableList<IRulePrescription> Entities { get; set; }
     }
@@ -66,15 +66,15 @@ namespace RulEng.Prescriptions
     /// <summary>
     /// For each list of rule results, test at least one is true
     /// </summary>
-    public class ProcessOrRule : IRuleProcessing
+    public class ProcessOrRule : IRuleRuleResultProcessing
     {
         public IImmutableList<IRulePrescription> Entities { get; set; }
     }
 
     /// <summary>
-    /// For each list of rule results, test only one is true
+    /// For each list of rule results, test all are distinct
     /// </summary>
-    public class ProcessXorRule : IRuleProcessing
+    public class ProcessXorRule : IRuleRuleResultProcessing
     {
         public IImmutableList<IRulePrescription> Entities { get; set; }
     }

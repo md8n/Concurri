@@ -62,7 +62,7 @@ namespace RulEng.Reformers
                 var ruleToProcess = rulesToProcessList
                     .SingleOrDefault(r => r.ReferenceValues.Any(rv => rv.RuleResultId == presValues.RuleResultId));
 
-                var newRuleResult = ruleToProcess.LessThanTest(presEntities, presValues.RuleResultId, actionDate);
+                RuleResult newRuleResult = null;
 
                 switch (ruleType)
                 {
@@ -80,7 +80,10 @@ namespace RulEng.Reformers
                         break;
                 }
 
-                newState.RuleResults.Add(newRuleResult);
+                if (newRuleResult != null)
+                {
+                    newState.RuleResults.Add(newRuleResult);
+                }
             }
 
             return newState;

@@ -56,7 +56,7 @@ namespace RulEng.Helpers
             };
         }
 
-        public static Operation AddOperation(this RuleResult ruleResult, IEnumerable<OperandKey> operands)
+        public static Operation MxOperation(this RuleResult ruleResult, IEnumerable<OperandKey> operands)
         {
             return new Operation
             {

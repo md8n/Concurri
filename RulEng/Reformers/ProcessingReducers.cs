@@ -56,6 +56,8 @@ namespace RulEng.Reformers
                 .Where(a => ruleIds.Contains(a.RuleResultId))
                 .ToList();
 
+            operationprescriptionsToProcessList.Where(o => o.Operands.)
+
             foreach (var ruleToProcess in ruleIds)
             {
                 var relevantOps = operationprescriptionsToProcessList
@@ -63,10 +65,10 @@ namespace RulEng.Reformers
                     .ToList();
 
                 // Always do Assign Operation Prescriptions first
-                var assignOps = relevantOps.Where(a => a.OperationType == OperationType.CreateUpdate && a is OperationMxAssignProcessing);
+                var assignOps = relevantOps.Where(a => a.OperationType == OperationType.CreateUpdate);
                 foreach (var prescriptionsToProcess in assignOps)
                 {
-                    var omap = new OperationMxAssignProcessing
+                    var omap = new OperationMxProcessing
                     {
                         Entities = prescriptionsToProcess.Operands
                     };

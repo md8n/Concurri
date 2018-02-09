@@ -30,6 +30,8 @@ namespace RulEng.States
 
         public OperationType OperationType { get; set; } = OperationType.CreateUpdate;
 
+        public string OperationTemplate { get; set; }
+
         public Operation ()
         {
             if (Operands.IsDefault)

@@ -19,7 +19,7 @@ namespace RulEng.States
         /// <summary>
         /// The Ids of all of the Values that will be used in calculating the result of the Compare Rule
         /// </summary>
-        public ImmutableList<ITypeKey> EntityIds { get; set; }
+        public ImmutableList<IEntity> EntityIds { get; set; }
 
         public override string ToString()
         {

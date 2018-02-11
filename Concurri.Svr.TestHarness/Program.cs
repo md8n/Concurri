@@ -1,7 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
+using Jint;
 using Redux;
 using RulEng.Helpers;
 using RulEng.Reformers;
@@ -16,6 +19,43 @@ namespace Concurri.Svr.TestHarness
         public static void Main()
         {
             Console.WriteLine("Hello World!");
+
+            var regexToken = new Regex(@".*?(?<Token>\$\{(?<Index>\d+)\}).*?");
+            var jTempl = "(${2}+${1})/(${3}+${1})";
+            var vals = new [] {12M, 15.5M, 16.8M, 13.45M};
+
+            var jCode = jTempl;
+            var isSubstOk = true;
+            foreach (Match match in regexToken.Matches(jTempl))
+            {
+                var token = match.Groups["Token"].Value;
+                var indexOk = int.TryParse(match.Groups["Index"].Value, out var index);
+
+                if (!indexOk)
+                {
+                    isSubstOk = false;
+                    break;
+                }
+
+                if (vals.Length < index)
+                {
+                    isSubstOk = false;
+                    break;
+                }
+
+                jCode = jCode.Replace(token, vals[index].ToString(CultureInfo.InvariantCulture));
+                    
+                Console.WriteLine($"Token:{token}, Index:{index} Value:{vals[index]}");
+            }
+
+            if (isSubstOk)
+            {
+                Console.WriteLine($"{jTempl} => {jCode}");
+
+                var e = new Engine();
+                var result = e.Execute(jCode).GetCompletionValue().ToObject();
+                Console.WriteLine(result);
+            }
 
             var rules = new List<Rule>();
             var ruleResults = new List<RuleResult>();

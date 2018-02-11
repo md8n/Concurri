@@ -12,7 +12,7 @@ namespace RulEng.States
 
         public Guid EntityId { get => RequestId; set => RequestId = value; }
 
-        public EntityType Type => EntityType.Request;
+        public EntityType EntType => EntityType.Request;
 
         public DateTime LastChanged { get; set; } = DefaultHelpers.DefDate();
 
@@ -48,6 +48,7 @@ namespace RulEng.States
             return obj is Operation a && Equals(a);
         }
 
+        /// <inheritdoc />
         /// <summary>
         /// Shallow equality - only compares the Id
         /// </summary>
@@ -71,7 +72,7 @@ namespace RulEng.States
 
         public static implicit operator TypeKey(Request request)
         {
-            return new TypeKey { EntityId = request.RequestId, EntityType = EntityType.Request, LastChanged = request.LastChanged };
+            return new TypeKey { EntityId = request.RequestId, EntType = EntityType.Request, LastChanged = request.LastChanged };
         }
     }
 }

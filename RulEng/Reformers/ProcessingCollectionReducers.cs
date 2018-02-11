@@ -30,12 +30,12 @@ namespace RulEng.Reformers
 
             // First get the potentially relevant entities in a cleaned form
             var ruleResultEntitySets = prescription.Entities
-                .Where(vi => vi.EntityIds.Count(ve => ve.EntityType == EntityType.RuleResult) >= vi.MinEntitiesRequired)
+                .Where(vi => vi.EntityIds.Count(ve => ve.EntType == EntityType.RuleResult) >= vi.MinEntitiesRequired)
                 .Select(pe => new {
                     pe.RuleResultId,
                     Entities = new List<RuleResult>(),
                     EntityIds = pe.EntityIds
-                        .Where(ve => ve.EntityType == EntityType.RuleResult)
+                        .Where(ve => ve.EntType == EntityType.RuleResult)
                         .Select(ve => ve.EntityId)
                 })
                 .Distinct()

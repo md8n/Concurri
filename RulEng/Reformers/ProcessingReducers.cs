@@ -1,5 +1,9 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
+using System.Text.RegularExpressions;
+using Jint;
 using Newtonsoft.Json.Linq;
 using RulEng.Prescriptions;
 using RulEng.ProcessingState;
@@ -56,32 +60,86 @@ namespace RulEng.Reformers
                 .Where(a => ruleIds.Contains(a.RuleResultId))
                 .ToList();
 
-            operationprescriptionsToProcessList.Where(o => o.Operands.)
+            // Restrict the Operation/Request Prescriptions to process to those that are guaranteed not to fail
+            // Select those for which there is no conflict 
+            var destinationEntities = new List<TypeKey>();
+            foreach (var opPre in operationprescriptionsToProcessList)
+            {
+                destinationEntities.AddRange(opPre.Operands.Select(o => (TypeKey) o));
+            }
+            foreach (var rqPre in requestprescriptionsToProcessList)
+            {
+                destinationEntities.Add(rqPre);
+            }
 
+            var groupedDestinations = destinationEntities
+                .GroupBy(de => new { de.EntityId, de.EntType })
+                .Select(grp => new { grp.Key, Count = grp.Count() })
+                .ToList();
+            var conflictDestinations = groupedDestinations
+                .Where(grp => grp.Count > 1)
+                .Select(grp => new TypeKey { EntityId = grp.Key.EntityId, EntType = grp.Key.EntType })
+                .ToList();
+            var acceptableDestinations = groupedDestinations
+                .Where(grp => grp.Count == 1)
+                .Select(grp => new { grp.Key.EntityId, grp.Key.EntType })
+                .ToList();
+
+            var e = new Engine();
+
+            var regexToken = new Regex(@".*?(?<Token>\$\{(?<Index>\d+)\}).*?");
             foreach (var ruleToProcess in ruleIds)
             {
+                // Get all of the operations relevant to the Rules
                 var relevantOps = operationprescriptionsToProcessList
                     .Where(o => o.RuleResultId == ruleToProcess)
                     .ToList();
 
-                // Always do Assign Operation Prescriptions first
-                var assignOps = relevantOps.Where(a => a.OperationType == OperationType.CreateUpdate);
-                foreach (var prescriptionsToProcess in assignOps)
+                // Process the acceptable
+                foreach (var relevantOp in relevantOps)
                 {
-                    var omap = new OperationMxProcessing
-                    {
-                        Entities = prescriptionsToProcess.Operands
-                    };
-                    // reducer goes here - not prescription
-                    newState = OperationMxAssignProcessing(newState, omap);
-                }
+                    var destEntsToProcess = relevantOp.Operands
+                        .Select(ro => new {ro.EntityId, ro.EntType})
+                        .Intersect(acceptableDestinations)
+                        .ToList();
 
-                //foreach (var prescriptionsToProcess in actionsToProcessList.Where(a => a.RuleId == ruleToProcess && a.ValueAction is AddOperationAction))
-                //{
-                //    var aoa = ((AddOperationAction)prescriptionsToProcess.ValueAction);
-                //    aoa.operation = prescriptionsToProcess;
-                //    newState = AddOperationAction(newState, aoa);
-                //}
+                    var jTempl = relevantOp.OperationTemplate;
+                    var jCode = jTempl;
+                    var isSubstOk = true;
+                    foreach (Match match in regexToken.Matches(jTempl))
+                    {
+                        var token = match.Groups["Token"].Value;
+                        var indexOk = int.TryParse(match.Groups["Index"].Value, out var index);
+
+                        if (!indexOk)
+                        {
+                            break;
+                        }
+
+                        foreach (var destEnt in destEntsToProcess)
+                        {
+                            var sourceValueIds = relevantOp.Operands
+                                .First(o => o.EntityId == destEnt.EntityId && o.EntType == destEnt.EntType)
+                                .SourceValueIds.ToArray();
+
+                            if (sourceValueIds.Length < index)
+                            {
+                                isSubstOk = false;
+                                break;
+                            }
+
+                            // TODO: this is wrong, getting all the source values, but replacing only one token & index
+                            var sourceVals = newState.Values.Where(v => sourceValueIds.Contains(v.EntityId)).ToArray();
+                            jCode = jCode.Replace(token, sourceVals[index].Detail.ToString());
+                        }
+
+                        if (isSubstOk)
+                        {
+                            var result = e.Execute(jCode).GetCompletionValue().ToObject();
+                            Console.WriteLine(result);
+                        }
+                    }
+                }
 
                 newState.Values.RemoveWhere(v => v.ValueId == ruleToProcess);
             }
@@ -89,13 +147,13 @@ namespace RulEng.Reformers
             return newState;
         }
 
-        private static ProcessingRulEngStore OperationMxAssignProcessing(this ProcessingRulEngStore newState, OperationMxAssignProcessing prescription)
+        private static ProcessingRulEngStore OperationMxProcessing(this ProcessingRulEngStore newState, OperationMxProcessing prescription)
         {
             var actionDate = DateTime.UtcNow;
 
             foreach(var entity in prescription.Entities)
             {
-                switch (entity.EntityType)
+                switch (entity.EntType)
                 {
                     case EntityType.Rule:
                         var rule = newState.GetEntityFromValue<Rule>(entity);
@@ -127,7 +185,7 @@ namespace RulEng.Reformers
             return newState;
         }
 
-        private static ProcessingRulEngStore AddOperationAction(this ProcessingRulEngStore newState, OperationMxAddProcessing prescription)
+        private static ProcessingRulEngStore AddOperationAction(this ProcessingRulEngStore newState, OperationMxProcessing prescription)
         {
             var actionDate = DateTime.UtcNow;
 
@@ -136,7 +194,7 @@ namespace RulEng.Reformers
                 .Select(v => v.Detail.ToObject<int>())
                 .Sum();
 
-            if (prescription.Entities.First().EntityType != EntityType.Value)
+            if (prescription.Entities.First().EntType != EntityType.Value)
             {
                 return newState;
             }

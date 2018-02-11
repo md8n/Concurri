@@ -18,6 +18,6 @@ namespace RulEng.States
         /// <summary>
         /// The Ids of all of the Entities that will be used in calculating the result of the Unary, Comparison or Collection Rule
         /// </summary>
-        ImmutableList<ITypeKey> EntityIds { get; set; }
+        ImmutableList<IEntity> EntityIds { get; set; }
     }
 }

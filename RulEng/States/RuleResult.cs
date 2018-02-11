@@ -13,7 +13,7 @@ namespace RulEng.States
 
         public Guid EntityId { get => RuleResultId; set => RuleResultId = value; }
 
-        public EntityType Type => EntityType.RuleResult;
+        public EntityType EntType => EntityType.RuleResult;
 
         public DateTime LastChanged { get; set; } = DefaultHelpers.DefDate();
 
@@ -75,7 +75,7 @@ namespace RulEng.States
 
         public static implicit operator TypeKey(RuleResult ruleResult)
         {
-            return new TypeKey { EntityId = ruleResult.RuleResultId, EntityType = EntityType.RuleResult, LastChanged = ruleResult.LastChanged };
+            return new TypeKey { EntityId = ruleResult.RuleResultId, EntType = EntityType.RuleResult, LastChanged = ruleResult.LastChanged };
         }
     }
 }

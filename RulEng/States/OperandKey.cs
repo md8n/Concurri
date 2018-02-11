@@ -4,7 +4,7 @@ using System.Collections.Immutable;
 
 namespace RulEng.States
 {
-    public class OperandKey : ITypeKey
+    public class OperandKey : IEntity
     {
         /// <summary>
         /// An array of source Value Ids that will be used for performing this Operation
@@ -14,7 +14,7 @@ namespace RulEng.States
         /// <summary>
         /// The type of Entity the result will be written to
         /// </summary>
-        public EntityType EntityType { get; set; }
+        public EntityType EntType { get; set; }
 
         /// <summary>
         /// The Id of the Entity the result will be written to.
@@ -26,5 +26,14 @@ namespace RulEng.States
         /// Date this OperandKey was created or last changed
         /// </summary>
         public DateTime LastChanged { get; set; } = DefaultHelpers.DefDate();
+
+        /// <summary>
+        /// Implicitly convert an OperandKey to a TypeKey
+        /// </summary>
+        /// <param name="ok"></param>
+        public static implicit operator TypeKey(OperandKey ok)
+        {
+            return new TypeKey {EntityId = ok.EntityId, EntType = ok.EntType, LastChanged = ok.LastChanged};
+        }
     }
 }

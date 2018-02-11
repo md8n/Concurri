@@ -5,9 +5,12 @@ using RulEng.Helpers;
 
 namespace RulEng.States
 {
-    public class TypeKey : ITypeKey
+    /// <summary>
+    /// An instantiable implementation of the IEntity interface
+    /// </summary>
+    public class TypeKey : IEntity
     {
-        public EntityType EntityType { get; set; }
+        public EntityType EntType { get; set; }
         public Guid EntityId { get; set; }
         public DateTime LastChanged { get; set; } = DefaultHelpers.DefDate();
 

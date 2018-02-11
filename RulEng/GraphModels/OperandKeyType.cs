@@ -8,7 +8,7 @@ namespace RulEng.GraphModels
         public OperandKeyType()
         {
             Field(x => x.SourceValueIds);
-            Field(x => x.EntityType).Description("The type of this entity");
+            Field(x => x.EntType).Description("The type of this entity");
             Field(x => x.EntityId).Description("The id of this entity");
         }
     }

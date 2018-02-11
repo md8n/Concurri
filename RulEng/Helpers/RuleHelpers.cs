@@ -41,14 +41,14 @@ namespace RulEng.Helpers
         /// <param name="entity"></param>
         /// <param name="negateResult"></param>
         /// <returns></returns>
-        public static Rule ExistsRule(this ITypeKey entity, bool negateResult = true)
+        public static Rule ExistsRule(this IEntity entity, bool negateResult = true)
         {
             var nText = negateResult ? "non-" : "";
 
             var rule = new Rule
             {
                 RuleId = Guid.NewGuid(),
-                RuleName = $"Test for {nText}existence of {entity.EntityType.ToString()} {((TypeKey)entity)}",
+                RuleName = $"Test for {nText}existence of {entity.EntType.ToString()} {((TypeKey)entity)}",
                 RuleType = RuleType.Exists,
                 LastChanged = entity.LastChanged,
                 LastExecuted = entity.LastChanged,
@@ -65,7 +65,7 @@ namespace RulEng.Helpers
         /// <param name="entities"></param>
         /// <param name="negateResult"></param>
         /// <returns></returns>
-        public static Rule ExistsRule(this IEnumerable<ITypeKey> entities, bool negateResult = true)
+        public static Rule ExistsRule(this IEnumerable<IEntity> entities, bool negateResult = true)
         {
             var nText = negateResult ? "non-" : "";
             var earliestDate = entities.Select(e => e.LastChanged).OrderBy(e => e).First();
@@ -92,7 +92,7 @@ namespace RulEng.Helpers
         /// <param name="value"></param>
         /// <param name="negateResult"></param>
         /// <returns></returns>
-        public static Rule HasMeaningfulValueRule(this ITypeKey value, bool negateResult = false)
+        public static Rule HasMeaningfulValueRule(this IEntity value, bool negateResult = false)
         {
             var rule = new Rule
             {

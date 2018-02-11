@@ -13,7 +13,7 @@ namespace RulEng.Helpers
         /// </summary>
         /// <param name="entity"></param>
         /// <returns></returns>
-        public static T RulePrescription<T>(this ITypeKey entity) where T: IRulePrescription, new()
+        public static T RulePrescription<T>(this IEntity entity) where T: IRulePrescription, new()
         {
             var refValue = new T { RuleResultId = Guid.NewGuid(), EntityIds = ImmutableList.Create(entity) };
 
@@ -25,7 +25,7 @@ namespace RulEng.Helpers
         /// </summary>
         /// <param name="entities"></param>
         /// <returns></returns>
-        public static T[] RulePresciptions<T>(this IEnumerable<ITypeKey> entities) where T : IRulePrescription, new()
+        public static T[] RulePresciptions<T>(this IEnumerable<IEntity> entities) where T : IRulePrescription, new()
         {
             var refValues = entities.Select(e => e.RulePrescription<T>()).ToArray();
 
@@ -46,8 +46,8 @@ namespace RulEng.Helpers
                 throw new ArgumentOutOfRangeException(nameof(entity), "RulePrescription helper creator is only for Processable entity types");
             }
 
-            var entTypeKey = new TypeKey { EntityId = entity.EntityId, EntityType = entity.Type, LastChanged = entity.LastChanged };
-            var refValue = new TU { RuleResultId = Guid.NewGuid(), EntityIds = ImmutableList.Create((ITypeKey)entTypeKey) };
+            var entTypeKey = new TypeKey { EntityId = entity.EntityId, EntType = entity.EntType, LastChanged = entity.LastChanged };
+            var refValue = new TU { RuleResultId = Guid.NewGuid(), EntityIds = ImmutableList.Create((IEntity)entTypeKey) };
 
             return refValue;
         }

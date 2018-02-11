@@ -8,12 +8,12 @@ namespace RulEng.Helpers
 {
     public static class OperationHelpers
     {
-        public static Operation ExistsOperation(this RuleResult ruleResult, ITypeKey entity)
+        public static Operation ExistsOperation(this RuleResult ruleResult, IEntity entity)
         {
-            return ruleResult.ExistsOperation(new List<ITypeKey> { entity });
+            return ruleResult.ExistsOperation(new List<IEntity> { entity });
         }
 
-        public static Operation ExistsOperation(this RuleResult ruleResult, IEnumerable<ITypeKey> entities)
+        public static Operation ExistsOperation(this RuleResult ruleResult, IEnumerable<IEntity> entities)
         {
             //object valueSource = null;
             var entList = entities.ToList();
@@ -51,7 +51,18 @@ namespace RulEng.Helpers
             {
                 OperationId = Guid.NewGuid(),
                 RuleResultId = ruleResult.RuleResultId,
-                Operands = ImmutableArray.Create(entList.Select(el => new OperandKey{SourceValueIds = ImmutableArray.Create(el.EntityId), EntityId = el.EntityId, EntityType = el.EntityType}).ToArray()),
+                Operands = ImmutableArray.Create(entList.Select(el => new OperandKey{SourceValueIds = ImmutableArray.Create(el.EntityId), EntityId = el.EntityId, EntType = el.EntType }).ToArray()),
+                OperationType = OperationType.CreateUpdate
+            };
+        }
+
+        public static Operation CreateOperation(this RuleResult ruleResult, IEnumerable<OperandKey> operands)
+        {
+            return new Operation
+            {
+                OperationId = Guid.NewGuid(),
+                RuleResultId = ruleResult.RuleResultId,
+                Operands = ImmutableArray.Create(operands.ToArray()),
                 OperationType = OperationType.CreateUpdate
             };
         }

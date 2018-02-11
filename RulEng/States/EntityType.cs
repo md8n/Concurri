@@ -22,7 +22,7 @@ namespace RulEng.States
 
         public static bool IsProcessable<T>(this T entity) where T: IEntity
         {
-            return ProcessableEntityTypes.Contains(entity.Type);
+            return ProcessableEntityTypes.Contains(entity.EntType);
         }
     }
 }

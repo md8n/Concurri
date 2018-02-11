@@ -25,7 +25,7 @@ namespace RulEng.Helpers
                 throw new ArgumentOutOfRangeException(nameof(val), "Exists helper creator is only for Processable entity types");
             }
 
-            var vType = new TypeKey { EntityId = val.EntityId, EntityType = val.Type, LastChanged = val.LastChanged };
+            var vType = new TypeKey { EntityId = val.EntityId, EntType = val.EntType, LastChanged = val.LastChanged };
 
             var rule = vType.ExistsRule();
             var ruleResult = new RuleResult(rule);
@@ -79,9 +79,9 @@ namespace RulEng.Helpers
             {
                 SourceValueIds = ImmutableArray.Create(entity.EntityId),
                 EntityId = entity.EntityId,
-                EntityType = eOfType.Type
+                EntType = eOfType.EntType
             };
-            var operation = ruleResult.AddOperation(new[] { vOper });
+            var operation = ruleResult.CreateOperation(new[] { vOper });
 
             var operationPrescription = operation.Create();
 
@@ -97,8 +97,13 @@ namespace RulEng.Helpers
         public static (Operation operation, T value, ICrud operationPrescription) Create<T>(this RuleResult ruleResult, IEnumerable<Guid> entityIds) where T : IEntity
         {
             var entity = default(T);
-            var vOper = new OperandKey { SourceValueIds = ImmutableArray.Create(entityIds.ToArray()), EntityId = entity.EntityId, EntityType = EntityType.Value };
-            var operation = ruleResult.AddOperation(new[] { vOper });
+            var vOper = new OperandKey
+            {
+                SourceValueIds = ImmutableArray.Create(entityIds.ToArray()),
+                EntityId = entity.EntityId,
+                EntType = EntityType.Value
+            };
+            var operation = ruleResult.CreateOperation(new[] { vOper });
 
             var operationPrescription = operation.Create();
 
@@ -115,7 +120,7 @@ namespace RulEng.Helpers
         /// <returns></returns>
         public static (Rule rule, RuleResult ruleResult, IRuleProcessing rulePrescription) HasMeaningfulValue<T>(this T val) where T : Value
         {
-            var vType = new TypeKey { EntityId = val.EntityId, EntityType = val.Type, LastChanged = val.LastChanged };
+            var vType = new TypeKey { EntityId = val.EntityId, EntType = val.EntType, LastChanged = val.LastChanged };
 
             var rule = vType.HasMeaningfulValueRule();
             var ruleResult = new RuleResult(rule);
@@ -124,20 +129,22 @@ namespace RulEng.Helpers
             return (rule, ruleResult, rulePrescription);
         }
 
-        public static (Operation operation, IEnumerable<Value> value, OperationMxAddProcessing operationPrescription) Add(this RuleResult ruleResult, IEnumerable<IEnumerable<Guid>> valueIds)
+        public static (Operation operation, IEnumerable<Value> value, OperationMxProcessing operationPrescription) Add(this RuleResult ruleResult, IEnumerable<IEnumerable<Guid>> valueIds)
         {
             var values = new List<Value>();
-            var vOpers = new List<OperandKey>();
+            var vOpers = (from vSet in valueIds.ToArray()
+                let value = new Value(0)
+                select new OperandKey
+                {
+                    SourceValueIds = ImmutableArray.Create(vSet.ToArray()),
+                    EntityId = value.ValueId,
+                    EntType = EntityType.Value
+                })
+                .ToArray();
 
-            foreach (var vSet in valueIds.ToArray())
-            {
-                var value = new Value(0);
-                vOpers.Add(new OperandKey { SourceValueIds = ImmutableArray.Create(vSet.ToArray()), EntityId = value.ValueId, EntityType = EntityType.Value });
-            }
-
-            var operation = ruleResult.AddOperation(vOpers);
+            var operation = ruleResult.CreateOperation(vOpers);
             var operationPrescription =
-                new OperationMxAddProcessing {Entities = ImmutableArray.Create(vOpers.ToArray())};
+                new OperationMxProcessing {Entities = ImmutableArray.Create(vOpers)};
 
             return (operation, values, operationPrescription);
         }

@@ -8,6 +8,7 @@ using Newtonsoft.Json.Linq;
 using RulEng.Prescriptions;
 using RulEng.ProcessingState;
 using RulEng.States;
+using System.Collections.Immutable;
 
 namespace RulEng.Reformers
 {
@@ -122,32 +123,59 @@ namespace RulEng.Reformers
 
                     var jTempl = relevantOp.OperationTemplate;
                     var jCode = jTempl;
-                    var isSubstOk = true;
-                    foreach (Match match in regexToken.Matches(jTempl))
+                    foreach (var destEnt in destEntsToProcess)
                     {
-                        var token = match.Groups["Token"].Value;
-                        var indexOk = int.TryParse(match.Groups["Index"].Value, out var index);
+                        var sourceVals = destEnt.sourceValues;
+                        var isSubstOk = true;
 
-                        if (!indexOk)
+                        foreach (Match match in regexToken.Matches(jTempl))
                         {
-                            break;
-                        }
+                            var token = match.Groups["Token"].Value;
+                            var indexOk = int.TryParse(match.Groups["Index"].Value, out var index);
 
-                        foreach (var destEnt in destEntsToProcess)
-                        {
-                            if (destEnt.sourceValues.Length < index)
+                            if (!indexOk)
+                            {
+                                break;
+                            }
+
+                            if (sourceVals.Length < index)
                             {
                                 isSubstOk = false;
                                 break;
                             }
 
-                            jCode = jCode.Replace(token, destEnt.sourceValues[index].ToString());
+                            jCode = jCode.Replace(token, sourceVals[index].ToString());
                         }
 
                         if (isSubstOk)
                         {
-                            var result = e.Execute(jCode).GetCompletionValue().ToObject();
+                            var result = JObject.FromObject(e.Execute(jCode).GetCompletionValue().ToObject());
                             Console.WriteLine(result);
+                            switch (destEnt.EntType)
+                            {
+                                case EntityType.Rule:
+                                    // TODO: Create/Update a rule using destEnt.EntityId and result
+                                    var rule = newState.Rules.FirstOrDefault(r => r.EntityId == destEnt.EntityId);
+                                    if (rule == null)
+                                    {
+                                        var ruleType = result["RuleType"];
+                                        var negateResult = result["NegateResult"];
+                                        var referenceValues = result["ReferenceValues"];
+
+                                        rule = new Rule();
+                                        rule.EntityId = destEnt.EntityId;
+                                        rule.NegateResult = (negateResult == null) ? false : (bool)negateResult;
+                                        rule.RuleType = (ruleType == null) ? RuleType.Unknown : ruleType.ToObject<RuleType>();
+                                        rule.ReferenceValues = (referenceValues == null) ? ImmutableArray<IRulePrescription>.Empty : ImmutableArray.Create((referenceValues.ToObject<ToArray<IRulePrescription>());
+                                    }
+                                    break;
+                                case EntityType.Operation:
+                                    break;
+                                case EntityType.Request:
+                                    break;
+                                case EntityType.Value:
+                                    break;
+                            }
                         }
                     }
                 }

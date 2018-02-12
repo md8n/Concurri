@@ -75,10 +75,10 @@ namespace RulEng.Reformers
                 .GroupBy(de => new { de.EntityId, de.EntType })
                 .Select(grp => new { grp.Key, Count = grp.Count() })
                 .ToList();
-            var conflictDestinations = groupedDestinations
-                .Where(grp => grp.Count > 1)
-                .Select(grp => new TypeKey { EntityId = grp.Key.EntityId, EntType = grp.Key.EntType })
-                .ToList();
+            //var conflictDestinations = groupedDestinations
+            //    .Where(grp => grp.Count > 1)
+            //    .Select(grp => new TypeKey { EntityId = grp.Key.EntityId, EntType = grp.Key.EntType })
+            //    .ToList();
             var acceptableDestinations = groupedDestinations
                 .Where(grp => grp.Count == 1)
                 .Select(grp => new { grp.Key.EntityId, grp.Key.EntType })
@@ -107,8 +107,17 @@ namespace RulEng.Reformers
                 foreach (var relevantOp in relevantOps)
                 {
                     var destEntsToProcess = relevantOp.Operands
-                        .Select(ro => new {ro.EntityId, ro.EntType})
-                        .Intersect(acceptableDestinations)
+                        .Where(o => acceptableDestinations.Contains(new { o.EntityId, o.EntType }))
+                        .Select(de => new
+                        {
+                            de.EntityId,
+                            de.EntType,
+                            sourceValues = de.SourceValueIds.Select(sv => new
+                            {
+                                Id = sv,
+                                Value = acceptableSources.FirstOrDefault(a => a.EntityId == sv)?.Detail 
+                            }).ToArray()
+                        })
                         .ToList();
 
                     var jTempl = relevantOp.OperationTemplate;
@@ -126,19 +135,13 @@ namespace RulEng.Reformers
 
                         foreach (var destEnt in destEntsToProcess)
                         {
-                            var sourceValueIds = relevantOp.Operands
-                                .First(o => o.EntityId == destEnt.EntityId && o.EntType == destEnt.EntType)
-                                .SourceValueIds.ToArray();
-
-                            if (sourceValueIds.Length < index)
+                            if (destEnt.sourceValues.Length < index)
                             {
                                 isSubstOk = false;
                                 break;
                             }
 
-                            // TODO: this is wrong, getting all the source values, but replacing only one token & index
-                            var sourceVals = acceptableSources.Where(s => sourceValueIds.Contains(s.EntityId)).ToArray();
-                            jCode = jCode.Replace(token, sourceVals[index].Detail.ToString());
+                            jCode = jCode.Replace(token, destEnt.sourceValues[index].ToString());
                         }
 
                         if (isSubstOk)

@@ -40,13 +40,12 @@ namespace RulEng.Reformers
             // Set up a temporary 'Processing' copy of the Store as our Unit of Work
             var newState = previousState.DeepClone();
 
-            // First identify rules for values that don't (yet) exist
-            newState = newState.AllOperations(prescription);
+            newState = newState.AllOperations(previousState, prescription);
 
             return newState.DeepClone();
         }
 
-        private static ProcessingRulEngStore AllOperations(this ProcessingRulEngStore newState, IOpReqProcessing prescription)
+        private static ProcessingRulEngStore AllOperations(this ProcessingRulEngStore newState, RulEngStore previousState, IOpReqProcessing prescription)
         {
             // First identify rules that have just been processed successfully
             var ruleIds = newState.RuleResults
@@ -85,12 +84,21 @@ namespace RulEng.Reformers
                 .Select(grp => new { grp.Key.EntityId, grp.Key.EntType })
                 .ToList();
 
+            // Get all of the sources from the previous state
+            var acceptableSourceIds = operationprescriptionsToProcessList
+                .Where(o => acceptableDestinations.Contains(new { o.EntityId, o.EntType }))
+                .SelectMany(o => o.Operands.SelectMany(oo => oo.SourceValueIds))
+                .ToList();
+            var acceptableSources = previousState.Values
+                .Where(v => acceptableSourceIds.Contains(v.EntityId))
+                .ToList();
+
             var e = new Engine();
 
             var regexToken = new Regex(@".*?(?<Token>\$\{(?<Index>\d+)\}).*?");
             foreach (var ruleToProcess in ruleIds)
             {
-                // Get all of the operations relevant to the Rules
+                // Get all of the operations relevant to the Rule
                 var relevantOps = operationprescriptionsToProcessList
                     .Where(o => o.RuleResultId == ruleToProcess)
                     .ToList();
@@ -129,7 +137,7 @@ namespace RulEng.Reformers
                             }
 
                             // TODO: this is wrong, getting all the source values, but replacing only one token & index
-                            var sourceVals = newState.Values.Where(v => sourceValueIds.Contains(v.EntityId)).ToArray();
+                            var sourceVals = acceptableSources.Where(s => sourceValueIds.Contains(s.EntityId)).ToArray();
                             jCode = jCode.Replace(token, sourceVals[index].Detail.ToString());
                         }
 

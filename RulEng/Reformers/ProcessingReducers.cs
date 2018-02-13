@@ -154,22 +154,104 @@ namespace RulEng.Reformers
                             switch (destEnt.EntType)
                             {
                                 case EntityType.Rule:
-                                    // TODO: Create/Update a rule using destEnt.EntityId and result
-                                    var rule = newState.Rules.FirstOrDefault(r => r.EntityId == destEnt.EntityId);
-                                    if (rule == null)
+                                    // Create/Update a rule using destEnt.EntityId and result
+                                    var ruleType = result["RuleType"];
+                                    var negateResult = result["NegateResult"];
+                                    var referenceValues = result["ReferenceValues"];
+                                    var rlType = (ruleType == null) ? RuleType.Unknown : ruleType.ToObject<RuleType>();
+                                    var refValArray = (referenceValues == null)
+                                        ? ImmutableArray<IRulePrescription>.Empty
+                                        : ImmutableArray.Create(referenceValues.ToObject<IRulePrescription[]>());
+                                    if (refValArray.IsEmpty)
                                     {
-                                        var ruleType = result["RuleType"];
-                                        var negateResult = result["NegateResult"];
-                                        var referenceValues = result["ReferenceValues"];
+                                        rlType = RuleType.Error;
+                                    }
 
-                                        rule = new Rule();
-                                        rule.EntityId = destEnt.EntityId;
-                                        rule.NegateResult = (negateResult == null) ? false : (bool)negateResult;
-                                        rule.RuleType = (ruleType == null) ? RuleType.Unknown : ruleType.ToObject<RuleType>();
-                                        rule.ReferenceValues = (referenceValues == null) ? ImmutableArray<IRulePrescription>.Empty : ImmutableArray.Create((referenceValues.ToObject<ToArray<IRulePrescription>());
+                                    var rule = newState.Rules.FirstOrDefault(r => r.EntityId == destEnt.EntityId);
+                                    if (rule != null)
+                                    {
+                                        if (negateResult != null)
+                                        {
+                                            rule.NegateResult = (bool)negateResult;
+                                        }
+                                        if (ruleType != null)
+                                        {
+                                            rule.RuleType = rlType;
+                                        }
+                                        if (referenceValues != null)
+                                        {
+                                            rule.ReferenceValues = refValArray;
+                                        }
+                                        rule.LastChanged = DateTime.UtcNow;
+
+                                        // TODO: Confirm the existing entity is updated
+                                    }
+                                    else
+                                    {
+                                        rule = new Rule
+                                        {
+                                            EntityId = destEnt.EntityId,
+                                            NegateResult = (negateResult == null) ? false : (bool)negateResult,
+                                            RuleType = rlType,
+                                            ReferenceValues = refValArray
+                                        };
+
+                                        newState.Rules.Add(rule);
                                     }
                                     break;
                                 case EntityType.Operation:
+                                    // Create/Update an Operation using destEnt.EntityId and result
+                                    var operationType = result["OperationType"];
+                                    var ruleResultId = result["RuleResultId"];
+                                    var operationTemplate = result["OperationTemplate"];
+                                    var operands = result["Operands"];
+                                    var opType = (operationType == null) ? OperationType.Unknown : operationType.ToObject<OperationType>();
+                                    var rlResId = (ruleResultId == null) ? Guid.Empty : ruleResultId.ToObject<Guid>();
+                                    var opTempl = (operationTemplate == null) ? string.Empty : operationTemplate.ToString().Trim();
+                                    var oprndArray = (operands == null)
+                                        ? ImmutableArray<OperandKey>.Empty
+                                        : ImmutableArray.Create(operands.ToObject<OperandKey[]>());
+                                    if (ruleResultId == null || string.IsNullOrWhiteSpace(opTempl) || operands == null)
+                                    {
+                                        opType = OperationType.Error;
+                                    }
+
+                                    var operation = newState.Operations.FirstOrDefault(o => o.EntityId == destEnt.EntityId);
+                                    if (operation != null)
+                                    {
+                                        if (operationType != null)
+                                        {
+                                            operation.OperationType = opType;
+                                        }
+                                        if (ruleResultId != null)
+                                        {
+                                            operation.RuleResultId = rlResId;
+                                        }
+                                        if (operationTemplate != null)
+                                        {
+                                            operation.OperationTemplate = opTempl;
+                                        }
+                                        if (operands != null)
+                                        {
+                                            operation.Operands = oprndArray;
+                                        }
+                                        operation.LastChanged = DateTime.UtcNow;
+
+                                        // TODO: Confirm the existing entity is updated
+                                    }
+                                    else
+                                    {
+                                        operation = new Operation
+                                        {
+                                            EntityId = destEnt.EntityId,
+                                            OperationType = opType,
+                                            RuleResultId = rlResId,
+                                            OperationTemplate = (operationTemplate == null) ? string.Empty : operationTemplate.ToString(),
+                                            Operands = oprndArray
+                                        };
+
+                                        newState.Operations.Add(operation);
+                                    }
                                     break;
                                 case EntityType.Request:
                                     break;

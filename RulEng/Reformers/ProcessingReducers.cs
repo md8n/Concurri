@@ -221,42 +221,6 @@ namespace RulEng.Reformers
             return newState;
         }
 
-        private static ProcessingRulEngStore AddOperationAction(this ProcessingRulEngStore newState, OperationMxProcessing prescription)
-        {
-            var actionDate = DateTime.UtcNow;
-
-            var sumOfValues = newState.Values
-                .Where(v => prescription.Entities.SelectMany(r => r.SourceValueIds).Contains(v.ValueId) && v.Detail.Type == JTokenType.Integer)
-                .Select(v => v.Detail.ToObject<int>())
-                .Sum();
-
-            if (prescription.Entities.First().EntType != EntityType.Value)
-            {
-                return newState;
-            }
-
-            foreach (var value in prescription.Entities)
-            {
-                var newValue = new Value
-                {
-                    ValueId = value.EntityId,
-                    LastChanged = actionDate,
-                    Detail = sumOfValues
-                };
-
-                //var addValue = new AddValueAction()
-                //{
-                //    NewValue = newValue
-                //};
-                //rvStore.Dispatch(addValue);
-
-                newState.Values.Remove(newValue);
-                newState.Values.Add(newValue);
-            }
-
-            return newState;
-        }
-
         public static T GetEntityFromValue<T>(this ProcessingRulEngStore newState, OperandKey entity) where T : IEntity
         {
             var newEntity = default(T);

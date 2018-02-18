@@ -47,7 +47,7 @@ namespace Concurri.Svr.TestHarness
             //    }
 
             //    jCode = jCode.Replace(token, vals[index].ToString(CultureInfo.InvariantCulture));
-                    
+
             //    Console.WriteLine($"Token:{token}, Index:{index} Value:{vals[index]}");
             //}
 
@@ -102,7 +102,7 @@ namespace Concurri.Svr.TestHarness
             // Build all possible roads
             for (var ix = 0; ix < cityCount; ix++)
             {
-                var cityAValue = values.First(c => c.Detail["properties"]["cityNo"] != null && (int) c.Detail["properties"]["cityNo"] == ix);
+                var cityAValue = values.First(c => c.Detail["properties"]["cityNo"] != null && (int)c.Detail["properties"]["cityNo"] == ix);
 
                 var aValLon = double.Parse(cityAValue.Detail["geometry"]["coordinates"][0].ToString());
                 var aValLat = double.Parse(cityAValue.Detail["geometry"]["coordinates"][1].ToString());
@@ -118,9 +118,9 @@ namespace Concurri.Svr.TestHarness
 
                     var cityBValue = values.First(c => c.Detail["properties"]?["cityNo"] != null && (int)c.Detail["properties"]["cityNo"] == jx);
 
-                    var allRoads = values.Where(r => ((JObject) r.Detail["properties"])["cityAId"] != null);
+                    var allRoads = values.Where(r => ((JObject)r.Detail["properties"])["cityAId"] != null);
 
-                    var roadAtoBValue = allRoads.FirstOrDefault(r => 
+                    var roadAtoBValue = allRoads.FirstOrDefault(r =>
                             ((Guid)r.Detail["properties"]["cityAId"] == cityAValue.EntityId &&
                             (Guid)r.Detail["properties"]["cityBId"] == cityBValue.EntityId) ||
                             ((Guid)r.Detail["properties"]["cityBId"] == cityAValue.EntityId &&
@@ -152,19 +152,46 @@ namespace Concurri.Svr.TestHarness
             // A minimum of two * (cityCount - 1) roads will be required
             var roadSet = values
                 .Where(r => r.Detail["properties"]["cityAId"] != null && (r.Detail["properties"]["usage"] == null || (string)r.Detail["properties"]["usage"] == "Not Set"))
-                .OrderBy(r => (double) r.Detail["properties"]["distance"])
-                .Take(2 * (cityCount - 1));
-            var cityIds = new List<Guid>();
+                .OrderBy(r => (double)r.Detail["properties"]["distance"]);
+            var cityIds = new List<( Guid, int)>();
             foreach (var road in roadSet)
             {
                 var roadGeoJson = (JObject) road.Detail;
-                if (cityIds.Contains((Guid) roadGeoJson["properties"]["cityAId"]) || cityIds.Contains((Guid)roadGeoJson["properties"]["cityBId"]))
+                var cityAId = (Guid)roadGeoJson["properties"]["cityAId"];
+                var cityBId = (Guid)roadGeoJson["properties"]["cityBId"];
+
+                // Test whether either city at the end of this road already have two roads
+                var cityHasRoads = cityIds.Where(ci => ci.Item1 == cityAId || ci.Item1 == cityBId).ToList();
+
+                // Test for a road connecting two fully connected cities (and reject)
+                if (cityHasRoads.Where(chr => chr.Item2 >= 2).Count() >= 2)
                 {
                     continue;
                 }
 
-                cityIds.Add((Guid)roadGeoJson["properties"]["cityAId"]);
-                cityIds.Add((Guid)roadGeoJson["properties"]["cityBId"]);
+                // Test for one of the cities being fully populated 
+                // (and create a zero connection record for the other city)
+
+                // Do connection
+                try
+                {
+                    var a = cityHasRoads.First(chr => chr.Item1 == cityAId);
+                    a.Item2 = 2;
+                }
+                catch
+                {
+                    cityHasRoads.Add((cityAId, 1));
+                }
+
+                try
+                {
+                    var b = cityHasRoads.First(chr => chr.Item1 == cityBId);
+                    b.Item2 = 2;
+                }
+                catch
+                {
+                    cityHasRoads.Add((cityBId, 1));
+                }
 
                 roadGeoJson["properties"]["usage"] = "Accepted";
             }

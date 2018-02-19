@@ -107,7 +107,7 @@ namespace Concurri.Svr.TestHarness
                 var aValLon = double.Parse(cityAValue.Detail["geometry"]["coordinates"][0].ToString());
                 var aValLat = double.Parse(cityAValue.Detail["geometry"]["coordinates"][1].ToString());
 
-                var roadsAdded = 0;
+                var cityRoadValues = new List<Value>();
 
                 for (var jx = 0; jx < cityCount; jx++)
                 {
@@ -141,11 +141,13 @@ namespace Concurri.Svr.TestHarness
 
                     var lonLat = JObject.Parse(lineGeo);
                     roadAtoBValue = new Value(lonLat);
-                    values.Add(roadAtoBValue);
-                    roadsAdded++;
+                    cityRoadValues.Add(roadAtoBValue);
                 }
 
-                Console.WriteLine($"City #:{ix}, added {roadsAdded} roads");
+                var top10Roads = cityRoadValues.OrderBy(r => (double)r.Detail["properties"]["distance"]).Take(10);
+                values.AddRange(top10Roads);
+
+                Console.WriteLine($"City #:{ix}, added up to 10 roads");
             }
 
             // We'll start by adding all the shortest ones as the first set of 'actual' roads
@@ -231,7 +233,21 @@ namespace Concurri.Svr.TestHarness
 
             var pass = 1;
             var citiesWithRoadsCount = 0;
-            var citiesWithNoRoadsCount = 0;
+            var citiesWithNoRoadsCount = cityIds.Count(ci => ci.Count == 0);
+
+            // For each city with no connections
+            // Determine its two closest connected neighbours and reject that road
+            // and accept the two roads to and from this city to those two closest neighbours
+            foreach(var ci in cityIds.Where(ci => ci.Count == 0))
+            {
+                var closestNeighbours = values.Where(v =>
+                v.Detail["properties"]["cityAId"] != null &&
+                ((Guid)v.Detail["properties"]["cityAId"] == ci.cityId || (Guid)v.Detail["properties"]["cityBId"] == ci.cityId) &&
+                v.Detail["properties"]["usage"] != null && (string)v.Detail["properties"]["usage"] == "Accepted")
+                .ToList();
+
+                // TODO: fix up the above to be just the list of neighbouring cities, and then find the net shorrtest distance
+            }
 
             // Now we'll ensure that every city has at least two roads connecting it
             // First step is to group all of the cities and get a count for the number of roads to each one

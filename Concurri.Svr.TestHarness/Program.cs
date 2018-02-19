@@ -163,37 +163,55 @@ namespace Concurri.Svr.TestHarness
                 // Test whether either city at the end of this road already have two roads
                 var cityHasRoads = cityIds.Where(ci => ci.Item1 == cityAId || ci.Item1 == cityBId).ToList();
 
-                // Test for a road connecting two fully connected cities (and reject)
-                if (cityHasRoads.Where(chr => chr.Item2 >= 2).Count() >= 2)
+                switch (cityHasRoads.Where(chr => chr.Item2 >= 2).Count())
                 {
-                    continue;
-                }
+                    case 1:
+                        // Road connecting one fully connected city
+                        if (cityHasRoads.Count == 1)
+                        {
+                            // And only one city - so create an empty connection record for the other
+                            if (cityHasRoads.All(chr => chr.Item1 == cityAId))
+                            {
+                                // Create an empty record for B
+                                cityHasRoads.Add((cityBId, 0));
+                            }
+                            else
+                            {
+                                // Create an empty record for A
+                                cityHasRoads.Add((cityAId, 0));
+                            }
+                        }
 
-                // Test for one of the cities being fully populated 
-                // (and create a zero connection record for the other city)
-
-                // Do connection
-                try
-                {
-                    var a = cityHasRoads.First(chr => chr.Item1 == cityAId);
-                    a.Item2 = 2;
+                        // But the other exists already with zero or one roads to it
+                        continue;
+                    case 0:
+                        // Road connects two cities and neither has a full set of connecting roads
+                        // Do connection
+                        roadGeoJson["properties"]["usage"] = "Accepted";
+                        try
+                        {
+                            var a = cityHasRoads.First(chr => chr.Item1 == cityAId);
+                            a.Item2++;
+                        }
+                        catch
+                        {
+                            cityHasRoads.Add((cityAId, 1));
+                        }
+                        try
+                        {
+                            var b = cityHasRoads.First(chr => chr.Item1 == cityBId);
+                            b.Item2++;
+                        }
+                        catch
+                        {
+                            cityHasRoads.Add((cityBId, 1));
+                        }
+                        break;
+                    case 2:
+                    default:
+                        // Road connecting two already full connected cities
+                        continue;
                 }
-                catch
-                {
-                    cityHasRoads.Add((cityAId, 1));
-                }
-
-                try
-                {
-                    var b = cityHasRoads.First(chr => chr.Item1 == cityBId);
-                    b.Item2 = 2;
-                }
-                catch
-                {
-                    cityHasRoads.Add((cityBId, 1));
-                }
-
-                roadGeoJson["properties"]["usage"] = "Accepted";
             }
 
             var acceptedRoads = values.Where(v => 

@@ -155,10 +155,10 @@ namespace Concurri.Svr.TestHarness
             var roadSet = values
                 .Where(r => r.Detail["properties"]["cityAId"] != null && (r.Detail["properties"]["usage"] == null || (string)r.Detail["properties"]["usage"] == "Not Set"))
                 .OrderBy(r => (double)r.Detail["properties"]["distance"]);
-            var cityIds = new List<( Guid cityId, int Count)>();
+            var cityIds = new List<(Guid cityId, int Count)>();
             foreach (var road in roadSet)
             {
-                var roadGeoJson = (JObject) road.Detail;
+                var roadGeoJson = (JObject)road.Detail;
                 var cityAId = (Guid)roadGeoJson["properties"]["cityAId"];
                 var cityBId = (Guid)roadGeoJson["properties"]["cityBId"];
 
@@ -220,9 +220,9 @@ namespace Concurri.Svr.TestHarness
                 }
             }
 
-            var acceptedRoads = values.Where(v => 
+            var acceptedRoads = values.Where(v =>
                 v.Detail["properties"]["cityAId"] != null &&
-                v.Detail["properties"]["usage"] != null && (string) v.Detail["properties"]["usage"] == "Accepted")
+                v.Detail["properties"]["usage"] != null && (string)v.Detail["properties"]["usage"] == "Accepted")
                 .ToList();
             salesmansJourney = new StringBuilder();
             salesmansJourney.Append("{\"type\":\"FeatureCollection\",\"features\":[");
@@ -238,41 +238,89 @@ namespace Concurri.Svr.TestHarness
             // For each city with no connections
             // Determine its two closest connected neighbours and reject that road
             // and accept the two roads to and from this city to those two closest neighbours
-            foreach(var ci in cityIds.Where(ci => ci.Count == 0))
+            foreach (var ci in cityIds.Where(ci => ci.Count == 0))
             {
-                var closestNeighbours = values.Where(v =>
-                v.Detail["properties"]["cityAId"] != null &&
-                ((Guid)v.Detail["properties"]["cityAId"] == ci.cityId || (Guid)v.Detail["properties"]["cityBId"] == ci.cityId) &&
-                v.Detail["properties"]["usage"] != null && (string)v.Detail["properties"]["usage"] == "Accepted")
-                .ToList();
+                var closestNeighboursWithRoads = values.Where(v =>
+                    v.Detail["properties"]["cityAId"] != null &&
+                    ((Guid)v.Detail["properties"]["cityAId"] == ci.cityId || (Guid)v.Detail["properties"]["cityBId"] == ci.cityId) &&
+                    v.Detail["properties"]["usage"] != null && (string)v.Detail["properties"]["usage"] == "Accepted")
+                    .OrderBy(r => (double)r.Detail["properties"]["distance"])
+                    .ToList();
 
-                // TODO: fix up the above to be just the list of neighbouring cities, and then find the net shorrtest distance
+                var closestNeighbourGuids = closestNeighboursWithRoads.SelectMany(ar => new[]
+                    {(Guid) ar.Detail["properties"]["cityAId"], (Guid) ar.Detail["properties"]["cityBId"]})
+                    .GroupBy(cg => cg)
+                    .Select(cg => cg.Key)
+                    .ToList();
+
+                foreach(var cng in closestNeighbourGuids)
+                {
+                    var notCng = closestNeighbourGuids.Where(cg => cng != cg).ToList();
+
+                    var cnwr = closestNeighboursWithRoads.Where(v =>
+                    v.Detail["properties"]["cityAId"] != null &&
+                    ((Guid)v.Detail["properties"]["cityAId"] == ci.cityId || (Guid)v.Detail["properties"]["cityBId"] == ci.cityId) &&
+                    (notCng.Contains((Guid)v.Detail["properties"]["cityAId"]) || notCng.Contains((Guid)v.Detail["properties"]["cityBId"])))
+                    .ToList();
+
+                    if (cnwr.Any())
+                    {
+                        // Road to Reject
+                        var r2r = cnwr.First();
+                        roadSet.First(r => r.EntityId == r2r.EntityId).Detail["properties"]["usage"] = "Rejected";
+
+                        // Rejected road cities
+                        var cnwor = new[] { (Guid)r2r.Detail["properties"]["cityAId"], (Guid)r2r.Detail["properties"]["cityBId"] };
+
+                        // Roads to Accept
+                        var r2a = closestNeighboursWithRoads.Where(v =>
+                            v.Detail["properties"]["cityAId"] != null &&
+                            ((Guid)v.Detail["properties"]["cityAId"] == ci.cityId || (Guid)v.Detail["properties"]["cityBId"] == ci.cityId) &&
+                            (cnwor.Contains((Guid)v.Detail["properties"]["cityAId"]) || cnwor.Contains((Guid)v.Detail["properties"]["cityBId"])));
+                        foreach(var rd in r2a)
+                        {
+                            roadSet.First(r => r.EntityId == rd.EntityId).Detail["properties"]["usage"] = "Accepted";
+                        }
+                        break;
+                    }
+                }
             }
 
             // Now we'll ensure that every city has at least two roads connecting it
             // First step is to group all of the cities and get a count for the number of roads to each one
-            var citiesWithRoads = acceptedRoads
-                .SelectMany(ar => new[]
-                    {(Guid) ar.Detail["properties"]["cityAId"], (Guid) ar.Detail["properties"]["cityBId"]})
-                .GroupBy(cg => cg)
-                .Select(cg => new { cityId = cg.Key, Count = cg.Count() })
-                .ToList();
-            citiesWithRoadsCount = citiesWithRoads.Count;
+            //var citiesWithRoads = acceptedRoads
+            //    .SelectMany(ar => new[]
+            //        {(Guid) ar.Detail["properties"]["cityAId"], (Guid) ar.Detail["properties"]["cityBId"]})
+            //    .GroupBy(cg => cg)
+            //    .Select(cg => new { cityId = cg.Key, Count = cg.Count() })
+            //    .ToList();
+            //citiesWithRoadsCount = citiesWithRoads.Count;
+
+            acceptedRoads = values.Where(v =>
+    v.Detail["properties"]["cityAId"] != null &&
+    v.Detail["properties"]["usage"] != null && (string)v.Detail["properties"]["usage"] == "Accepted")
+    .ToList();
+            salesmansJourney = new StringBuilder();
+            salesmansJourney.Append("{\"type\":\"FeatureCollection\",\"features\":[");
+            salesmansJourney.Append(string.Join(',', acceptedRoads.Select(v => v.Detail.ToString())));
+            salesmansJourney.Append("]}");
+            jny = JObject.Parse(salesmansJourney.ToString());
+            File.WriteAllText("Routes01.json", jny.ToString());
 
             // Then there's a need to check for any cities with no roads at all connected to them (a possibility)
             // and add these to the same list with a count of zero for each one.
-            if (citiesWithRoadsCount < cityCount)
-            {
-                var citiesWithNoRoads = values.Where(c =>
-                        c.Detail["properties"]["cityNo"] != null &&
-                        !citiesWithRoads.Select(cr => cr.cityId).Contains(c.EntityId))
-                    .Select(cn => new {cityId = cn.EntityId, Count = 0})
-                    .ToList();
+            //if (citiesWithRoadsCount < cityCount)
+            //{
+            //    var citiesWithNoRoads = values.Where(c =>
+            //            c.Detail["properties"]["cityNo"] != null &&
+            //            !citiesWithRoads.Select(cr => cr.cityId).Contains(c.EntityId))
+            //        .Select(cn => new { cityId = cn.EntityId, Count = 0 })
+            //        .ToList();
 
-                citiesWithNoRoadsCount = citiesWithNoRoads.Count;
+            //    citiesWithNoRoadsCount = citiesWithNoRoads.Count;
 
-                citiesWithRoads.AddRange(citiesWithNoRoads);
-            }
+            //    citiesWithRoads.AddRange(citiesWithNoRoads);
+            //}
 
             //do
             //{

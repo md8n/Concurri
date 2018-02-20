@@ -85,9 +85,35 @@ namespace Concurri.Svr.TestHarness
                 var pointGeo =
                     $"{{\"type\":\"Feature\",\"properties\":{{\"cityNo\":{ix}}},\"geometry\":{{\"type\":\"Point\",\"coordinates\":[{lon},{lat}]}}}}";
                 var lonLat = JObject.Parse(pointGeo);
-                var coord = new Value(lonLat);
-                values.Add(coord);
+                var coordValue = new Value(lonLat);
+                values.Add(coordValue);
+
+                var coordRule = coordValue.ExistsRule();
+                rules.Add(coordRule);
             }
+
+            // Add Collection Rule for all of the above rules
+            var refValues = rules.Where(r => r.RuleType == RuleType.Exists).RulePresciptions<RuleCollect>();
+            var collectRule = new Rule
+            {
+                RuleId = Guid.NewGuid(),
+                RuleName = "Do all cities exist",
+                RuleType = RuleType.And,
+                ReferenceValues = ImmutableArray.CreateRange(refValues.Select(r => (IRulePrescription) r))
+            };
+            rules.Add(collectRule);
+
+            // Add an Operation to reference the collect Rule and merge all of the results into one GeoJSON
+            var opKey = values.Where(c => c.Detail["properties"]["cityNo"] != null).OperandKey(EntityType.Value);
+            var buildGeoJsonOperation = new Operation
+            {
+                OperationId = Guid.NewGuid(),
+                OperationType = OperationType.CreateUpdate,
+                Operands = ImmutableArray.Create(opKey)
+            };
+
+            // Build the Javascript template
+
 
             // How many Cities? (again)
             var cityCount = values.Count(c => c.Detail["properties"]["cityNo"] != null);
@@ -240,6 +266,8 @@ namespace Concurri.Svr.TestHarness
             // and accept the two roads to and from this city to those two closest neighbours
             foreach (var ci in cityIds.Where(ci => ci.Count == 0))
             {
+                Console.WriteLine($"{ci.cityId}");
+
                 var closestNeighboursWithRoads = values.Where(v =>
                     v.Detail["properties"]["cityAId"] != null &&
                     ((Guid)v.Detail["properties"]["cityAId"] == ci.cityId || (Guid)v.Detail["properties"]["cityBId"] == ci.cityId) &&
@@ -253,7 +281,7 @@ namespace Concurri.Svr.TestHarness
                     .Select(cg => cg.Key)
                     .ToList();
 
-                foreach(var cng in closestNeighbourGuids)
+                foreach (var cng in closestNeighbourGuids)
                 {
                     var notCng = closestNeighbourGuids.Where(cg => cng != cg).ToList();
 
@@ -263,26 +291,27 @@ namespace Concurri.Svr.TestHarness
                     (notCng.Contains((Guid)v.Detail["properties"]["cityAId"]) || notCng.Contains((Guid)v.Detail["properties"]["cityBId"])))
                     .ToList();
 
-                    if (cnwr.Any())
+                    if (!cnwr.Any())
                     {
-                        // Road to Reject
-                        var r2r = cnwr.First();
-                        roadSet.First(r => r.EntityId == r2r.EntityId).Detail["properties"]["usage"] = "Rejected";
-
-                        // Rejected road cities
-                        var cnwor = new[] { (Guid)r2r.Detail["properties"]["cityAId"], (Guid)r2r.Detail["properties"]["cityBId"] };
-
-                        // Roads to Accept
-                        var r2a = closestNeighboursWithRoads.Where(v =>
-                            v.Detail["properties"]["cityAId"] != null &&
-                            ((Guid)v.Detail["properties"]["cityAId"] == ci.cityId || (Guid)v.Detail["properties"]["cityBId"] == ci.cityId) &&
-                            (cnwor.Contains((Guid)v.Detail["properties"]["cityAId"]) || cnwor.Contains((Guid)v.Detail["properties"]["cityBId"])));
-                        foreach(var rd in r2a)
-                        {
-                            roadSet.First(r => r.EntityId == rd.EntityId).Detail["properties"]["usage"] = "Accepted";
-                        }
-                        break;
+                        continue;
                     }
+                    // Road to Reject
+                    var r2R = cnwr.First();
+                    values.First(r => r.EntityId == r2R.EntityId).Detail["properties"]["usage"] = "Rejected";
+
+                    // Rejected road cities
+                    var cnwor = new[] { (Guid)r2R.Detail["properties"]["cityAId"], (Guid)r2R.Detail["properties"]["cityBId"] };
+
+                    // Roads to Accept
+                    var r2A = closestNeighboursWithRoads.Where(v =>
+                        v.Detail["properties"]["cityAId"] != null &&
+                        ((Guid)v.Detail["properties"]["cityAId"] == ci.cityId || (Guid)v.Detail["properties"]["cityBId"] == ci.cityId) &&
+                        (cnwor.Contains((Guid)v.Detail["properties"]["cityAId"]) || cnwor.Contains((Guid)v.Detail["properties"]["cityBId"])));
+                    foreach (var rd in r2A)
+                    {
+                        values.First(r => r.EntityId == rd.EntityId).Detail["properties"]["usage"] = "Accepted";
+                    }
+                    break;
                 }
             }
 

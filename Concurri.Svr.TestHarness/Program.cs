@@ -88,8 +88,10 @@ namespace Concurri.Svr.TestHarness
                 var coordValue = new Value(lonLat);
                 values.Add(coordValue);
 
-                var coordRule = coordValue.ExistsRule();
-                rules.Add(coordRule);
+                (rule, ruleResult, rulePrescription) = coordValue.Exists();
+                rules.Add(rule);
+                ruleResults.Add(ruleResult);
+                rulePrescriptions.Add(rulePrescription);
             }
 
             // Add Collection Rule for all of the above rules
@@ -111,9 +113,41 @@ namespace Concurri.Svr.TestHarness
                 OperationType = OperationType.CreateUpdate,
                 Operands = ImmutableArray.Create(opKey)
             };
+            operations.Add(buildGeoJsonOperation);
 
-            // Build the Javascript template
+            var startingStore = new RulEngStore
+            {
+                Rules = rules.ToImmutableHashSet(),
+                Operations = operations.ToImmutableHashSet(),
+                Values = values.ToImmutableHashSet()
+            };
 
+            RvStore = new Store<RulEngStore>(null, startingStore);
+            File.WriteAllText("storeStart.json", RvStore.GetState().ToString());
+
+            // Build the Javascript template for creating the entire Value
+            /*
+             *         "ff1db104-89a2-4d55-a15e-d696c2dba3a2": {
+            "ValueId": "ff1db104-89a2-4d55-a15e-d696c2dba3a2",
+            "EntityId": "ff1db104-89a2-4d55-a15e-d696c2dba3a2",
+            "EntType": 5,
+            "LastChanged": "1980-01-01T00:00:00Z",
+            "Detail": {
+                "type": "Feature",
+                "properties": {
+                    "cityNo": 94
+                },
+                "geometry": {
+                    "type": "Point",
+                    "coordinates": [
+                        143.612335430278,
+                        -24.8117913495804
+                    ]
+                }
+            },
+            "GetAltHashCode": "ff1db104-89a2-4d55-a15e-d696c2dba3a2"
+        },
+             */
 
             // How many Cities? (again)
             var cityCount = values.Count(c => c.Detail["properties"]["cityNo"] != null);

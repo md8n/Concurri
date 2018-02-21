@@ -44,16 +44,18 @@ namespace RulEng.Helpers
         public static Rule ExistsRule(this IEntity entity, bool negateResult = true)
         {
             var nText = negateResult ? "non-" : "";
+            var ruleName = $"Test for {nText}existence of {entity.EntType.ToString()} {((TypeKey)entity)}";
+            var refValues = ImmutableArray.Create((IRulePrescription)entity.RulePrescription<RuleUnary>());
 
             var rule = new Rule
             {
                 RuleId = Guid.NewGuid(),
-                RuleName = $"Test for {nText}existence of {entity.EntType.ToString()} {((TypeKey)entity)}",
+                RuleName = ruleName,
                 RuleType = RuleType.Exists,
                 LastChanged = entity.LastChanged,
                 LastExecuted = entity.LastChanged,
                 NegateResult = negateResult,
-                ReferenceValues = ImmutableArray.Create((IRulePrescription)entity.RulePrescription<RuleUnary>())
+                ReferenceValues = refValues
             };
 
             return rule;

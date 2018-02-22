@@ -204,7 +204,7 @@ namespace RulEng.Helpers
             }
         }
 
-        public static string OperationValueTemplate(this Operation operation, Guid valueId, string detail, DateTime? lastChanged = null)
+        public static string OperationValueTemplate(this Guid valueId, string detail, DateTime? lastChanged = null)
         {
             if (!lastChanged.HasValue)
             {

@@ -96,22 +96,41 @@ namespace Concurri.Svr.TestHarness
 
             // Add Collection Rule for all of the above rules
             var refValues = rules.Where(r => r.RuleType == RuleType.Exists).RulePresciptions<RuleCollect>();
+            var refValueIds = new RuleCollect
+            {
+                RuleResultId = Guid.NewGuid(),
+                EntityIds = refValues.Select(rv => rv.RuleResultId)
+            };
             var collectRule = new Rule
             {
                 RuleId = Guid.NewGuid(),
                 RuleName = "Do all cities exist",
                 RuleType = RuleType.And,
-                ReferenceValues = ImmutableArray.CreateRange(refValues.Select(r => (IRulePrescription) r))
+                ReferenceValues = ImmutableArray.Create((IRulePrescription)refValueIds)
             };
             rules.Add(collectRule);
 
+            // Build the Javascript template for creating the entire Value
+            var valueBody = "{\"type\":\"FeatureCollection\",\"features\":[";
+            for (var ix = 0; ix < 100; ix++)
+            {
+                if (ix > 0)
+                {
+                    valueBody += ",";
+                }
+                valueBody += $"${{{ix}}}";
+            }
+            valueBody += "]}";
+            var valueTemplate = Guid.NewGuid().OperationValueTemplate(valueBody);
+            
             // Add an Operation to reference the collect Rule and merge all of the results into one GeoJSON
             var opKey = values.Where(c => c.Detail["properties"]["cityNo"] != null).OperandKey(EntityType.Value);
             var buildGeoJsonOperation = new Operation
             {
                 OperationId = Guid.NewGuid(),
                 OperationType = OperationType.CreateUpdate,
-                Operands = ImmutableArray.Create(opKey)
+                Operands = ImmutableArray.Create(opKey),
+                OperationTemplate = valueTemplate
             };
             operations.Add(buildGeoJsonOperation);
 
@@ -125,8 +144,6 @@ namespace Concurri.Svr.TestHarness
             RvStore = new Store<RulEngStore>(null, startingStore);
             File.WriteAllText("storeStart.json", RvStore.GetState().ToString());
 
-            // Build the Javascript template for creating the entire Value
-            var valueBody = buildGeoJsonOperation.OperationValueTemplate(Guid.NewGuid(), "");
             /*
              *         "ff1db104-89a2-4d55-a15e-d696c2dba3a2": {
             "ValueId": "ff1db104-89a2-4d55-a15e-d696c2dba3a2",

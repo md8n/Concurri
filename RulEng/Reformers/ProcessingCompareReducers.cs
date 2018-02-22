@@ -19,6 +19,11 @@ namespace RulEng.Reformers
         /// <returns></returns>
         public static ProcessingRulEngStore AllCompare(this ProcessingRulEngStore newState, IRuleValueProcessing prescription, RuleType ruleType)
         {
+            if (prescription == null)
+            {
+                return newState;
+            }
+
             var compareRuleTypes = new [] { RuleType.LessThan, RuleType.Equal, RuleType.GreaterThan, RuleType.RegularExpression };
 
             if (!compareRuleTypes.Contains(ruleType)) {

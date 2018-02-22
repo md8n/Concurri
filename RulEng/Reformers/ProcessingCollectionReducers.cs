@@ -19,6 +19,11 @@ namespace RulEng.Reformers
         /// <returns></returns>
         public static ProcessingRulEngStore AllCollection(this ProcessingRulEngStore newState, IRuleRuleResultProcessing prescription, RuleType ruleType)
         {
+            if (prescription == null)
+            {
+                return newState;
+            }
+
             var collectionRuleTypes = new[] { RuleType.And, RuleType.Or, RuleType.Xor };
 
             if (!collectionRuleTypes.Contains(ruleType))

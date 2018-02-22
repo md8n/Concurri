@@ -99,7 +99,7 @@ namespace Concurri.Svr.TestHarness
             var refValueIds = new RuleCollect
             {
                 RuleResultId = Guid.NewGuid(),
-                EntityIds = refValues.Select(rv => rv.RuleResultId)
+                EntityIds = ImmutableList.CreateRange(refValues.SelectMany(rv => rv.EntityIds))
             };
             var collectRule = new Rule
             {
@@ -137,34 +137,40 @@ namespace Concurri.Svr.TestHarness
             var startingStore = new RulEngStore
             {
                 Rules = rules.ToImmutableHashSet(),
+                RuleResults = ruleResults.ToImmutableHashSet(),
                 Operations = operations.ToImmutableHashSet(),
                 Values = values.ToImmutableHashSet()
             };
 
-            RvStore = new Store<RulEngStore>(null, startingStore);
+            RvStore = new Store<RulEngStore>(StoreReducers.ReduceStore, startingStore);
             File.WriteAllText("storeStart.json", RvStore.GetState().ToString());
 
-            /*
-             *         "ff1db104-89a2-4d55-a15e-d696c2dba3a2": {
-            "ValueId": "ff1db104-89a2-4d55-a15e-d696c2dba3a2",
-            "EntityId": "ff1db104-89a2-4d55-a15e-d696c2dba3a2",
-            "EntType": 5,
-            "LastChanged": "1980-01-01T00:00:00Z",
-            "Detail": {
-                "type": "Feature",
-                "properties": {
-                    "cityNo": 94
-                },
-                "geometry": {
-                    "type": "Point",
-                    "coordinates": [
-                        143.612335430278,
-                        -24.8117913495804
-                    ]
-                }
+            //RvStore = new Store<RulEngStore>(StoreReducers.ReduceStore);
+
+            RulEngStore changes;
+            RvStore.Subscribe(state => changes = state);
+
+            foreach(var prescription in rulePrescriptions)
+            {
+                var act = RvStore.Dispatch(prescription);
             }
-        },
-             */
+            File.WriteAllText("storePass00A.json", RvStore.GetState().ToString());
+
+            //var act = RvStore.Dispatch(rulePrescription);
+            //foreach (var prescription in operationPrescriptions)
+            //{
+            //    act = RvStore.Dispatch(prescription);
+            //}
+
+            //File.WriteAllText("storeBefore.json", RvStore.GetState().ToString());
+            //act = rvStore.Dispatch(procAllRules);
+            // File.WriteAllText("storeMiddle.json", rvStore.GetState().ToString());
+            //act = rvStore.Dispatch(procAllOperations);
+            //File.WriteAllText("storeAfter.json", RvStore.GetState().ToString());
+
+
+
+
 
             // How many Cities? (again)
             var cityCount = values.Count(c => c.Detail["properties"]["cityNo"] != null);

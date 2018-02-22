@@ -17,6 +17,11 @@ namespace RulEng.Reformers
         /// <returns></returns>
         public static ProcessingRulEngStore AllExists(this ProcessingRulEngStore newState, ProcessExistsRule prescription)
         {
+            if (prescription == null)
+            {
+                return newState;
+            }
+
             var actionDate = DateTime.UtcNow;
 
             // First identify the potentially relevant entities
@@ -54,6 +59,11 @@ namespace RulEng.Reformers
         /// <returns></returns>
         public static ProcessingRulEngStore AllHasMeaningfulValue(this ProcessingRulEngStore newState, ProcessHasMeaningfulValueRule prescription)
         {
+            if (prescription == null)
+            {
+                return newState;
+            }
+
             var actionDate = DateTime.UtcNow;
 
             // First identify the potentially relevant Entities

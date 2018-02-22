@@ -126,6 +126,7 @@ namespace Concurri.Svr.TestHarness
             File.WriteAllText("storeStart.json", RvStore.GetState().ToString());
 
             // Build the Javascript template for creating the entire Value
+            var valueBody = buildGeoJsonOperation.OperationValueTemplate(Guid.NewGuid(), "");
             /*
              *         "ff1db104-89a2-4d55-a15e-d696c2dba3a2": {
             "ValueId": "ff1db104-89a2-4d55-a15e-d696c2dba3a2",
@@ -144,8 +145,7 @@ namespace Concurri.Svr.TestHarness
                         -24.8117913495804
                     ]
                 }
-            },
-            "GetAltHashCode": "ff1db104-89a2-4d55-a15e-d696c2dba3a2"
+            }
         },
              */
 

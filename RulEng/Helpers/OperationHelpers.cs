@@ -203,5 +203,17 @@ namespace RulEng.Helpers
                 newState.Values.Add(value);
             }
         }
+
+        public static string OperationValueTemplate(this Operation operation, Guid valueId, string detail, DateTime? lastChanged = null)
+        {
+            if (!lastChanged.HasValue)
+            {
+                lastChanged = DefaultHelpers.DefDate();
+            }
+
+            var lastChStr = lastChanged.Value.ToString("u");
+
+            return $"{{\"ValueId\":\"{valueId}\",\"EntType\":{EntityType.Value},\"Detail\":{detail},\"LastChanged\":\"{lastChStr}\"}}";
+        }
     }
 }

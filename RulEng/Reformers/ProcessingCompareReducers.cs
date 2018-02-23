@@ -55,7 +55,7 @@ namespace RulEng.Reformers
             var entities = ruleResultEntitySets
                 .SelectMany(v => v.Entities)
                 .Distinct()
-                .Select(v => (TypeKey)v)
+                .Select(v => (IEntity)v)
                 .ToList();
 
             // Get the corresponding Rules

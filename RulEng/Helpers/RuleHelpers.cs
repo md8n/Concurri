@@ -9,27 +9,28 @@ namespace RulEng.Helpers
 {
     public static class RuleHelpers
     {
-        public static List<Rule> RulesToProcess(this HashSet<Rule> rules, RuleType ruleType, List<TypeKey> entities)
+        public static List<Rule> RulesToProcess(this HashSet<Rule> rules, RuleType ruleType, List<IEntity> entities)
         {
             var currentTime = DateTime.UtcNow;
 
             var ruleRefEntities = rules
                 .SelectMany(r => r.ReferenceValues.SelectMany(rv => rv.EntityIds).Distinct())
                 .Distinct()
+                .Select(r => (IEntity)r)
                 .ToList();
 
             // (Not) Rule tests
             var notRuleList = rules
                 .Where(r => r.RuleType == ruleType
                     && r.NegateResult
-                    && entities.Except(ruleRefEntities).Any()
+                    && entities.Except(ruleRefEntities, new IEntityComparer()).Any()
                     && r.LastExecuted < currentTime);
 
             // Rule tests
             var ruleList = rules
                 .Where(r => r.RuleType == ruleType
                     && !r.NegateResult
-                    && entities.Intersect(ruleRefEntities).Any()
+                    && entities.Intersect(ruleRefEntities, new IEntityComparer()).Any()
                     && r.LastExecuted < currentTime);
 
             return notRuleList.Intersect(ruleList).ToList();

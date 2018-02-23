@@ -25,10 +25,10 @@ namespace RulEng.Reformers
             var actionDate = DateTime.UtcNow;
 
             // First identify the potentially relevant entities
-            var entities = newState.Rules.Select(r => (TypeKey)r).ToList();
-            entities.AddRange(newState.Values.Select(v => (TypeKey)v));
-            entities.AddRange(newState.Operations.Select(o => (TypeKey)o));
-            entities.AddRange(newState.Requests.Select(rq => (TypeKey)rq));
+            var entities = newState.Rules.Select(r => (IEntity)r).ToList();
+            entities.AddRange(newState.Values.Select(v => (IEntity)v));
+            entities.AddRange(newState.Operations.Select(o => (IEntity)o));
+            entities.AddRange(newState.Requests.Select(rq => (IEntity)rq));
 
             // Get the corresponding Rules
             var rulesToProcessList = newState.Rules.RulesToProcess(RuleType.Exists, entities);
@@ -67,7 +67,7 @@ namespace RulEng.Reformers
             var actionDate = DateTime.UtcNow;
 
             // First identify the potentially relevant Entities
-            var entities = newState.Values.Select(v => (TypeKey)v).ToList();
+            var entities = newState.Values.Select(v => (IEntity)v).ToList();
 
             // Get all the rules to process
             var rulesToProcessList = newState.Rules.RulesToProcess(RuleType.HasMeaningfulValue, entities);

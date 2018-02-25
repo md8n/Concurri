@@ -18,7 +18,7 @@ namespace RulEng.Helpers
         {
             return new ProcessHasMeaningfulValueRule
             {
-                Entities = ImmutableList.CreateRange(hasMeangingfulValueRule.ReferenceValues)
+                Entities = hasMeangingfulValueRule.ReferenceValues
             };
         }
 

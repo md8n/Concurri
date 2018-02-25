@@ -106,7 +106,7 @@ namespace Concurri.Svr.TestHarness
                 RuleId = Guid.NewGuid(),
                 RuleName = "Do all cities exist",
                 RuleType = RuleType.And,
-                ReferenceValues = ImmutableArray.Create((IRulePrescription)refValueIds)
+                ReferenceValues = (IRulePrescription)refValueIds
             };
             rules.Add(collectRule);
 

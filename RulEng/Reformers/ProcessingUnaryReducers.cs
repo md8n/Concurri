@@ -72,14 +72,9 @@ namespace RulEng.Reformers
             // Get all the rules to process
             var rulesToProcessList = newState.Rules.RulesToProcess(RuleType.HasMeaningfulValue, entities);
 
-            if (rulesToProcessList.Any(r => r.ReferenceValues.Count() != 1))
-            {
-                throw new Exception("HasMeaningfulValue Rules currently only support testing a single value");
-            }
-
             foreach (var ruleToProcess in rulesToProcessList)
             {
-                var refValue = newState.Values.FirstOrDefault(v => v.EntityId == ruleToProcess.ReferenceValues[0].EntityIds[0].EntityId);
+                var refValue = newState.Values.FirstOrDefault(v => v.EntityId == ruleToProcess.ReferenceValues.EntityIds[0].EntityId);
 
                 //var entitiesToAdd = ruleToProcess.ReferenceValues.Except(entities).ToList();
                 var newRuleResult = new RuleResult

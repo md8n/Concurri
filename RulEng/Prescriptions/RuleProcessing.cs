@@ -1,6 +1,5 @@
 ﻿// These define Prescriptions (Redux Actions) performed by Rules
 
-using System.Collections.Immutable;
 using RulEng.States;
 
 namespace RulEng.Prescriptions
@@ -11,7 +10,7 @@ namespace RulEng.Prescriptions
     /// </summary>
     public class ProcessExistsRule : IRuleProcessing
     {
-        public IImmutableList<IRulePrescription> Entities { get; set; }
+        public IRulePrescription Entities { get; set; }
     }
 
     /// <inheritdoc />
@@ -20,13 +19,13 @@ namespace RulEng.Prescriptions
     /// </summary>
     public class ProcessHasMeaningfulValueRule : IRuleProcessing
     {
-        public IImmutableList<IRulePrescription> Entities { get; set; }
+        public IRulePrescription Entities { get; set; }
     }
 
     /// <inheritdoc />
     public class ProcessLessThanRule : IRuleValueProcessing
     {
-        public IImmutableList<IRulePrescription> Entities { get; set; }
+        public IRulePrescription Entities { get; set; }
     }
 
     /// <summary>
@@ -34,7 +33,7 @@ namespace RulEng.Prescriptions
     /// </summary>
     public class ProcessEqualRule : IRuleValueProcessing
     {
-        public IImmutableList<IRulePrescription> Entities { get; set; }
+        public IRulePrescription Entities { get; set; }
     }
 
     /// <summary>
@@ -42,7 +41,7 @@ namespace RulEng.Prescriptions
     /// </summary>
     public class ProcessGreaterThanRule : IRuleValueProcessing
     {
-        public IImmutableList<IRulePrescription> Entities { get; set; }
+        public IRulePrescription Entities { get; set; }
     }
 
     /// <summary>
@@ -50,7 +49,7 @@ namespace RulEng.Prescriptions
     /// </summary>
     public class ProcessRegexMatchRule : IRuleValueProcessing
     {
-        public IImmutableList<IRulePrescription> Entities { get; set; }
+        public IRulePrescription Entities { get; set; }
     }
 
     /// <summary>
@@ -58,7 +57,7 @@ namespace RulEng.Prescriptions
     /// </summary>
     public class ProcessAndRule : IRuleRuleResultProcessing
     {
-        public IImmutableList<IRulePrescription> Entities { get; set; }
+        public IRulePrescription Entities { get; set; }
     }
 
     /// <summary>
@@ -66,7 +65,7 @@ namespace RulEng.Prescriptions
     /// </summary>
     public class ProcessOrRule : IRuleRuleResultProcessing
     {
-        public IImmutableList<IRulePrescription> Entities { get; set; }
+        public IRulePrescription Entities { get; set; }
     }
 
     /// <summary>
@@ -74,6 +73,6 @@ namespace RulEng.Prescriptions
     /// </summary>
     public class ProcessXorRule : IRuleRuleResultProcessing
     {
-        public IImmutableList<IRulePrescription> Entities { get; set; }
+        public IRulePrescription Entities { get; set; }
     }
 }

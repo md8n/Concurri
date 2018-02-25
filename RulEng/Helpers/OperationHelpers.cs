@@ -29,10 +29,8 @@ namespace RulEng.Helpers
             var negateResult = result["NegateResult"];
             var referenceValues = result["ReferenceValues"];
             var rlType = ruleType?.ToObject<RuleType>() ?? RuleType.Unknown;
-            var refValArray = referenceValues == null
-                ? ImmutableArray<IRulePrescription>.Empty
-                : ImmutableArray.Create(referenceValues.ToObject<IRulePrescription[]>());
-            if (refValArray.IsEmpty)
+            var refValArray = referenceValues?.ToObject<IRulePrescription>();
+            if (refValArray == null)
             {
                 rlType = RuleType.Error;
             }

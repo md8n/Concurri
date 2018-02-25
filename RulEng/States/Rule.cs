@@ -22,7 +22,7 @@ namespace RulEng.States
 
         public bool NegateResult { get; set; }
 
-        public ImmutableArray<IRulePrescription> ReferenceValues { get; set; } = new ImmutableArray<IRulePrescription>();
+        public IRulePrescription ReferenceValues { get; set; }
 
         /// <summary>
         /// The last time this rule was executed

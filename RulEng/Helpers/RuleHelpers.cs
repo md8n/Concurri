@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Immutable;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -13,18 +12,33 @@ namespace RulEng.Helpers
         {
             var currentTime = DateTime.UtcNow;
 
+            // Relevant Rules by RuleType and LastExecuted values
+            var relevantRuleList = rules
+                .Where(r => r.RuleType == ruleType && r.LastExecuted < currentTime)
+                .ToList();
+
+            // Relevant Rules for the Entities identified
+            var entRelRuleList = new List<Rule>();
+            foreach (var relRule in relevantRuleList)
+            {
+                var relRuleEnts = relRule.ReferenceValues.EntityIds
+                    .Distinct()
+                    .ToList();
+            }
+
             var ruleRefEntities = rules
-                .SelectMany(r => r.ReferenceValues.SelectMany(rv => rv.EntityIds).Distinct())
+                .SelectMany(r => r.ReferenceValues.EntityIds)
                 .Distinct()
-                .Select(r => (IEntity)r)
                 .ToList();
 
             // (Not) Rule tests
-            var notRuleList = rules
+            var notRuleList = relevantRuleList
+                .Where(r => r.NegateResult);
+            var notRuleEntFilteredList = notRuleList
                 .Where(r => r.RuleType == ruleType
-                    && r.NegateResult
-                    && entities.Except(ruleRefEntities, new IEntityComparer()).Any()
-                    && r.LastExecuted < currentTime);
+                            && r.NegateResult
+                            && entities.Except(ruleRefEntities, new IEntityComparer()).Any()
+                            && r.LastExecuted < currentTime);
 
             // Rule tests
             var ruleList = rules
@@ -46,7 +60,7 @@ namespace RulEng.Helpers
         {
             var nText = negateResult ? "non-" : "";
             var ruleName = $"Test for {nText}existence of {entity.EntType.ToString()} {((TypeKey)entity)}";
-            var refValues = ImmutableArray.Create((IRulePrescription)entity.RulePrescription<RuleUnary>());
+            var refValues = (IRulePrescription)entity.RulePrescription<RuleUnary>();
 
             var rule = new Rule
             {
@@ -57,33 +71,6 @@ namespace RulEng.Helpers
                 LastExecuted = entity.LastChanged,
                 NegateResult = negateResult,
                 ReferenceValues = refValues
-            };
-
-            return rule;
-        }
-
-        /// <summary>
-        /// Create an Exists Rule for the supplied entities
-        /// </summary>
-        /// <param name="entities"></param>
-        /// <param name="negateResult"></param>
-        /// <returns></returns>
-        public static Rule ExistsRule(this IEnumerable<IEntity> entities, bool negateResult = true)
-        {
-            var nText = negateResult ? "non-" : "";
-            var earliestDate = entities.Select(e => e.LastChanged).OrderBy(e => e).First();
-
-            var refValues = entities.RulePresciptions<RuleUnary>();
-
-            var rule = new Rule
-            {
-                RuleId = Guid.NewGuid(),
-                RuleName = $"Test for {nText}existence of entities",
-                RuleType = RuleType.Exists,
-                LastChanged = earliestDate,
-                LastExecuted = earliestDate,
-                NegateResult = negateResult,
-                ReferenceValues = ImmutableArray.CreateRange(refValues.Select(r => (IRulePrescription)r))
             };
 
             return rule;
@@ -105,7 +92,7 @@ namespace RulEng.Helpers
                 LastChanged = value.LastChanged,
                 LastExecuted = value.LastChanged,
                 NegateResult = negateResult,
-                ReferenceValues = ImmutableArray.Create((IRulePrescription)value.RulePrescription<RuleUnary>())
+                ReferenceValues = value.RulePrescription<RuleUnary>()
             };
 
             return rule;

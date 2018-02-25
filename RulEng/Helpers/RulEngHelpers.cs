@@ -35,34 +35,6 @@ namespace RulEng.Helpers
         }
 
         /// <summary>
-        /// Add this Entity Exists test to an existing Exists Rule
-        /// </summary>
-        /// <param name="entity"></param>
-        /// <param name="rule"></param>
-        /// <returns></returns>
-        public static (RuleResult ruleResult, IAction rulePrescription) Exists<T>(this T entity, Rule rule) where T : IEntity
-        {
-            if (!entity.IsProcessable())
-            {
-                throw new ArgumentOutOfRangeException(nameof(entity), "Exists helper creator is only for Processable entity types");
-            }
-
-            if (rule.RuleType != RuleType.Exists || !rule.NegateResult)
-            {
-                throw new ArgumentException("rule was not a 'not' 'Exists' type Rule.  It cannot have an exists test added to it.");
-            }
-
-            // Add the test ref data to the end of the refvalues structure
-            // and put the result back into the refvalues
-            rule.ReferenceValues = rule.ReferenceValues.Add( entity.RulePrescription<T, RuleUnary>() );
-
-            var ruleResult = new RuleResult(rule);
-            var rulePrescription = rule.Exists();
-
-            return (ruleResult, rulePrescription);
-        }
-
-        /// <summary>
         /// For the result of a given Rule 
         /// build the corresponding Operation and OperationPrescription
         /// to effect the creation of the Entity identified

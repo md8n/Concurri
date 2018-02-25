@@ -33,27 +33,26 @@ namespace RulEng.Reformers
 
             var actionDate = DateTime.UtcNow;
 
-            // First get the potentially relevant entities in a cleaned form
-            var ruleResultEntitySets = prescription.Entities
-                .Where(vi => vi.EntityIds.Count(ve => ve.EntType == EntityType.RuleResult) >= vi.MinEntitiesRequired)
-                .Select(pe => new {
-                    pe.RuleResultId,
-                    Entities = new List<RuleResult>(),
-                    EntityIds = pe.EntityIds
-                        .Where(ve => ve.EntType == EntityType.RuleResult)
-                        .Select(ve => ve.EntityId)
-                })
-                .Distinct()
-                .ToList();
-
-            foreach (var ruleResultEntitySet in ruleResultEntitySets)
+            var minEntitiesRequired = prescription.Entities.MinEntitiesRequired;
+            if (prescription.Entities.EntityIds.Count < minEntitiesRequired)
             {
-                ruleResultEntitySet.Entities
-                    .AddRange(newState.RuleResults.Where(v => ruleResultEntitySet.EntityIds.Contains(v.EntityId)));
+                return newState;
             }
 
-            var entities = ruleResultEntitySets
-                .SelectMany(v => v.Entities)
+            // First get the potentially relevant entities in a cleaned form
+            var ruleResultId = prescription.Entities.RuleResultId;
+            var ruleResultEntitySet = new {
+                    RuleResultId = ruleResultId,
+                    Entities = new List<RuleResult>(),
+                    EntityIds = prescription.Entities.EntityIds
+                        .Where(ve => ve.EntType == EntityType.RuleResult)
+                        .Select(ve => ve.EntityId)
+                };
+
+            ruleResultEntitySet.Entities
+                .AddRange(newState.RuleResults.Where(v => ruleResultEntitySet.EntityIds.Contains(v.EntityId)));
+
+            var entities = ruleResultEntitySet.Entities
                 .Distinct()
                 .Select(v => (IEntity)v)
                 .ToList();
@@ -61,31 +60,28 @@ namespace RulEng.Reformers
             // Get the corresponding Rules
             var rulesToProcessList = newState.Rules.RulesToProcess(RuleType.And, entities);
 
-            foreach (var presValues in ruleResultEntitySets)
+            var presEntities = ruleResultEntitySet.Entities.ToArray();
+            var ruleToProcess = rulesToProcessList
+                .SingleOrDefault(r => r.ReferenceValues.RuleResultId == ruleResultId);
+
+            RuleResult newRuleResult = null;
+
+            switch (ruleType)
             {
-                var presEntities = presValues.Entities.ToArray();
-                var ruleToProcess = rulesToProcessList
-                    .SingleOrDefault(r => r.ReferenceValues.Any(rv => rv.RuleResultId == presValues.RuleResultId));
+                case RuleType.And:
+                    newRuleResult = ruleToProcess.AndTest(presEntities, ruleResultEntitySet.RuleResultId, actionDate);
+                    break;
+                case RuleType.Or:
+                    newRuleResult = ruleToProcess.OrTest(presEntities, ruleResultEntitySet.RuleResultId, actionDate);
+                    break;
+                case RuleType.Xor:
+                    newRuleResult = ruleToProcess.XorTest(presEntities, ruleResultEntitySet.RuleResultId, actionDate);
+                    break;
+            }
 
-                RuleResult newRuleResult = null;
-
-                switch (ruleType)
-                {
-                    case RuleType.And:
-                        newRuleResult = ruleToProcess.AndTest(presEntities, presValues.RuleResultId, actionDate);
-                        break;
-                    case RuleType.Or:
-                        newRuleResult = ruleToProcess.OrTest(presEntities, presValues.RuleResultId, actionDate);
-                        break;
-                    case RuleType.Xor:
-                        newRuleResult = ruleToProcess.XorTest(presEntities, presValues.RuleResultId, actionDate);
-                        break;
-                }
-
-                if (newRuleResult != null)
-                {
-                    newState.RuleResults.Add(newRuleResult);
-                }
+            if (newRuleResult != null)
+            {
+                newState.RuleResults.Add(newRuleResult);
             }
 
             return newState;

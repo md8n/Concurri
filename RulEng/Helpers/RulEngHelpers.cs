@@ -101,6 +101,24 @@ namespace RulEng.Helpers
             return (rule, ruleResult, rulePrescription);
         }
 
+        /// <summary>
+        /// For a given Rule this creates:
+        /// A RuleResult to accept the result of the Rule
+        /// A RulePrescription referencing the Rule to be performed
+        /// </summary>
+        /// <param name="val"></param>
+        /// <returns></returns>
+        public static (RuleResult ruleResult, T rulePrescription) ResultAndPrescription<T>(this Rule rule) where T : IRulePrescription, new()
+        {
+            var rulePrescription = rule.RulePrescription<T>();
+            var ruleResult = new RuleResult(rule)
+            {
+                RuleResultId = rulePrescription.RuleResultId
+            };
+
+            return (ruleResult, rulePrescription);
+        }
+
         public static (Operation operation, IEnumerable<Value> value, OperationMxProcessing operationPrescription) Add(this RuleResult ruleResult, IEnumerable<IEnumerable<Guid>> valueIds)
         {
             var values = new List<Value>();

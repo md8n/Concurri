@@ -1,5 +1,4 @@
-﻿using Newtonsoft.Json;
-using RulEng.Helpers;
+﻿using RulEng.Helpers;
 using System;
 using System.Collections.Immutable;
 
@@ -21,7 +20,6 @@ namespace RulEng.States
         /// The Id of the Entity the result will be written to.
         /// If the Entity does not exist it will be created with this Id
         /// </summary>
-        [JsonIgnore]
         public Guid EntityId { get; set; }
 
         /// <summary>

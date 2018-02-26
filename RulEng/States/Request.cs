@@ -10,6 +10,7 @@ namespace RulEng.States
     {
         public Guid RequestId { get; set; }
 
+        [JsonIgnore]
         public Guid EntityId { get => RequestId; set => RequestId = value; }
 
         public EntityType EntType => EntityType.Request;
@@ -31,6 +32,7 @@ namespace RulEng.States
             //}
         }
 
+        [JsonIgnore]
         public string GetAltHashCode => RequestId.ToString();
 
         public override int GetHashCode()

@@ -1,10 +1,12 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
 
 namespace RulEng.States
 {
     public interface IEntity
     {
+        [JsonIgnore]
         Guid EntityId { get; set; }
 
         EntityType EntType { get; }

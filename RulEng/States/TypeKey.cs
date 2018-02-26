@@ -12,6 +12,7 @@ namespace RulEng.States
     public class TypeKey : IEntity
     {
         public EntityType EntType { get; set; }
+        [JsonIgnore]
         public Guid EntityId { get; set; }
         public DateTime LastChanged { get; set; } = DefaultHelpers.DefDate();
 

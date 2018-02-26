@@ -2,6 +2,7 @@
 
 using System;
 using RulEng.States;
+using Newtonsoft.Json;
 
 namespace RulEng.Prescriptions
 {
@@ -12,6 +13,7 @@ namespace RulEng.Prescriptions
 
     public class Delete<T> : ICrud where T : IEntity
     {
+        [JsonIgnore]
         public Guid EntityId { get; set; }
     }
 }

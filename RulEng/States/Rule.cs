@@ -10,6 +10,7 @@ namespace RulEng.States
     {
         public Guid RuleId { get; set; }
 
+        [JsonIgnore]
         public Guid EntityId { get => RuleId; set => RuleId = value; }
 
         public EntityType EntType => EntityType.Rule;
@@ -29,6 +30,7 @@ namespace RulEng.States
         /// </summary>
         public DateTime LastExecuted { get; set; } = DefaultHelpers.DefDate();
 
+        [JsonIgnore]
         public string GetAltHashCode => RuleId.ToString();
 
         public Rule()

@@ -90,6 +90,11 @@ namespace Concurri.Svr.TestHarness
                 values.Add(coordValue);
 
                 (rule, ruleResult, rulePrescription) = coordValue.Exists();
+
+                if (rule.ReferenceValues.RuleResultId != ruleResult.RuleResultId)
+                {
+                    throw new Exception("RuleResultId does not line up");
+                }
                 rules.Add(rule);
                 ruleResults.Add(ruleResult);
                 rulePrescriptions.Add(rulePrescription);

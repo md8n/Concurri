@@ -18,7 +18,7 @@ namespace RulEng.Helpers
         /// </summary>
         /// <param name="val"></param>
         /// <returns></returns>
-        public static (Rule rule, RuleResult ruleResult, IRuleProcessing rulePrescription) Exists<T>(this T val) where T : IEntity
+        public static (Rule rule, RuleResult ruleResult, IRuleProcessing ruleProcessing) Exists<T>(this T val) where T : IEntity
         {
             if (!val.IsProcessable())
             {
@@ -28,8 +28,14 @@ namespace RulEng.Helpers
             var vType = new TypeKey { EntityId = val.EntityId, EntType = val.EntType, LastChanged = val.LastChanged };
 
             var rule = vType.ExistsRule();
-            var ruleResult = new RuleResult(rule);
-            var rulePrescription = rule.Exists();
+
+            var rulePrescription = IRuleProcessing rule.RulePrescription<RuleUnary>();
+            var ruleResult = new RuleResult(rule)
+            {
+                RuleResultId = rulePrescription.RuleResultId
+            };
+
+            rule.ReferenceValues.RuleResultId = rulePrescription.RuleResultId;
 
             return (rule, ruleResult, rulePrescription);
         }
@@ -115,6 +121,8 @@ namespace RulEng.Helpers
             {
                 RuleResultId = rulePrescription.RuleResultId
             };
+
+            rule.ReferenceValues.RuleResultId = rulePrescription.RuleResultId;
 
             return (ruleResult, rulePrescription);
         }

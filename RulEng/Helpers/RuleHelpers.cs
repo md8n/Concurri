@@ -12,7 +12,8 @@ namespace RulEng.Helpers
         {
             var currentTime = DateTime.UtcNow;
 
-            // Relevant Rules by RuleType and LastExecuted values
+            // Relevant Rules by RuleType and LastExecuted values 
+            // (only rules set in the future will be excluded from execution with this test)
             var relevantRuleList = rules
                 .Where(r => r.RuleType == ruleType && r.LastExecuted < currentTime)
                 .ToList();
@@ -21,33 +22,58 @@ namespace RulEng.Helpers
             var entRelRuleList = new List<Rule>();
             foreach (var relRule in relevantRuleList)
             {
+                var useRule = false;
                 var relRuleEnts = relRule.ReferenceValues.EntityIds
                     .Distinct()
                     .ToList();
+                var rrEntTypes = relRuleEnts.Select(rre => rre.EntType).Distinct().ToList();
+
+                // if even one entity has changed wrt a rule reference value that is 'watching' it
+                // then it is relevant for processing
+                foreach(var ent in entities.Where(e => rrEntTypes.Contains(e.EntType)))
+                {
+                    var rrEnt = relRuleEnts.FirstOrDefault(rre =>
+                        rre.EntType == ent.EntType &&
+                        rre.EntityId == ent.EntityId &&
+                        rre.LastChanged <= ent.LastChanged);
+                    if (rrEnt != null)
+                    {
+                        useRule = true;
+                        break;
+                    }
+                }
+
+                if (!useRule)
+                {
+                    continue;
+                }
+
+                entRelRuleList.Add(relRule);
             }
 
-            var ruleRefEntities = rules
-                .SelectMany(r => r.ReferenceValues.EntityIds)
-                .Distinct()
-                .ToList();
+            return entRelRuleList;
+
+            // Get the complete set of entities to process all of the relevant rules
+            // This may be a superset of the supplied entities
+            //var ruleRefEntities = entRelRuleList
+            //    .SelectMany(r => r.ReferenceValues.EntityIds)
+            //    .Distinct()
+            //    .ToList();
 
             // (Not) Rule tests
-            var notRuleList = relevantRuleList
-                .Where(r => r.NegateResult);
-            var notRuleEntFilteredList = notRuleList
-                .Where(r => r.RuleType == ruleType
-                            && r.NegateResult
-                            && entities.Except(ruleRefEntities, new IEntityComparer()).Any()
-                            && r.LastExecuted < currentTime);
+            //var notRuleList = entRelRuleList
+            //    .Where(r => r.NegateResult);
+            //var notRuleEntFilteredList = notRuleList
+            //    .Where(r => entities.Except(ruleRefEntities, new IEntityComparer()).Any());
 
             // Rule tests
-            var ruleList = rules
-                .Where(r => r.RuleType == ruleType
-                    && !r.NegateResult
-                    && entities.Intersect(ruleRefEntities, new IEntityComparer()).Any()
-                    && r.LastExecuted < currentTime);
+            //var ruleList = rules
+            //    .Where(r => r.RuleType == ruleType
+            //        && !r.NegateResult
+            //        && entities.Intersect(ruleRefEntities, new IEntityComparer()).Any()
+            //        && r.LastExecuted < currentTime);
 
-            return notRuleList.Intersect(ruleList).ToList();
+            //return notRuleList.Intersect(ruleList).ToList();
         }
 
         /// <summary>

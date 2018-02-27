@@ -9,6 +9,7 @@ namespace RulEng.States
     {
         public Guid ValueId { get; set; }
 
+        [JsonIgnore]
         public Guid EntityId { get => ValueId; set => ValueId = value; }
 
         public EntityType EntType => EntityType.Value;
@@ -79,6 +80,7 @@ namespace RulEng.States
             }
         }
 
+        [JsonIgnore]
         public string GetAltHashCode => ValueId.ToString();
 
         public override int GetHashCode()

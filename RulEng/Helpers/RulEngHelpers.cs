@@ -17,7 +17,7 @@ namespace RulEng.Helpers
         /// </summary>
         /// <param name="val"></param>
         /// <returns></returns>
-        public static (Rule rule, RuleResult ruleResult, IRuleProcessing rulePrescription) Exists<T>(this T val) where T : IEntity
+        public static (Rule rule, RuleResult ruleResult, IRuleProcessing ruleProcessing) Exists<T>(this T val) where T : IEntity
         {
             if (!val.IsProcessable())
             {
@@ -27,8 +27,14 @@ namespace RulEng.Helpers
             var vType = new TypeKey { EntityId = val.EntityId, EntType = val.EntType, LastChanged = val.LastChanged };
 
             var rule = vType.ExistsRule();
-            var ruleResult = new RuleResult(rule);
-            var rulePrescription = rule.Exists();
+
+            var rulePrescription = IRuleProcessing rule.RulePrescription<RuleUnary>();
+            var ruleResult = new RuleResult(rule)
+            {
+                RuleResultId = rulePrescription.RuleResultId
+            };
+
+            rule.ReferenceValues.RuleResultId = rulePrescription.RuleResultId;
 
             return (rule, ruleResult, rulePrescription);
         }
@@ -98,6 +104,26 @@ namespace RulEng.Helpers
             var rulePrescription = rule.HasMeaningfulValue();
 
             return (rule, ruleResult, rulePrescription);
+        }
+
+        /// <summary>
+        /// For a given Rule this creates:
+        /// A RuleResult to accept the result of the Rule
+        /// A RulePrescription referencing the Rule to be performed
+        /// </summary>
+        /// <param name="val"></param>
+        /// <returns></returns>
+        public static (RuleResult ruleResult, T rulePrescription) ResultAndPrescription<T>(this Rule rule) where T : IRulePrescription, new()
+        {
+            var rulePrescription = rule.RulePrescription<T>();
+            var ruleResult = new RuleResult(rule)
+            {
+                RuleResultId = rulePrescription.RuleResultId
+            };
+
+            rule.ReferenceValues.RuleResultId = rulePrescription.RuleResultId;
+
+            return (ruleResult, rulePrescription);
         }
 
         public static (Operation operation, IEnumerable<Value> value, OperationMxProcessing operationPrescription) Add(this RuleResult ruleResult, IEnumerable<IEnumerable<Guid>> valueIds)

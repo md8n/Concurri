@@ -12,6 +12,7 @@ using Redux;
 using RulEng.Helpers;
 using RulEng.Reformers;
 using RulEng.States;
+using RulEng.Prescriptions;
 
 namespace Concurri.Svr.TestHarness
 {
@@ -64,21 +65,21 @@ namespace Concurri.Svr.TestHarness
             var ruleResults = new List<RuleResult>();
             var operations = new List<Operation>();
             var values = new List<Value>();
-            var rulePrescriptions = new List<IAction>();
-            var operationPrescriptions = new List<IAction>();
+            var rulePrescriptions = new List<IRuleProcessing>();
+            var operationPrescriptions = new List<IRuleProcessing>();
 
             Rule rule;
             RuleResult ruleResult;
             Operation operation;
             Value value;
-            IAction rulePrescription;
-            IAction operationPrescription;
+            IRuleProcessing rulePrescription;
+            IRuleProcessing operationPrescription;
 
             // Travelling Salesman - Setup
 
-            // 100 LonLat points and a GeoJSON FeatureCollection
+            // 10 LonLat points and a GeoJSON FeatureCollection
             var rnd = new Random();
-            for (var ix = 0; ix < 100; ix++)
+            for (var ix = 0; ix < 10; ix++)
             {
                 var lat = -21.0 + -7.0 * rnd.NextDouble();
                 var lon = 142.0 + 7.0 * rnd.NextDouble();
@@ -89,30 +90,39 @@ namespace Concurri.Svr.TestHarness
                 values.Add(coordValue);
 
                 (rule, ruleResult, rulePrescription) = coordValue.Exists();
+
+                if (rule.ReferenceValues.RuleResultId != ruleResult.RuleResultId)
+                {
+                    throw new Exception("RuleResultId does not line up");
+                }
                 rules.Add(rule);
                 ruleResults.Add(ruleResult);
                 rulePrescriptions.Add(rulePrescription);
             }
 
             // Add Collection Rule for all of the above rules
-            var refValues = rules.Where(r => r.RuleType == RuleType.Exists).RulePresciptions<RuleCollect>();
+            var refValues = ruleResults.Select(rr => (IEntity)(TypeKey)rr);
             var refValueIds = new RuleCollect
             {
                 RuleResultId = Guid.NewGuid(),
-                EntityIds = ImmutableList.CreateRange(refValues.SelectMany(rv => rv.EntityIds))
+                EntityIds = ImmutableList.CreateRange(refValues)
             };
             var collectRule = new Rule
             {
                 RuleId = Guid.NewGuid(),
                 RuleName = "Do all cities exist",
                 RuleType = RuleType.And,
-                ReferenceValues = (IRulePrescription)refValueIds
+                ReferenceValues = refValueIds
             };
             rules.Add(collectRule);
+            // And a RuleResult and RulePrescription
+            (var collectRuleResult, var collectRulePrescription) = collectRule.ResultAndPrescription<RuleCollect>();
+            ruleResults.Add(collectRuleResult);
+            //rulePrescriptions.Add((IRulePrescription)collectRulePrescription);
 
             // Build the Javascript template for creating the entire Value
             var valueBody = "{\"type\":\"FeatureCollection\",\"features\":[";
-            for (var ix = 0; ix < 100; ix++)
+            for (var ix = 0; ix < 10; ix++)
             {
                 if (ix > 0)
                 {
@@ -129,6 +139,7 @@ namespace Concurri.Svr.TestHarness
             {
                 OperationId = Guid.NewGuid(),
                 OperationType = OperationType.CreateUpdate,
+                RuleResultId = collectRuleResult.EntityId,
                 Operands = ImmutableArray.Create(opKey),
                 OperationTemplate = valueTemplate
             };
@@ -297,7 +308,7 @@ namespace Concurri.Svr.TestHarness
                         break;
                 }
 
-                if (cityIds.Count >= 100)
+                if (cityIds.Count >= 10)
                 {
                     break;
                 }
@@ -410,7 +421,7 @@ namespace Concurri.Svr.TestHarness
 
             //do
             //{
-            //    if (pass > 100)
+            //    if (pass > 10)
             //    {
             //        break;
             //    }

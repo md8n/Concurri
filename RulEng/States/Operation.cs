@@ -18,6 +18,7 @@ namespace RulEng.States
     {
         public Guid OperationId { get; set; }
 
+        [JsonIgnore]
         public Guid EntityId { get => OperationId; set => OperationId = value; }
 
         public EntityType EntType => EntityType.Operation;
@@ -40,6 +41,7 @@ namespace RulEng.States
             }
         }
 
+        [JsonIgnore]
         public string GetAltHashCode => OperationId.ToString();
 
         public override int GetHashCode()

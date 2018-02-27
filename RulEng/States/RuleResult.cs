@@ -11,6 +11,7 @@ namespace RulEng.States
 
         public Guid RuleId { get; set; }
 
+        [JsonIgnore]
         public Guid EntityId { get => RuleResultId; set => RuleResultId = value; }
 
         public EntityType EntType => EntityType.RuleResult;
@@ -36,6 +37,7 @@ namespace RulEng.States
             Detail = false;
         }
 
+        [JsonIgnore]
         public string GetAltHashCode => RuleResultId.ToString();
 
         public override int GetHashCode()

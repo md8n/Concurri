@@ -96,11 +96,11 @@ namespace Concurri.Svr.TestHarness
             }
 
             // Add Collection Rule for all of the above rules
-            var refValues = rules.Where(r => r.RuleType == RuleType.Exists).RulePresciptions<RuleCollect>();
+            var refValues = ruleResults.Select(rr => (IEntity)(TypeKey)rr);
             var refValueIds = new RuleCollect
             {
                 RuleResultId = Guid.NewGuid(),
-                EntityIds = ImmutableList.CreateRange(refValues.SelectMany(rv => rv.EntityIds))
+                EntityIds = ImmutableList.CreateRange(refValues)
             };
             var collectRule = new Rule
             {

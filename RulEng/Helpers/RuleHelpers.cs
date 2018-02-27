@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 
 using RulEng.States;
@@ -108,7 +109,7 @@ namespace RulEng.Helpers
         /// <param name="value"></param>
         /// <param name="negateResult"></param>
         /// <returns></returns>
-        public static Rule HasMeaningfulValueRule(this IEntity value, bool negateResult = false)
+        public static Rule HasMeaningfulValueRule(this Value value, bool negateResult = false)
         {
             var rule = new Rule
             {
@@ -119,6 +120,43 @@ namespace RulEng.Helpers
                 LastExecuted = value.LastChanged,
                 NegateResult = negateResult,
                 ReferenceValues = value.RulePrescription<RuleUnary>()
+            };
+
+            return rule;
+        }
+
+        /// <summary>
+        /// Create an And Rule for the rule results
+        /// </summary>
+        /// <param name="ruleResults"></param>
+        /// <param name="negateResult"></param>
+        /// <returns></returns>
+        public static Rule AndRule(this List<RuleResult> ruleResults, bool negateResult = false)
+        {
+            if (ruleResults.Count < 2)
+            {
+                throw new ArgumentOutOfRangeException(nameof(ruleResults),
+                    $"{nameof(ruleResults)} does not meet the requirements for the minimum number of members");
+            }
+
+            var refValues = ruleResults.Select(rr => (IEntity)(TypeKey)rr);
+            var refValueIds = new RuleCollect
+            {
+                RuleResultId = Guid.NewGuid(),
+                EntityIds = ImmutableList.CreateRange(refValues)
+            };
+
+            var lastChanged = ruleResults.OrderByDescending(rr => rr.LastChanged).First().LastChanged;
+
+            var rule = new Rule
+            {
+                RuleId = Guid.NewGuid(),
+                RuleName = $"Test all rule results are {!negateResult}",
+                RuleType = RuleType.And,
+                LastChanged = lastChanged,
+                LastExecuted = lastChanged,
+                NegateResult = negateResult,
+                ReferenceValues = refValueIds
             };
 
             return rule;

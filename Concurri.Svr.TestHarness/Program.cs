@@ -89,7 +89,7 @@ namespace Concurri.Svr.TestHarness
                 var coordValue = new Value(lonLat);
                 values.Add(coordValue);
 
-                (rule, ruleResult, rulePrescription) = coordValue.Exists();
+                (rule, ruleResult, rulePrescription) = coordValue.Exists(true);
 
                 if (rule.ReferenceValues.RuleResultId != ruleResult.RuleResultId)
                 {
@@ -101,24 +101,10 @@ namespace Concurri.Svr.TestHarness
             }
 
             // Add Collection Rule for all of the above rules
-            var refValues = ruleResults.Select(rr => (IEntity)(TypeKey)rr);
-            var refValueIds = new RuleCollect
-            {
-                RuleResultId = Guid.NewGuid(),
-                EntityIds = ImmutableList.CreateRange(refValues)
-            };
-            var collectRule = new Rule
-            {
-                RuleId = Guid.NewGuid(),
-                RuleName = "Do all cities exist",
-                RuleType = RuleType.And,
-                ReferenceValues = refValueIds
-            };
+            (var collectRule, var collectRuleResult, var collectRulePrescription) = ruleResults.And(true);
             rules.Add(collectRule);
-            // And a RuleResult and RulePrescription
-            (var collectRuleResult, var collectRulePrescription) = collectRule.ResultAndPrescription<RuleCollect>();
             ruleResults.Add(collectRuleResult);
-            //rulePrescriptions.Add((IRulePrescription)collectRulePrescription);
+            rulePrescriptions.Add(collectRulePrescription);
 
             // Build the Javascript template for creating the entire Value
             var valueBody = "{\"type\":\"FeatureCollection\",\"features\":[";

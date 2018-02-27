@@ -10,14 +10,35 @@ namespace RulEng.Helpers
     public static class RulEngHelpers
     {
         /// <summary>
+        /// For a given Rule and RulePrescription create
+        /// A RuleResult to accept the result of the Rule
+        /// and ensure that the RuleResultId is the same for the Rule, RuleResult and RulePrescription
+        /// </summary>
+        /// <param name="rule"></param>
+        /// <param name="rulePrescription"></param>
+        /// <returns></returns>
+        public static RuleResult UnifyRuleObjects(this Rule rule, IRuleProcessing rulePrescription)
+        {
+            // Create the Rule, RuleResult and RulePrescription and ensure that the RuleResultId is the same for all
+            var ruleResult = new RuleResult(rule)
+            {
+                RuleResultId = rulePrescription.Entities.RuleResultId
+            };
+            rule.ReferenceValues.RuleResultId = rulePrescription.Entities.RuleResultId;
+
+            return ruleResult;
+        }
+
+        /// <summary>
         /// For a given entity (Rule, Operation, Request, Value) this creates:
         /// A (not) Exists Rule to test for its presence
         /// A RuleResult to accept the result of the Exists Rule
         /// A RulePrescription referencing the Rule to be performed
         /// </summary>
         /// <param name="val"></param>
+        /// <param name="negateResult"></param>
         /// <returns></returns>
-        public static (Rule rule, RuleResult ruleResult, IRuleProcessing ruleProcessing) Exists<T>(this T val) where T : IEntity
+        public static (Rule rule, RuleResult ruleResult, IRuleProcessing ruleProcessing) Exists<T>(this T val, bool negateResult) where T : IEntity
         {
             if (!val.IsProcessable())
             {
@@ -26,15 +47,48 @@ namespace RulEng.Helpers
 
             var vType = new TypeKey { EntityId = val.EntityId, EntType = val.EntType, LastChanged = val.LastChanged };
 
-            var rule = vType.ExistsRule();
+            // Create the Rule, RuleResult and RulePrescription and ensure that the RuleResultId is the same for all
+            var rule = vType.ExistsRule(negateResult);
+            var rulePrescription = rule.Exists();
+            var ruleResult = rule.UnifyRuleObjects(rulePrescription);
 
-            var rulePrescription = IRuleProcessing rule.RulePrescription<RuleUnary>();
-            var ruleResult = new RuleResult(rule)
-            {
-                RuleResultId = rulePrescription.RuleResultId
-            };
+            return (rule, ruleResult, rulePrescription);
+        }
 
-            rule.ReferenceValues.RuleResultId = rulePrescription.RuleResultId;
+        /// <summary>
+        /// For a given Value this creates:
+        /// A HasMeaningfulValue Rule to test its value
+        /// A RuleResult to accept the result of the HasMeaningfulValue Rule
+        /// A RulePrescription referencing the Rule to be performed
+        /// </summary>
+        /// <param name="val"></param>
+        /// <param name="negateResult"></param>
+        /// <returns></returns>
+        public static (Rule rule, RuleResult ruleResult, IRuleProcessing rulePrescription) HasMeaningfulValue(this Value val, bool negateResult)
+        {
+            // Create the Rule, RuleResult and RulePrescription and ensure that the RuleResultId is the same for all
+            var rule = val.HasMeaningfulValueRule(negateResult);
+            var rulePrescription = rule.HasMeaningfulValue();
+            var ruleResult = rule.UnifyRuleObjects(rulePrescription);
+
+            return (rule, ruleResult, rulePrescription);
+        }
+
+        /// <summary>
+        /// For a given collection of RuleResults this creates:
+        /// An And Rule to test their values
+        /// A RuleResult to accept the result of the And Rule
+        /// A RulePrescription referencing the Rule to be performed
+        /// </summary>
+        /// <param name="ruleResults"></param>
+        /// <param name="negateResult"></param>
+        /// <returns></returns>
+        public static (Rule rule, RuleResult ruleResult, IRuleProcessing rulePrescription) And(this List<RuleResult> ruleResults, bool negateResult)
+        {
+            // Create the Rule, RuleResult and RulePrescription and ensure that the RuleResultId is the same for all
+            var rule = ruleResults.AndRule(negateResult);
+            var rulePrescription = rule.And();
+            var ruleResult = rule.UnifyRuleObjects(rulePrescription);
 
             return (rule, ruleResult, rulePrescription);
         }
@@ -85,25 +139,6 @@ namespace RulEng.Helpers
             var operationPrescription = operation.Create();
 
             return (operation, entity, operationPrescription);
-        }
-
-        /// <summary>
-        /// For a given Value this creates:
-        /// A HasMeaningfulValue Rule to test its value
-        /// A RuleResult to accept the result of the HasMeaningfulValue Rule
-        /// A RulePrescription referencing the Rule to be performed
-        /// </summary>
-        /// <param name="val"></param>
-        /// <returns></returns>
-        public static (Rule rule, RuleResult ruleResult, IRuleProcessing rulePrescription) HasMeaningfulValue<T>(this T val) where T : Value
-        {
-            var vType = new TypeKey { EntityId = val.EntityId, EntType = val.EntType, LastChanged = val.LastChanged };
-
-            var rule = vType.HasMeaningfulValueRule();
-            var ruleResult = new RuleResult(rule);
-            var rulePrescription = rule.HasMeaningfulValue();
-
-            return (rule, ruleResult, rulePrescription);
         }
 
         /// <summary>

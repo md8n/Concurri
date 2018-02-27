@@ -9,7 +9,8 @@ namespace RulEng.Helpers
     public static class RulePrescriptionHelpers
     {
         /// <summary>
-        /// Create a RulePrescription (implicitly defining a RuleResult) from an ITypeKey
+        /// Create a RulePrescription (implicitly defining a RuleResult) from an ITypeKey.
+        /// This can be used as the Entities value within an IRuleProcessing derived object
         /// </summary>
         /// <param name="entity"></param>
         /// <returns></returns>
@@ -22,6 +23,7 @@ namespace RulEng.Helpers
 
         /// <summary>
         /// Create RulePrescriptions (implicitly defining RuleResults) from an enumerable of ITypeKeys
+        /// This can be used as the Entities value within an IRuleProcessing derived object
         /// </summary>
         /// <param name="entities"></param>
         /// <returns></returns>
@@ -34,6 +36,7 @@ namespace RulEng.Helpers
 
         /// <summary>
         /// Create a RulePrescription (implicitly defining a RuleResult) from a Processable Entity
+        /// This can be used as the Entities value within an IRuleProcessing derived object
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <typeparam name="TU"></typeparam>

@@ -31,21 +31,51 @@ namespace RulEng.Reformers
             entities.AddRange(newState.Requests.Select(rq => (IEntity)rq));
 
             // Get the corresponding Rules
-            var rulesToProcessList = newState.Rules.RulesToProcess(RuleType.Exists, entities);
+            var rulesToProcess = newState.Rules.RulesToProcess(RuleType.Exists, entities);
 
-            foreach (var ruleToProcess in rulesToProcessList)
+            foreach (var ruleToProcess in rulesToProcess)
             {
-                //var entitiesToAdd = ruleToProcess.ReferenceValues.Except(entities).ToList();
-                var newRuleResult = new RuleResult
+                // Get the Ids of all existing Rule Results that correspond to the Rule being processed
+                var relRuleResultIds = newState.RuleResults
+                    .Where(rr => rr.RuleResultId == ruleToProcess.ReferenceValues.RuleResultId)
+                    .Select(rr => rr.RuleResultId)
+                    .ToList();
+
+                if (!relRuleResultIds.Any())
                 {
-                    RuleId = ruleToProcess.RuleId,
-                    LastChanged = actionDate,
-                    Detail = true
-                };
+                    // An unusual circumstance, no pre-existing RuleResult
+                    // Create a new RuleResult using the provided ID
+                    // We are here because the result is true, so we write the opposite of NegateResult as the correct output
+                    var newRuleResult = new RuleResult
+                    {
+                        RuleId = ruleToProcess.RuleId,
+                        LastChanged = actionDate,
+                        Detail = !ruleToProcess.NegateResult
+                    };
 
-                newState.RuleResults.Add(newRuleResult);
+                    newState.RuleResults.Add(newRuleResult);
+                }
+                else
+                {
+                    // Normal circumstances, we'd expect only one RuleResult
+                    foreach(var rrId in relRuleResultIds)
+                    {
+                        var relevantRuleResult = newState.RuleResults.Single(rr => rr.RuleResultId == rrId);
 
+                        relevantRuleResult.LastChanged = actionDate;
+                        relevantRuleResult.Detail = !ruleToProcess.NegateResult;
+                    }
+                }
+
+                // Mark this Rule as executed
                 ruleToProcess.LastExecuted = actionDate;
+            }
+
+            // Mark the entities within this prescription as dispensed
+            // TODO: determine the relevance of this
+            foreach(var entId in prescription.Entities.EntityIds)
+            {
+                entId.LastChanged = actionDate;
             }
 
             return newState;

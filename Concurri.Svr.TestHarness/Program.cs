@@ -13,6 +13,8 @@ using RulEng.Helpers;
 using RulEng.Reformers;
 using RulEng.States;
 using RulEng.Prescriptions;
+using Newtonsoft.Json;
+using System.Dynamic;
 
 namespace Concurri.Svr.TestHarness
 {
@@ -54,11 +56,23 @@ namespace Concurri.Svr.TestHarness
 
             //if (isSubstOk)
             //{
-            //    Console.WriteLine($"{jTempl} => {jCode}");
+            var jTempl = "{\"ValueId\":\"20d25e4b-7d8c-4836-849f-5535b4e1a6f6\",\"EntType\":5,\"Detail\":{\"type\":\"FeatureCollection\",\"features\":[${0},${1},${2},${3},${4},${5},${6},${7},${8},${9}]},\"LastChanged\":\"1980-01-01 00:00:00Z\"}";
+            var jCode = "{\"ValueId\":\"20d25e4b-7d8c-4836-849f-5535b4e1a6f6\",\"EntType\":5,\"Detail\":{\"type\":\"FeatureCollection\",\"features\":[{\"type\":\"Feature\",\"properties\":{\"cityNo\":0},\"geometry\":{\"type\":\"Point\",\"coordinates\":[143.867563808275,-25.3952077005036]}},{\"type\":\"Feature\",\"properties\":{\"cityNo\":1},\"geometry\":{\"type\":\"Point\",\"coordinates\":[148.650800422603,-21.3406091967321]}},{\"type\":\"Feature\",\"properties\":{\"cityNo\":2},\"geometry\":{\"type\":\"Point\",\"coordinates\":[147.70423036474,-25.4519063590336]}},{\"type\":\"Feature\",\"properties\":{\"cityNo\":3},\"geometry\":{\"type\":\"Point\",\"coordinates\":[147.90635649483,-21.9078147508706]}},{\"type\":\"Feature\",\"properties\":{\"cityNo\":4},\"geometry\":{\"type\":\"Point\",\"coordinates\":[142.456384286031,-23.3582771836586]}},{\"type\":\"Feature\",\"properties\":{\"cityNo\":5},\"geometry\":{\"type\":\"Point\",\"coordinates\":[145.22966226201,-22.885232692531]}},{\"type\":\"Feature\",\"properties\":{\"cityNo\":6},\"geometry\":{\"type\":\"Point\",\"coordinates\":[142.077799188941,-26.761976752785]}},{\"type\":\"Feature\",\"properties\":{\"cityNo\":7},\"geometry\":{\"type\":\"Point\",\"coordinates\":[146.068306779055,-22.6915270349437]}},{\"type\":\"Feature\",\"properties\":{\"cityNo\":8},\"geometry\":{\"type\":\"Point\",\"coordinates\":[148.761142209061,-21.7728364536412]}},{\"type\":\"Feature\",\"properties\":{\"cityNo\":9},\"geometry\":{\"type\":\"Point\",\"coordinates\":[148.213422938815,-25.9715534434521]}}]},\"LastChanged\":\"1980-01-01 00:00:00Z\"}";
+            Console.WriteLine($"{jTempl} => {jCode}");
 
-            //    var e = new Engine();
-            //    var result = e.Execute(jCode).GetCompletionValue().ToObject();
-            //    Console.WriteLine(result);
+                var e = new Engine();
+            var result = e
+                .SetValue("v", jCode)
+                .Execute("JSON.parse(v)")
+                .GetCompletionValue()
+                .ToObject();
+            //var result = e
+            //    .Execute(jCode)
+            //    .GetCompletionValue()
+            //    .ToObject();
+            Console.WriteLine(result);
+            var jResult = JsonConvert.SerializeObject(result);
+            Console.WriteLine(jResult);
             //}
 
             var rules = new List<Rule>();

@@ -49,16 +49,16 @@ namespace RulEng.Reformers
 
         private static ProcessingRulEngStore AllOperations(this ProcessingRulEngStore newState, RulEngStore previousState, IOpReqProcessing prescription)
         {
-            // First identify rules that have just been processed successfully
-            var ruleIds = newState.RuleResults
+            // First identify RuleResults that have just been processed successfully
+            var ruleResultIds = newState.RuleResults
                 .Where(v => v.Detail)
-                .Select(v => v.RuleId)
+                .Select(v => v.RuleResultId)
                 .ToList();
             var operationprescriptionsToProcessList = newState.Operations
-                .Where(a => ruleIds.Contains(a.RuleResultId))
+                .Where(a => ruleResultIds.Contains(a.RuleResultId))
                 .ToList();
             var requestprescriptionsToProcessList = newState.Requests
-                .Where(a => ruleIds.Contains(a.RuleResultId))
+                .Where(a => ruleResultIds.Contains(a.RuleResultId))
                 .ToList();
 
             // Restrict the Operation/Request Prescriptions to process to those that are guaranteed not to fail
@@ -87,10 +87,32 @@ namespace RulEng.Reformers
                 .ToList();
 
             // Get all of the sources from the previous state
-            var acceptableSourceIds = operationprescriptionsToProcessList
-                .Where(o => acceptableDestinations.Contains(new { o.EntityId, o.EntType }))
-                .SelectMany(o => o.Operands.SelectMany(oo => oo.SourceValueIds))
-                .ToList();
+            var acceptableSourceIds = new List<Guid>();
+            foreach (var opPresProc in operationprescriptionsToProcessList)
+            {
+                var opPresOperands = opPresProc.Operands;
+
+                var matchFound = false;
+                foreach (var opo in opPresOperands)
+                {
+                    if (!acceptableDestinations
+                        .Any(ad => ad.EntType == opo.EntType && ad.EntityId == opo.EntityId))
+                    {
+                        continue;
+                    }
+
+                    matchFound = true;
+                    break;
+                }
+
+                if (!matchFound)
+                {
+                    continue;
+                }
+
+                acceptableSourceIds.AddRange(opPresOperands.SelectMany(oo => oo.SourceValueIds));
+            }
+
             var acceptableSources = previousState.Values
                 .Where(v => acceptableSourceIds.Contains(v.EntityId))
                 .ToList();
@@ -98,11 +120,11 @@ namespace RulEng.Reformers
             var e = new Engine();
 
             var regexToken = new Regex(@".*?(?<Token>\$\{(?<Index>\d+)\}).*?");
-            foreach (var ruleToProcess in ruleIds)
+            foreach (var ruleResultIdToProcess in ruleResultIds)
             {
                 // Get all of the operations relevant to the Rule
                 var relevantOps = operationprescriptionsToProcessList
-                    .Where(o => o.RuleResultId == ruleToProcess)
+                    .Where(o => o.RuleResultId == ruleResultIdToProcess)
                     .ToList();
 
                 // Process the acceptable
@@ -113,12 +135,8 @@ namespace RulEng.Reformers
                         .Select(de => new
                         {
                             de.EntityId,
-                            de.EntType,
-                            sourceValues = de.SourceValueIds.Select(sv => new
-                            {
-                                Id = sv,
-                                Value = acceptableSources.FirstOrDefault(a => a.EntityId == sv)?.Detail 
-                            }).ToArray()
+                            EntType = Convert.ToInt32(de.EntType),
+                            sourceValues = de.SourceValueIds.Select(sv => JObject.Parse($"{{\"Id\":\"{sv}\",\"Value\":{acceptableSources.FirstOrDefault(a => a.EntityId == sv)?.Detail}}}")).ToArray()
                         })
                         .ToList();
 
@@ -155,7 +173,7 @@ namespace RulEng.Reformers
 
                         var result = JObject.FromObject(e.Execute(jCode).GetCompletionValue().ToObject());
                         Console.WriteLine(result);
-                        switch (destEnt.EntType)
+                        switch ((EntityType)destEnt.EntType)
                         {
                             case EntityType.Rule:
                                 // Create/Update a rule using destEnt.EntityId and result
@@ -177,7 +195,7 @@ namespace RulEng.Reformers
                     }
                 }
 
-                newState.Values.RemoveWhere(v => v.ValueId == ruleToProcess);
+                newState.Values.RemoveWhere(v => v.ValueId == ruleResultIdToProcess);
             }
 
             return newState;

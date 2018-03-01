@@ -94,54 +94,6 @@ namespace RulEng.Helpers
         }
 
         /// <summary>
-        /// For the result of a given Rule 
-        /// build the corresponding Operation and OperationPrescription
-        /// to effect the creation of the Entity identified
-        /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="ruleResult"></param>
-        /// <param name="entity">The Value from which the Entity will be created</param>
-        /// <returns></returns>
-        public static (Operation operation, ICrud operationPrescription) Create<T>(this RuleResult ruleResult, Value entity) where T : IEntity
-        {
-            var eOfType = default(T);
-
-            var vOper = new OperandKey
-            {
-                SourceValueIds = ImmutableArray.Create(entity.EntityId),
-                EntityId = entity.EntityId,
-                EntType = eOfType.EntType
-            };
-            var operation = ruleResult.CreateOperation(new[] { vOper });
-
-            var operationPrescription = operation.Create();
-
-            return (operation, operationPrescription);
-        }
-
-        /// <summary>
-        /// Build the Create Operation, Entity and Prescription to match the RuleResult
-        /// </summary>
-        /// <param name="ruleResult"></param>
-        /// <param name="entityIds"></param>
-        /// <returns></returns>
-        public static (Operation operation, T value, ICrud operationPrescription) Create<T>(this RuleResult ruleResult, IEnumerable<Guid> entityIds) where T : IEntity
-        {
-            var entity = default(T);
-            var vOper = new OperandKey
-            {
-                SourceValueIds = ImmutableArray.Create(entityIds.ToArray()),
-                EntityId = entity.EntityId,
-                EntType = EntityType.Value
-            };
-            var operation = ruleResult.CreateOperation(new[] { vOper });
-
-            var operationPrescription = operation.Create();
-
-            return (operation, entity, operationPrescription);
-        }
-
-        /// <summary>
         /// For a given Rule this creates:
         /// A RuleResult to accept the result of the Rule
         /// A RulePrescription referencing the Rule to be performed

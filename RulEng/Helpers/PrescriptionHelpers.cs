@@ -45,11 +45,11 @@ namespace RulEng.Helpers
             };
         }
 
-        public static ICrud Create(this Operation createOperation)
+        public static IOpReqProcessing AddUpdate(this Operation OperationMx)
         {
-            return new Create<Operation>
+            return new AddUpdate<Operation>
             {
-                Entity = createOperation
+                Entity = OperationMx
             };
         }
     }

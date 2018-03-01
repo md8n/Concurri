@@ -5,6 +5,11 @@ using RulEng.States;
 
 namespace RulEng.Prescriptions
 {
+    public class AddUpdate<T>: IOpReqProcessing where T: IEntity
+    {
+        public T Entity { get; set; }
+    }
+
     public class Create<T>: ICrud where T: IEntity
     {
         public T Entity { get; set; }

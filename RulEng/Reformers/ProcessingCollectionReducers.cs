@@ -31,13 +31,13 @@ namespace RulEng.Reformers
                 throw new ArgumentOutOfRangeException(nameof(ruleType), $"{nameof(ruleType)} must be a collection RuleType");
             }
 
-            var actionDate = DateTime.UtcNow;
-
             var minEntitiesRequired = prescription.Entities.MinEntitiesRequired;
             if (prescription.Entities.EntityIds.Count < minEntitiesRequired)
             {
                 return newState;
             }
+
+            var actionDate = DateTime.UtcNow;
 
             // First get the potentially relevant entities in a cleaned form
             var ruleResultId = prescription.Entities.RuleResultId;
@@ -58,10 +58,10 @@ namespace RulEng.Reformers
                 .ToList();
 
             // Get the corresponding Rules
-            var rulesToProcessList = newState.Rules.RulesToProcess(RuleType.And, entities);
+            var rulesToProcess = newState.Rules.RulesToProcess(ruleType, entities);
 
             var presEntities = ruleResultEntitySet.Entities.ToArray();
-            var ruleToProcess = rulesToProcessList
+            var ruleToProcess = rulesToProcess
                 .SingleOrDefault(r => r.ReferenceValues.RuleResultId == ruleResultId);
 
             RuleResult newRuleResult = null;
@@ -81,7 +81,28 @@ namespace RulEng.Reformers
 
             if (newRuleResult != null)
             {
-                newState.RuleResults.Add(newRuleResult);
+                // Get the Ids of all existing Rule Results that correspond to the Rule being processed
+                var relRuleResultIds = newState.RuleResults
+                    .Where(rr => rr.RuleResultId == ruleToProcess.ReferenceValues.RuleResultId)
+                    .Select(rr => rr.RuleResultId)
+                    .ToList();
+
+                if (!relRuleResultIds.Any())
+                {
+                    // An unusual circumstance, no pre-existing RuleResult
+                    newState.RuleResults.Add(newRuleResult);
+                }
+                else
+                {
+                    // Normal circumstances, we'd expect only one RuleResult
+                    foreach (var rrId in relRuleResultIds)
+                    {
+                        var relevantRuleResult = newState.RuleResults.Single(rr => rr.RuleResultId == rrId);
+
+                        relevantRuleResult.LastChanged = actionDate;
+                        relevantRuleResult.Detail = newRuleResult.Detail;
+                    }
+                }
             }
 
             return newState;

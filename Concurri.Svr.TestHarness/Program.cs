@@ -66,14 +66,13 @@ namespace Concurri.Svr.TestHarness
             var operations = new List<Operation>();
             var values = new List<Value>();
             var rulePrescriptions = new List<IRuleProcessing>();
-            var operationPrescriptions = new List<IRuleProcessing>();
+            var operationPrescriptions = new List<IOpReqProcessing>();
 
             Rule rule;
             RuleResult ruleResult;
             Operation operation;
             Value value;
             IRuleProcessing rulePrescription;
-            IRuleProcessing operationPrescription;
 
             // Travelling Salesman - Setup
 
@@ -89,7 +88,7 @@ namespace Concurri.Svr.TestHarness
                 var coordValue = new Value(lonLat);
                 values.Add(coordValue);
 
-                (rule, ruleResult, rulePrescription) = coordValue.Exists(true);
+                (rule, ruleResult, rulePrescription) = coordValue.Exists(false);
 
                 if (rule.ReferenceValues.RuleResultId != ruleResult.RuleResultId)
                 {
@@ -101,7 +100,7 @@ namespace Concurri.Svr.TestHarness
             }
 
             // Add Collection Rule for all of the above rules
-            (var collectRule, var collectRuleResult, var collectRulePrescription) = ruleResults.And(true);
+            (var collectRule, var collectRuleResult, var collectRulePrescription) = ruleResults.And(false);
             rules.Add(collectRule);
             ruleResults.Add(collectRuleResult);
             rulePrescriptions.Add(collectRulePrescription);
@@ -129,7 +128,9 @@ namespace Concurri.Svr.TestHarness
                 Operands = ImmutableArray.Create(opKey),
                 OperationTemplate = valueTemplate
             };
+            var buildGeoJsonPrescription = buildGeoJsonOperation.AddUpdate();
             operations.Add(buildGeoJsonOperation);
+            operationPrescriptions.Add(buildGeoJsonPrescription);
 
             var startingStore = new RulEngStore
             {
@@ -152,6 +153,12 @@ namespace Concurri.Svr.TestHarness
                 var act = RvStore.Dispatch(prescription);
             }
             File.WriteAllText("storePass00A.json", RvStore.GetState().ToString());
+
+            foreach (var prescription in operationPrescriptions)
+            {
+                var act = RvStore.Dispatch(prescription);
+            }
+            File.WriteAllText("storePass00B.json", RvStore.GetState().ToString());
 
             //var act = RvStore.Dispatch(rulePrescription);
             //foreach (var prescription in operationPrescriptions)

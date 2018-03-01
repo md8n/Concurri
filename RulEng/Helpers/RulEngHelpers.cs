@@ -98,7 +98,7 @@ namespace RulEng.Helpers
         /// A RuleResult to accept the result of the Rule
         /// A RulePrescription referencing the Rule to be performed
         /// </summary>
-        /// <param name="val"></param>
+        /// <param name="rule"></param>
         /// <returns></returns>
         public static (RuleResult ruleResult, T rulePrescription) ResultAndPrescription<T>(this Rule rule) where T : IRulePrescription, new()
         {

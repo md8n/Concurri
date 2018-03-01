@@ -18,7 +18,10 @@ namespace RulEng.States
         public bool Equals(IEntity x, IEntity y)
         {
             //Check whether the objects are the same object. 
-            if (object.ReferenceEquals(x, y)) return true;
+            if (ReferenceEquals(x, y))
+            {
+                return true;
+            }
 
             //Check whether the products' properties are equal. 
             return x != null && y != null && x.EntType.Equals(y.EntType) && x.EntityId.Equals(y.EntityId);
@@ -27,10 +30,10 @@ namespace RulEng.States
         public int GetHashCode(IEntity obj)
         {
             //Get hash code for the EntityId field if it is not null. 
-            int hashEntityId = obj.EntityId == null ? 0 : obj.EntityId.GetHashCode();
+            var hashEntityId = obj.EntityId.GetHashCode();
 
             //Get hash code for the EntType field. 
-            int hashEntType = obj.EntType.GetHashCode();
+            var hashEntType = obj.EntType.GetHashCode();
 
             //Calculate the hash code for the product. 
             return hashEntityId ^ hashEntType;

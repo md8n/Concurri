@@ -87,21 +87,23 @@ namespace RulEng.Reformers
                         break;
                     }
 
-                    if (prevDetail.IsBool())
+                    if (!prevDetail.IsBool())
                     {
-                        var min1Val = !prevDetail.GetBool().HasValue
-                            ? -1 : prevDetail.GetBool().Value ? 0 : 1;
-                        var currVal = !nextDetail.GetBool().HasValue
-                            ? -1 : nextDetail.GetBool().Value ? 0 : 1;
-
-                        if (min1Val < currVal)
-                        {
-                            continue;
-                        }
-
-                        result = false;
-                        break;
+                        continue;
                     }
+
+                    var min1Val = !prevDetail.GetBool().HasValue
+                        ? -1 : prevDetail.GetBool().Value ? 0 : 1;
+                    var currVal = !nextDetail.GetBool().HasValue
+                        ? -1 : nextDetail.GetBool().Value ? 0 : 1;
+
+                    if (min1Val < currVal)
+                    {
+                        continue;
+                    }
+
+                    result = false;
+                    break;
                 }
             }
 
@@ -195,21 +197,23 @@ namespace RulEng.Reformers
                         break;
                     }
 
-                    if (prevDetail.IsBool())
+                    if (!prevDetail.IsBool())
                     {
-                        var min1Val = !prevDetail.GetBool().HasValue
-                            ? -1 : prevDetail.GetBool().Value ? 0 : 1;
-                        var currVal = !nextDetail.GetBool().HasValue
-                            ? -1 : nextDetail.GetBool().Value ? 0 : 1;
-
-                        if (min1Val < currVal)
-                        {
-                            continue;
-                        }
-
-                        result = false;
-                        break;
+                        continue;
                     }
+
+                    var min1Val = !prevDetail.GetBool().HasValue
+                        ? -1 : prevDetail.GetBool().Value ? 0 : 1;
+                    var currVal = !nextDetail.GetBool().HasValue
+                        ? -1 : nextDetail.GetBool().Value ? 0 : 1;
+
+                    if (min1Val < currVal)
+                    {
+                        continue;
+                    }
+
+                    result = false;
+                    break;
                 }
             }
 
@@ -303,21 +307,23 @@ namespace RulEng.Reformers
                         break;
                     }
 
-                    if (prevDetail.IsBool())
+                    if (!prevDetail.IsBool())
                     {
-                        var min1Val = !prevDetail.GetBool().HasValue
-                            ? -1 : prevDetail.GetBool().Value ? 0 : 1;
-                        var currVal = !nextDetail.GetBool().HasValue
-                            ? -1 : nextDetail.GetBool().Value ? 0 : 1;
-
-                        if (min1Val > currVal)
-                        {
-                            continue;
-                        }
-
-                        result = false;
-                        break;
+                        continue;
                     }
+
+                    var min1Val = !prevDetail.GetBool().HasValue
+                        ? -1 : prevDetail.GetBool().Value ? 0 : 1;
+                    var currVal = !nextDetail.GetBool().HasValue
+                        ? -1 : nextDetail.GetBool().Value ? 0 : 1;
+
+                    if (min1Val > currVal)
+                    {
+                        continue;
+                    }
+
+                    result = false;
+                    break;
                 }
             }
 

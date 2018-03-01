@@ -79,29 +79,31 @@ namespace RulEng.Reformers
                     break;
             }
 
-            if (newRuleResult != null)
+            if (newRuleResult == null)
             {
-                // Get the Ids of all existing Rule Results that correspond to the Rule being processed
-                var relRuleResultIds = newState.RuleResults
-                    .Where(rr => rr.RuleResultId == ruleToProcess.ReferenceValues.RuleResultId)
-                    .Select(rr => rr.RuleResultId)
-                    .ToList();
+                return newState;
+            }
 
-                if (!relRuleResultIds.Any())
-                {
-                    // An unusual circumstance, no pre-existing RuleResult
-                    newState.RuleResults.Add(newRuleResult);
-                }
-                else
-                {
-                    // Normal circumstances, we'd expect only one RuleResult
-                    foreach (var rrId in relRuleResultIds)
-                    {
-                        var relevantRuleResult = newState.RuleResults.Single(rr => rr.RuleResultId == rrId);
+            // Get the Ids of all existing Rule Results that correspond to the Rule being processed
+            var relRuleResultIds = newState.RuleResults
+                .Where(rr => rr.RuleResultId == ruleToProcess.ReferenceValues.RuleResultId)
+                .Select(rr => rr.RuleResultId)
+                .ToList();
 
-                        relevantRuleResult.LastChanged = actionDate;
-                        relevantRuleResult.Detail = newRuleResult.Detail;
-                    }
+            if (!relRuleResultIds.Any())
+            {
+                // An unusual circumstance, no pre-existing RuleResult
+                newState.RuleResults.Add(newRuleResult);
+            }
+            else
+            {
+                // Normal circumstances, we'd expect only one RuleResult
+                foreach (var rrId in relRuleResultIds)
+                {
+                    var relevantRuleResult = newState.RuleResults.Single(rr => rr.RuleResultId == rrId);
+
+                    relevantRuleResult.LastChanged = actionDate;
+                    relevantRuleResult.Detail = newRuleResult.Detail;
                 }
             }
 

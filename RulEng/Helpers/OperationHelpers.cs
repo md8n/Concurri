@@ -211,7 +211,7 @@ namespace RulEng.Helpers
 
             var lastChStr = lastChanged.Value.ToString("u");
 
-            return $"{{\"ValueId\":\"{valueId}\",\"EntType\":{EntityType.Value},\"Detail\":{detail},\"LastChanged\":\"{lastChStr}\"}}";
+            return $"{{\"ValueId\":\"{valueId}\",\"EntType\":{Convert.ToInt32(EntityType.Value)},\"Detail\":{detail},\"LastChanged\":\"{lastChStr}\"}}";
         }
     }
 }

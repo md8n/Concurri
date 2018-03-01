@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 
 using Jint;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
 using RulEng.Helpers;
@@ -136,7 +137,9 @@ namespace RulEng.Reformers
                         {
                             de.EntityId,
                             EntType = Convert.ToInt32(de.EntType),
-                            sourceValues = de.SourceValueIds.Select(sv => JObject.Parse($"{{\"Id\":\"{sv}\",\"Value\":{acceptableSources.FirstOrDefault(a => a.EntityId == sv)?.Detail}}}")).ToArray()
+                            sourceValues = de.SourceValueIds
+                                .Select(sv => JObject.Parse($"{{\"Id\":\"{sv}\",\"Value\":{acceptableSources.FirstOrDefault(a => a.EntityId == sv)?.Detail.ToString(Formatting.None)}}}"))
+                                .ToArray()
                         })
                         .ToList();
 
@@ -163,7 +166,7 @@ namespace RulEng.Reformers
                                 break;
                             }
 
-                            jCode = jCode.Replace(token, sourceVals[index].ToString());
+                            jCode = jCode.Replace(token, sourceVals[index]["Value"].ToString(Formatting.None));
                         }
 
                         if (!isSubstOk)

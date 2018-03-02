@@ -177,7 +177,7 @@ namespace RulEng.Helpers
             Guid destEntId)
         {
             // Create/Update a Value using destEnt.EntityId and result
-            var detail = result["Detail"];
+            var detail = result;
 
             var value = newState.Values.FirstOrDefault(o => o.EntityId == destEntId);
             if (value != null)

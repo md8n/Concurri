@@ -180,19 +180,19 @@ namespace RulEng.Reformers
                         {
                             case EntityType.Rule:
                                 // Create/Update a rule using destEnt.EntityId and result
-                                newState.CreateRuleFromOperationResult(result, destEnt.EntityId);
+                                newState.FromOperationResultAddUpdateRule(result, destEnt.EntityId);
                                 break;
                             case EntityType.Operation:
                                 // Create/Update an Operation using destEnt.EntityId and result
-                                newState.CreateOperationFromOperationResult(result, destEnt.EntityId);
+                                newState.FromOperationResultAddUpdateOperation(result, destEnt.EntityId);
                                 break;
                             case EntityType.Request:
                                 // Create/Update a Request using destEnt.EntityId and result
-                                newState.CreateRequestFromOperationResult(result, destEnt.EntityId);
+                                newState.FromOperationResultAddUpdateRequest(result, destEnt.EntityId);
                                 break;
                             case EntityType.Value:
                                 // Create/Update a Value using destEnt.EntityId and result
-                                newState.CreateValueFromOperationResult(result, destEnt.EntityId);
+                                newState.FromOperationResultAddUpdateValue(result, destEnt.EntityId);
                                 break;
                         }
                     }

@@ -22,7 +22,7 @@ namespace RulEng.Helpers
             };
         }
 
-        public static void CreateRuleFromOperationResult(this ProcessingRulEngStore newState, JObject result, Guid destEntId)
+        public static void FromOperationResultAddUpdateRule(this ProcessingRulEngStore newState, JObject result, Guid destEntId)
         {
             // Create/Update a rule using destEnt.EntityId and result
             var ruleType = result["RuleType"];
@@ -61,14 +61,15 @@ namespace RulEng.Helpers
                     EntityId = destEntId,
                     NegateResult = negateResult != null && (bool)negateResult,
                     RuleType = rlType,
-                    ReferenceValues = refValArray
+                    ReferenceValues = refValArray,
+                    LastChanged = DateTime.UtcNow
                 };
 
                 newState.Rules.Add(rule);
             }
         }
 
-        public static void CreateOperationFromOperationResult(this ProcessingRulEngStore newState, JObject result,
+        public static void FromOperationResultAddUpdateOperation(this ProcessingRulEngStore newState, JObject result,
             Guid destEntId)
         {
             // Create/Update an Operation using destEnt.EntityId and result
@@ -118,14 +119,15 @@ namespace RulEng.Helpers
                     OperationType = opType,
                     RuleResultId = rlResId,
                     OperationTemplate = operationTemplate == null ? string.Empty : operationTemplate.ToString(),
-                    Operands = oprndArray
+                    Operands = oprndArray,
+                    LastChanged = DateTime.UtcNow
                 };
 
                 newState.Operations.Add(operation);
             }
         }
 
-        public static void CreateRequestFromOperationResult(this ProcessingRulEngStore newState, JObject result,
+        public static void FromOperationResultAddUpdateRequest(this ProcessingRulEngStore newState, JObject result,
             Guid destEntId)
         {
             // Create/Update a Request using destEnt.EntityId and result
@@ -166,14 +168,15 @@ namespace RulEng.Helpers
                     EntityId = destEntId,
                     ValueType = vlType,
                     Query = qry,
-                    RuleResultId = rlResId
+                    RuleResultId = rlResId,
+                    LastChanged = DateTime.UtcNow
                 };
 
                 newState.Requests.Add(request);
             }
         }
 
-        public static void CreateValueFromOperationResult(this ProcessingRulEngStore newState, JObject result,
+        public static void FromOperationResultAddUpdateValue(this ProcessingRulEngStore newState, JObject result,
             Guid destEntId)
         {
             // Create/Update a Value using destEnt.EntityId and result
@@ -195,23 +198,12 @@ namespace RulEng.Helpers
                 value = new Value
                 {
                     EntityId = destEntId,
-                    Detail = detail
+                    Detail = detail,
+                    LastChanged = DateTime.UtcNow
                 };
 
                 newState.Values.Add(value);
             }
-        }
-
-        public static string OperationValueTemplate(this Guid valueId, string detail, DateTime? lastChanged = null)
-        {
-            if (!lastChanged.HasValue)
-            {
-                lastChanged = DefaultHelpers.DefDate();
-            }
-
-            var lastChStr = lastChanged.Value.ToString("u");
-
-            return $"{{\"ValueId\":\"{valueId}\",\"EntType\":{Convert.ToInt32(EntityType.Value)},\"Detail\":{detail},\"LastChanged\":\"{lastChStr}\"}}";
         }
     }
 }

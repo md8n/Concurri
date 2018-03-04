@@ -26,55 +26,6 @@ namespace Concurri.Svr.TestHarness
         {
             Console.WriteLine("Hello World!");
 
-            //var regexToken = new Regex(@".*?(?<Token>\$\{(?<Index>\d+)\}).*?");
-            //var jTempl = "(${2}+${1})/(${3}+${1})";
-            //var vals = new [] {12M, 15.5M, 16.8M, 13.45M};
-
-            //var jCode = jTempl;
-            //var isSubstOk = true;
-            //foreach (Match match in regexToken.Matches(jTempl))
-            //{
-            //    var token = match.Groups["Token"].Value;
-            //    var indexOk = int.TryParse(match.Groups["Index"].Value, out var index);
-
-            //    if (!indexOk)
-            //    {
-            //        isSubstOk = false;
-            //        break;
-            //    }
-
-            //    if (vals.Length < index)
-            //    {
-            //        isSubstOk = false;
-            //        break;
-            //    }
-
-            //    jCode = jCode.Replace(token, vals[index].ToString(CultureInfo.InvariantCulture));
-
-            //    Console.WriteLine($"Token:{token}, Index:{index} Value:{vals[index]}");
-            //}
-
-            //if (isSubstOk)
-            //{
-            //var jTempl = "{\"ValueId\":\"20d25e4b-7d8c-4836-849f-5535b4e1a6f6\",\"EntType\":5,\"Detail\":{\"type\":\"FeatureCollection\",\"features\":[${0},${1},${2},${3},${4},${5},${6},${7},${8},${9}]},\"LastChanged\":\"1980-01-01 00:00:00Z\"}";
-            //var jCode = "{\"ValueId\":\"20d25e4b-7d8c-4836-849f-5535b4e1a6f6\",\"EntType\":5,\"Detail\":{\"type\":\"FeatureCollection\",\"features\":[{\"type\":\"Feature\",\"properties\":{\"cityNo\":0},\"geometry\":{\"type\":\"Point\",\"coordinates\":[143.867563808275,-25.3952077005036]}},{\"type\":\"Feature\",\"properties\":{\"cityNo\":1},\"geometry\":{\"type\":\"Point\",\"coordinates\":[148.650800422603,-21.3406091967321]}},{\"type\":\"Feature\",\"properties\":{\"cityNo\":2},\"geometry\":{\"type\":\"Point\",\"coordinates\":[147.70423036474,-25.4519063590336]}},{\"type\":\"Feature\",\"properties\":{\"cityNo\":3},\"geometry\":{\"type\":\"Point\",\"coordinates\":[147.90635649483,-21.9078147508706]}},{\"type\":\"Feature\",\"properties\":{\"cityNo\":4},\"geometry\":{\"type\":\"Point\",\"coordinates\":[142.456384286031,-23.3582771836586]}},{\"type\":\"Feature\",\"properties\":{\"cityNo\":5},\"geometry\":{\"type\":\"Point\",\"coordinates\":[145.22966226201,-22.885232692531]}},{\"type\":\"Feature\",\"properties\":{\"cityNo\":6},\"geometry\":{\"type\":\"Point\",\"coordinates\":[142.077799188941,-26.761976752785]}},{\"type\":\"Feature\",\"properties\":{\"cityNo\":7},\"geometry\":{\"type\":\"Point\",\"coordinates\":[146.068306779055,-22.6915270349437]}},{\"type\":\"Feature\",\"properties\":{\"cityNo\":8},\"geometry\":{\"type\":\"Point\",\"coordinates\":[148.761142209061,-21.7728364536412]}},{\"type\":\"Feature\",\"properties\":{\"cityNo\":9},\"geometry\":{\"type\":\"Point\",\"coordinates\":[148.213422938815,-25.9715534434521]}}]},\"LastChanged\":\"1980-01-01 00:00:00Z\"}";
-            //Console.WriteLine($"{jTempl} => {jCode}");
-
-            //    var e = new Engine();
-            //var result = e
-            //    .SetValue("v", jCode)
-            //    .Execute("JSON.parse(v)")
-            //    .GetCompletionValue()
-            //    .ToObject();
-            ////var result = e
-            ////    .Execute(jCode)
-            ////    .GetCompletionValue()
-            ////    .ToObject();
-            //Console.WriteLine(result);
-            //var jResult = JsonConvert.SerializeObject(result);
-            //Console.WriteLine(jResult);
-            //}
-
             var rules = new List<Rule>();
             var ruleResults = new List<RuleResult>();
             var operations = new List<Operation>();
@@ -84,8 +35,6 @@ namespace Concurri.Svr.TestHarness
 
             Rule rule;
             RuleResult ruleResult;
-            Operation operation;
-            Value value;
             IRuleProcessing rulePrescription;
 
             // Travelling Salesman - Setup
@@ -130,7 +79,6 @@ namespace Concurri.Svr.TestHarness
                 valueBody += $"${{{ix}}}";
             }
             valueBody += "]}";
-            // var valueTemplate = Guid.NewGuid().OperationValueTemplate(valueBody);
             var valueTemplate = $"JSON.parse('{valueBody}')";
 
             // Add an Operation to reference the collect Rule and merge all of the results into one GeoJSON
@@ -158,36 +106,23 @@ namespace Concurri.Svr.TestHarness
             RvStore = new Store<RulEngStore>(StoreReducers.ReduceStore, startingStore);
             File.WriteAllText("storeStart.json", RvStore.GetState().ToString());
 
-            //RvStore = new Store<RulEngStore>(StoreReducers.ReduceStore);
-
+            // Commence Processing
             RulEngStore changes;
             RvStore.Subscribe(state => changes = state);
 
+            // Pass 0 - Part A - Rule Prescriptions
             foreach(var prescription in rulePrescriptions)
             {
                 var act = RvStore.Dispatch(prescription);
             }
             File.WriteAllText("storePass00A.json", RvStore.GetState().ToString());
 
+            // Pass 0 - Part B - OpReq Prescriptions
             foreach (var prescription in operationPrescriptions)
             {
                 var act = RvStore.Dispatch(prescription);
             }
             File.WriteAllText("storePass00B.json", RvStore.GetState().ToString());
-
-            //var act = RvStore.Dispatch(rulePrescription);
-            //foreach (var prescription in operationPrescriptions)
-            //{
-            //    act = RvStore.Dispatch(prescription);
-            //}
-
-            //File.WriteAllText("storeBefore.json", RvStore.GetState().ToString());
-            //act = rvStore.Dispatch(procAllRules);
-            // File.WriteAllText("storeMiddle.json", rvStore.GetState().ToString());
-            //act = rvStore.Dispatch(procAllOperations);
-            //File.WriteAllText("storeAfter.json", RvStore.GetState().ToString());
-
-
 
 
 

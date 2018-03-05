@@ -6,7 +6,6 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
-using Jint;
 using Newtonsoft.Json.Linq;
 using Redux;
 using RulEng.Helpers;
@@ -27,7 +26,7 @@ namespace Concurri.Svr.TestHarness
             Console.WriteLine("Hello Salesman!");
 
             // Travelling Salesman - Setup
-            var cityCount = 10;
+            const int cityCount = 10;
 
             (var rules, var ruleResults, var values, var rulePrescriptions) = BuildTheCities(cityCount);
 
@@ -204,7 +203,6 @@ namespace Concurri.Svr.TestHarness
             File.WriteAllText("Routes00.json", jny.ToString());
 
             var pass = 1;
-            var citiesWithRoadsCount = 0;
             var citiesWithNoRoadsCount = cityIds.Count(ci => ci.Count == 0);
 
             // For each city with no connections
@@ -486,16 +484,12 @@ namespace Concurri.Svr.TestHarness
             //File.WriteAllText("storeAfter.json", RvStore.GetState().ToString());
         }
 
-        public static (List<Rule> rules, List<RuleResult> ruleResults, List<Value> values, List<IRuleProcessing> ruleProcessing) BuildTheCities(int cityCount)
+        private static (List<Rule> rules, List<RuleResult> ruleResults, List<Value> values, List<IRuleProcessing> ruleProcessing) BuildTheCities(int cityCount)
         {
             var rules = new List<Rule>();
             var ruleResults = new List<RuleResult>();
             var values = new List<Value>();
             var rulePrescriptions = new List<IRuleProcessing>();
-
-            Rule rule;
-            RuleResult ruleResult;
-            IRuleProcessing rulePrescription;
 
             var rnd = new Random();
             for (var ix = 0; ix < cityCount; ix++)
@@ -508,6 +502,9 @@ namespace Concurri.Svr.TestHarness
                 var coordValue = new Value(lonLat);
                 values.Add(coordValue);
 
+                Rule rule;
+                RuleResult ruleResult;
+                IRuleProcessing rulePrescription;
                 (rule, ruleResult, rulePrescription) = coordValue.Exists(false);
 
                 if (rule.ReferenceValues.RuleResultId != ruleResult.RuleResultId)
@@ -561,7 +558,7 @@ namespace Concurri.Svr.TestHarness
         }
 
 
-        public static (List<Operation> operations, List<IOpReqProcessing> operationPrescriptions) BuildTheGeoJsonOutput(int cityCount, RuleResult collectRuleResult, List<Value> values)
+        private static (List<Operation> operations, List<IOpReqProcessing> operationPrescriptions) BuildTheGeoJsonOutput(int cityCount, RuleResult collectRuleResult, List<Value> values)
         {
             // Build the Javascript template for creating the entire GeoJSON Value
             var valueBody = "{\"type\":\"FeatureCollection\",\"features\":[";

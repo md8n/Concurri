@@ -486,6 +486,77 @@ namespace Concurri.Svr.TestHarness
             //File.WriteAllText("storeAfter.json", RvStore.GetState().ToString());
         }
 
+        /// <summary>
+        /// Place to do experiments, for figuring out how to construct the JS templates
+        /// </summary>
+        /// <param name="values"></param>
+        public static void DoJintTest(List<Value> values)
+        {
+            var regexToken = new Regex(@".*?(?<Token>\$\{(?<Index>\d+)\}).*?");
+            var jTempl = "${0}['geometry']['coordinates'][0]";
+
+            /*
+             * {
+                "type": "Feature",
+                "properties": {
+                    "cityNo": 9
+                },
+                "geometry": {
+                    "type": "Point",
+                    "coordinates": [
+                        143.653228907219,
+                        -21.0509138372964
+                    ]
+                }
+             */
+
+            var jCode = jTempl;
+            var isSubstOk = true;
+            foreach (Match match in regexToken.Matches(jTempl))
+            {
+                var token = match.Groups["Token"].Value;
+                var indexOk = int.TryParse(match.Groups["Index"].Value, out var index);
+
+                if (!indexOk)
+                {
+                    isSubstOk = false;
+                    break;
+                }
+
+                if (values.Count < index)
+                {
+                    isSubstOk = false;
+                    break;
+                }
+
+                jCode = jCode.Replace(token, values[index].Detail.ToString(Formatting.None));
+
+                Console.WriteLine($"Token:{token}, Index:{index} Value:{values[index].Detail.ToString(Formatting.None)}");
+            }
+
+            if (isSubstOk)
+            {
+                //var jTempl = "{\"ValueId\":\"20d25e4b-7d8c-4836-849f-5535b4e1a6f6\",\"EntType\":5,\"Detail\":{\"type\":\"FeatureCollection\",\"features\":[${0},${1},${2},${3},${4},${5},${6},${7},${8},${9}]},\"LastChanged\":\"1980-01-01 00:00:00Z\"}";
+                //var jCode = "{\"ValueId\":\"20d25e4b-7d8c-4836-849f-5535b4e1a6f6\",\"EntType\":5,\"Detail\":{\"type\":\"FeatureCollection\",\"features\":[{\"type\":\"Feature\",\"properties\":{\"cityNo\":0},\"geometry\":{\"type\":\"Point\",\"coordinates\":[143.867563808275,-25.3952077005036]}},{\"type\":\"Feature\",\"properties\":{\"cityNo\":1},\"geometry\":{\"type\":\"Point\",\"coordinates\":[148.650800422603,-21.3406091967321]}},{\"type\":\"Feature\",\"properties\":{\"cityNo\":2},\"geometry\":{\"type\":\"Point\",\"coordinates\":[147.70423036474,-25.4519063590336]}},{\"type\":\"Feature\",\"properties\":{\"cityNo\":3},\"geometry\":{\"type\":\"Point\",\"coordinates\":[147.90635649483,-21.9078147508706]}},{\"type\":\"Feature\",\"properties\":{\"cityNo\":4},\"geometry\":{\"type\":\"Point\",\"coordinates\":[142.456384286031,-23.3582771836586]}},{\"type\":\"Feature\",\"properties\":{\"cityNo\":5},\"geometry\":{\"type\":\"Point\",\"coordinates\":[145.22966226201,-22.885232692531]}},{\"type\":\"Feature\",\"properties\":{\"cityNo\":6},\"geometry\":{\"type\":\"Point\",\"coordinates\":[142.077799188941,-26.761976752785]}},{\"type\":\"Feature\",\"properties\":{\"cityNo\":7},\"geometry\":{\"type\":\"Point\",\"coordinates\":[146.068306779055,-22.6915270349437]}},{\"type\":\"Feature\",\"properties\":{\"cityNo\":8},\"geometry\":{\"type\":\"Point\",\"coordinates\":[148.761142209061,-21.7728364536412]}},{\"type\":\"Feature\",\"properties\":{\"cityNo\":9},\"geometry\":{\"type\":\"Point\",\"coordinates\":[148.213422938815,-25.9715534434521]}}]},\"LastChanged\":\"1980-01-01 00:00:00Z\"}";
+                Console.WriteLine($"{jTempl} => {jCode}");
+
+                var e = new Engine();
+                var result = e
+                    .SetValue("v", jCode)
+                    .Execute("JSON.parse(v)")
+                    .GetCompletionValue()
+                    .ToObject();
+                //var result = e
+                //    .Execute(jCode)
+                //    .GetCompletionValue()
+                //    .ToObject();
+                Console.WriteLine(result);
+                var jResult = JsonConvert.SerializeObject(result);
+                Console.WriteLine(jResult);
+            }
+
+        }
+
         public static (List<Rule> rules, List<RuleResult> ruleResults, List<Value> values, List<IRuleProcessing> ruleProcessing) BuildTheCities(int cityCount)
         {
             var rules = new List<Rule>();
@@ -527,35 +598,36 @@ namespace Concurri.Svr.TestHarness
             // Build the Javascript template for calculating the length of each connecting GeoJSON line
             // Concept - Id of this city, then formula to calculate each distance and output the result as a sorted list.
 
-            var valueBody = "{\"type\":\"FeatureCollection\",\"features\":[";
             for (var ix = 0; ix < cityRuleResults.Count; ix++)
             {
+                var valueBody = $"{{\"cityAId\":\"{{{ix}}}\",\"features\":[";
                 if (ix > 0)
                 {
                     valueBody += ",";
                 }
                 valueBody += $"${{{ix}}}";
+
+                valueBody += "]}";
+                var valueTemplate = $"JSON.parse('{valueBody}')";
             }
-            valueBody += "]}";
-            var valueTemplate = $"JSON.parse('{valueBody}')";
 
             // Add an Operation to reference the collect Rule and merge all of the results into one GeoJSON
             var opKey = values.Where(c => c.Detail["properties"]["cityNo"] != null).OperandKey(EntityType.Value);
-            var buildGeoJsonOperation = new Operation
-            {
-                OperationId = Guid.NewGuid(),
-                OperationType = OperationType.CreateUpdate,
-                RuleResultId = collectRuleResult.EntityId,
-                Operands = ImmutableArray.Create(opKey),
-                OperationTemplate = valueTemplate
-            };
-            var buildGeoJsonPrescription = buildGeoJsonOperation.AddUpdate();
+            //var buildGeoJsonOperation = new Operation
+            //{
+            //    OperationId = Guid.NewGuid(),
+            //    OperationType = OperationType.CreateUpdate,
+            //    RuleResultId = collectRuleResult.EntityId,
+            //    Operands = ImmutableArray.Create(opKey),
+            //    OperationTemplate = valueTemplate
+            //};
+            //var buildGeoJsonPrescription = buildGeoJsonOperation.AddUpdate();
 
             var operations = new List<Operation>();
             var operationPrescriptions = new List<IOpReqProcessing>();
 
-            operations.Add(buildGeoJsonOperation);
-            operationPrescriptions.Add(buildGeoJsonPrescription);
+            //operations.Add(buildGeoJsonOperation);
+            //operationPrescriptions.Add(buildGeoJsonPrescription);
 
             return (operations, operationPrescriptions);
         }

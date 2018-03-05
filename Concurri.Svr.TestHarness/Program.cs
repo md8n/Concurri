@@ -31,8 +31,10 @@ namespace Concurri.Svr.TestHarness
 
             (var rules, var ruleResults, var values, var rulePrescriptions) = BuildTheCities(cityCount);
 
-            // Add Collection Rule for all of the above rules
+            // Build a Collection Rule, Result and Prescription for all of the above rules
             (var collectRule, var collectRuleResult, var collectRulePrescription) = ruleResults.And(false);
+
+            // Add the Collection Rule, Result and Prescription
             rules.Add(collectRule);
             ruleResults.Add(collectRuleResult);
             rulePrescriptions.Add(collectRulePrescription);
@@ -68,15 +70,6 @@ namespace Concurri.Svr.TestHarness
                 var act = RvStore.Dispatch(prescription);
             }
             File.WriteAllText("storePass00B.json", RvStore.GetState().ToString());
-
-
-
-            var salesmansJourney = new StringBuilder();
-            salesmansJourney.Append("{\"type\":\"FeatureCollection\",\"features\":[");
-            salesmansJourney.Append(string.Join(',', values.Where(v => v.Detail["properties"]["cityNo"] != null).Select(v => v.Detail.ToString())));
-            salesmansJourney.Append("]}");
-            var jny = JObject.Parse(salesmansJourney.ToString());
-            File.WriteAllText("salesmansCities.json", jny.ToString());
 
             // Build all possible roads
             for (var ix = 0; ix < cityCount; ix++)
@@ -203,11 +196,11 @@ namespace Concurri.Svr.TestHarness
                 v.Detail["properties"]["cityAId"] != null &&
                 v.Detail["properties"]["usage"] != null && (string)v.Detail["properties"]["usage"] == "Accepted")
                 .ToList();
-            salesmansJourney = new StringBuilder();
+            var salesmansJourney = new StringBuilder();
             salesmansJourney.Append("{\"type\":\"FeatureCollection\",\"features\":[");
             salesmansJourney.Append(string.Join(',', acceptedRoads.Select(v => v.Detail.ToString())));
             salesmansJourney.Append("]}");
-            jny = JObject.Parse(salesmansJourney.ToString());
+            var jny = JObject.Parse(salesmansJourney.ToString());
             File.WriteAllText("Routes00.json", jny.ToString());
 
             var pass = 1;
@@ -528,6 +521,45 @@ namespace Concurri.Svr.TestHarness
 
             return (rules, ruleResults, values, rulePrescriptions);
         }
+
+        public static (List<Operation> operations, List<IOpReqProcessing> operationPrescriptions) BuildTheFirstLines(List<RuleResult> cityRuleResults, List<Value> values)
+        {
+            // Build the Javascript template for calculating the length of each connecting GeoJSON line
+            // Concept - Id of this city, then formula to calculate each distance and output the result as a sorted list.
+
+            var valueBody = "{\"type\":\"FeatureCollection\",\"features\":[";
+            for (var ix = 0; ix < cityRuleResults.Count; ix++)
+            {
+                if (ix > 0)
+                {
+                    valueBody += ",";
+                }
+                valueBody += $"${{{ix}}}";
+            }
+            valueBody += "]}";
+            var valueTemplate = $"JSON.parse('{valueBody}')";
+
+            // Add an Operation to reference the collect Rule and merge all of the results into one GeoJSON
+            var opKey = values.Where(c => c.Detail["properties"]["cityNo"] != null).OperandKey(EntityType.Value);
+            var buildGeoJsonOperation = new Operation
+            {
+                OperationId = Guid.NewGuid(),
+                OperationType = OperationType.CreateUpdate,
+                RuleResultId = collectRuleResult.EntityId,
+                Operands = ImmutableArray.Create(opKey),
+                OperationTemplate = valueTemplate
+            };
+            var buildGeoJsonPrescription = buildGeoJsonOperation.AddUpdate();
+
+            var operations = new List<Operation>();
+            var operationPrescriptions = new List<IOpReqProcessing>();
+
+            operations.Add(buildGeoJsonOperation);
+            operationPrescriptions.Add(buildGeoJsonPrescription);
+
+            return (operations, operationPrescriptions);
+        }
+
 
         public static (List<Operation> operations, List<IOpReqProcessing> operationPrescriptions) BuildTheGeoJsonOutput(int cityCount, RuleResult collectRuleResult, List<Value> values)
         {

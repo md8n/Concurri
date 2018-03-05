@@ -24,43 +24,12 @@ namespace Concurri.Svr.TestHarness
 
         public static void Main()
         {
-            Console.WriteLine("Hello World!");
-
-            var rules = new List<Rule>();
-            var ruleResults = new List<RuleResult>();
-            var operations = new List<Operation>();
-            var values = new List<Value>();
-            var rulePrescriptions = new List<IRuleProcessing>();
-            var operationPrescriptions = new List<IOpReqProcessing>();
-
-            Rule rule;
-            RuleResult ruleResult;
-            IRuleProcessing rulePrescription;
+            Console.WriteLine("Hello Salesman!");
 
             // Travelling Salesman - Setup
+            var cityCount = 10;
 
-            // 10 LonLat points and a GeoJSON FeatureCollection
-            var rnd = new Random();
-            for (var ix = 0; ix < 10; ix++)
-            {
-                var lat = -21.0 + -7.0 * rnd.NextDouble();
-                var lon = 142.0 + 7.0 * rnd.NextDouble();
-                var pointGeo =
-                    $"{{\"type\":\"Feature\",\"properties\":{{\"cityNo\":{ix}}},\"geometry\":{{\"type\":\"Point\",\"coordinates\":[{lon},{lat}]}}}}";
-                var lonLat = JObject.Parse(pointGeo);
-                var coordValue = new Value(lonLat);
-                values.Add(coordValue);
-
-                (rule, ruleResult, rulePrescription) = coordValue.Exists(false);
-
-                if (rule.ReferenceValues.RuleResultId != ruleResult.RuleResultId)
-                {
-                    throw new Exception("RuleResultId does not line up");
-                }
-                rules.Add(rule);
-                ruleResults.Add(ruleResult);
-                rulePrescriptions.Add(rulePrescription);
-            }
+            (var rules, var ruleResults, var values, var rulePrescriptions) = BuildTheCities(cityCount);
 
             // Add Collection Rule for all of the above rules
             (var collectRule, var collectRuleResult, var collectRulePrescription) = ruleResults.And(false);
@@ -68,33 +37,9 @@ namespace Concurri.Svr.TestHarness
             ruleResults.Add(collectRuleResult);
             rulePrescriptions.Add(collectRulePrescription);
 
-            // Build the Javascript template for creating the entire Value
-            var valueBody = "{\"type\":\"FeatureCollection\",\"features\":[";
-            for (var ix = 0; ix < 10; ix++)
-            {
-                if (ix > 0)
-                {
-                    valueBody += ",";
-                }
-                valueBody += $"${{{ix}}}";
-            }
-            valueBody += "]}";
-            var valueTemplate = $"JSON.parse('{valueBody}')";
+            (var operations, var operationPrescriptions) = BuildTheGeoJsonOutput(cityCount, collectRuleResult, values);
 
-            // Add an Operation to reference the collect Rule and merge all of the results into one GeoJSON
-            var opKey = values.Where(c => c.Detail["properties"]["cityNo"] != null).OperandKey(EntityType.Value);
-            var buildGeoJsonOperation = new Operation
-            {
-                OperationId = Guid.NewGuid(),
-                OperationType = OperationType.CreateUpdate,
-                RuleResultId = collectRuleResult.EntityId,
-                Operands = ImmutableArray.Create(opKey),
-                OperationTemplate = valueTemplate
-            };
-            var buildGeoJsonPrescription = buildGeoJsonOperation.AddUpdate();
-            operations.Add(buildGeoJsonOperation);
-            operationPrescriptions.Add(buildGeoJsonPrescription);
-
+            // Build the Rule Engine Store ready for processing
             var startingStore = new RulEngStore
             {
                 Rules = rules.ToImmutableHashSet(),
@@ -125,9 +70,6 @@ namespace Concurri.Svr.TestHarness
             File.WriteAllText("storePass00B.json", RvStore.GetState().ToString());
 
 
-
-            // How many Cities? (again)
-            var cityCount = values.Count(c => c.Detail["properties"]["cityNo"] != null);
 
             var salesmansJourney = new StringBuilder();
             salesmansJourney.Append("{\"type\":\"FeatureCollection\",\"features\":[");
@@ -549,6 +491,78 @@ namespace Concurri.Svr.TestHarness
             // File.WriteAllText("storeMiddle.json", rvStore.GetState().ToString());
             //act = rvStore.Dispatch(procAllOperations);
             //File.WriteAllText("storeAfter.json", RvStore.GetState().ToString());
+        }
+
+        public static (List<Rule> rules, List<RuleResult> ruleResults, List<Value> values, List<IRuleProcessing> ruleProcessing) BuildTheCities(int cityCount)
+        {
+            var rules = new List<Rule>();
+            var ruleResults = new List<RuleResult>();
+            var values = new List<Value>();
+            var rulePrescriptions = new List<IRuleProcessing>();
+
+            Rule rule;
+            RuleResult ruleResult;
+            IRuleProcessing rulePrescription;
+
+            var rnd = new Random();
+            for (var ix = 0; ix < cityCount; ix++)
+            {
+                var lat = -21.0 + -7.0 * rnd.NextDouble();
+                var lon = 142.0 + 7.0 * rnd.NextDouble();
+                var pointGeo =
+                    $"{{\"type\":\"Feature\",\"properties\":{{\"cityNo\":{ix}}},\"geometry\":{{\"type\":\"Point\",\"coordinates\":[{lon},{lat}]}}}}";
+                var lonLat = JObject.Parse(pointGeo);
+                var coordValue = new Value(lonLat);
+                values.Add(coordValue);
+
+                (rule, ruleResult, rulePrescription) = coordValue.Exists(false);
+
+                if (rule.ReferenceValues.RuleResultId != ruleResult.RuleResultId)
+                {
+                    throw new Exception("RuleResultId does not line up");
+                }
+                rules.Add(rule);
+                ruleResults.Add(ruleResult);
+                rulePrescriptions.Add(rulePrescription);
+            }
+
+            return (rules, ruleResults, values, rulePrescriptions);
+        }
+
+        public static (List<Operation> operations, List<IOpReqProcessing> operationPrescriptions) BuildTheGeoJsonOutput(int cityCount, RuleResult collectRuleResult, List<Value> values)
+        {
+            // Build the Javascript template for creating the entire GeoJSON Value
+            var valueBody = "{\"type\":\"FeatureCollection\",\"features\":[";
+            for (var ix = 0; ix < cityCount; ix++)
+            {
+                if (ix > 0)
+                {
+                    valueBody += ",";
+                }
+                valueBody += $"${{{ix}}}";
+            }
+            valueBody += "]}";
+            var valueTemplate = $"JSON.parse('{valueBody}')";
+
+            // Add an Operation to reference the collect Rule and merge all of the results into one GeoJSON
+            var opKey = values.Where(c => c.Detail["properties"]["cityNo"] != null).OperandKey(EntityType.Value);
+            var buildGeoJsonOperation = new Operation
+            {
+                OperationId = Guid.NewGuid(),
+                OperationType = OperationType.CreateUpdate,
+                RuleResultId = collectRuleResult.EntityId,
+                Operands = ImmutableArray.Create(opKey),
+                OperationTemplate = valueTemplate
+            };
+            var buildGeoJsonPrescription = buildGeoJsonOperation.AddUpdate();
+
+            var operations = new List<Operation>();
+            var operationPrescriptions = new List<IOpReqProcessing>();
+
+            operations.Add(buildGeoJsonOperation);
+            operationPrescriptions.Add(buildGeoJsonPrescription);
+
+            return (operations, operationPrescriptions);
         }
     }
 }

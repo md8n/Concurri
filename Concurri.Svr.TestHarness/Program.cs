@@ -496,23 +496,30 @@ namespace Concurri.Svr.TestHarness
         public static void DoJintTest(List<Value> values)
         {
             var regexToken = new Regex(@".*?(?<Token>\$\{(?<Index>\d+)\}).*?");
-            //var jTempl = "JSON.parse(${0})";
-            var jTempl = "JSON.parse('${0}')['geometry']['coordinates'][0]";
+            var jTemplate = new StringBuilder();
 
-            /*
-             * {
-                "type": "Feature",
-                "properties": {
-                    "cityNo": 9
-                },
-                "geometry": {
-                    "type": "Point",
-                    "coordinates": [
-                        143.653228907219,
-                        -21.0509138372964
-                    ]
+            var lonTempl = "JSON.parse('${{0}}')['geometry']['coordinates'][0]";
+            var latTempl = "JSON.parse('${{0}}')['geometry']['coordinates'][1]";
+            var getDistTempl = "Math.pow(Math.pow({0} - {1}, 2) + Math.pow({2}, {3}, 2), 2)";
+            for (var ix = 0; ix < values.Count; ix++)
+            {
+                var cityALonTempl = string.Format(lonTempl, ix);
+                var cityALatTempl = string.Format(latTempl, ix);
+
+                for (var jx = 0; jx < values.Count; jx++)
+                {
+                    if (ix == jx)
+                    {
+                        continue;
+                    }
+
+                    var cityBLonTempl = string.Format(lonTempl, jx);
+                    var cityBLatTempl = string.Format(latTempl, jx);
+                    var cityAtoBDistTempl = string.Format(getDistTempl, cityALonTempl, cityBLonTempl, cityALatTempl, cityBLatTempl);
                 }
-             */
+            }
+
+            var jTempl = "Math.pow(JSON.parse('${0}')['geometry']['coordinates'][0] - JSON.parse('${1}')['geometry']['coordinates'][0], 2)";
 
             var e = new Engine();
             var jCode = jTempl;
@@ -541,8 +548,6 @@ namespace Concurri.Svr.TestHarness
 
             if (isSubstOk)
             {
-                //var jTempl = "{\"ValueId\":\"20d25e4b-7d8c-4836-849f-5535b4e1a6f6\",\"EntType\":5,\"Detail\":{\"type\":\"FeatureCollection\",\"features\":[${0},${1},${2},${3},${4},${5},${6},${7},${8},${9}]},\"LastChanged\":\"1980-01-01 00:00:00Z\"}";
-                //var jCode = "{\"ValueId\":\"20d25e4b-7d8c-4836-849f-5535b4e1a6f6\",\"EntType\":5,\"Detail\":{\"type\":\"FeatureCollection\",\"features\":[{\"type\":\"Feature\",\"properties\":{\"cityNo\":0},\"geometry\":{\"type\":\"Point\",\"coordinates\":[143.867563808275,-25.3952077005036]}},{\"type\":\"Feature\",\"properties\":{\"cityNo\":1},\"geometry\":{\"type\":\"Point\",\"coordinates\":[148.650800422603,-21.3406091967321]}},{\"type\":\"Feature\",\"properties\":{\"cityNo\":2},\"geometry\":{\"type\":\"Point\",\"coordinates\":[147.70423036474,-25.4519063590336]}},{\"type\":\"Feature\",\"properties\":{\"cityNo\":3},\"geometry\":{\"type\":\"Point\",\"coordinates\":[147.90635649483,-21.9078147508706]}},{\"type\":\"Feature\",\"properties\":{\"cityNo\":4},\"geometry\":{\"type\":\"Point\",\"coordinates\":[142.456384286031,-23.3582771836586]}},{\"type\":\"Feature\",\"properties\":{\"cityNo\":5},\"geometry\":{\"type\":\"Point\",\"coordinates\":[145.22966226201,-22.885232692531]}},{\"type\":\"Feature\",\"properties\":{\"cityNo\":6},\"geometry\":{\"type\":\"Point\",\"coordinates\":[142.077799188941,-26.761976752785]}},{\"type\":\"Feature\",\"properties\":{\"cityNo\":7},\"geometry\":{\"type\":\"Point\",\"coordinates\":[146.068306779055,-22.6915270349437]}},{\"type\":\"Feature\",\"properties\":{\"cityNo\":8},\"geometry\":{\"type\":\"Point\",\"coordinates\":[148.761142209061,-21.7728364536412]}},{\"type\":\"Feature\",\"properties\":{\"cityNo\":9},\"geometry\":{\"type\":\"Point\",\"coordinates\":[148.213422938815,-25.9715534434521]}}]},\"LastChanged\":\"1980-01-01 00:00:00Z\"}";
                 Console.WriteLine($"{jTempl} => {jCode}");
 
                 var result = e

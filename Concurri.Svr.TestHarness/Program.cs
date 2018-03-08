@@ -34,6 +34,10 @@ namespace Concurri.Svr.TestHarness
             // Build a Collection Rule, Result and Prescription for all of the above rules
             (var collectRule, var collectRuleResult, var collectRulePrescription) = ruleResults.And(false);
 
+            DoJintTest(values);
+
+            BuildTheFirstLines(collectRuleResult, values);
+
             // Add the Collection Rule, Result and Prescription
             rules.Add(collectRule);
             ruleResults.Add(collectRuleResult);
@@ -492,7 +496,8 @@ namespace Concurri.Svr.TestHarness
         public static void DoJintTest(List<Value> values)
         {
             var regexToken = new Regex(@".*?(?<Token>\$\{(?<Index>\d+)\}).*?");
-            var jTempl = "${0}['geometry']['coordinates'][0]";
+            //var jTempl = "JSON.parse(${0})";
+            var jTempl = "JSON.parse('${0}')['geometry']['coordinates'][0]";
 
             /*
              * {
@@ -509,6 +514,7 @@ namespace Concurri.Svr.TestHarness
                 }
              */
 
+            var e = new Engine();
             var jCode = jTempl;
             var isSubstOk = true;
             foreach (Match match in regexToken.Matches(jTempl))
@@ -539,16 +545,10 @@ namespace Concurri.Svr.TestHarness
                 //var jCode = "{\"ValueId\":\"20d25e4b-7d8c-4836-849f-5535b4e1a6f6\",\"EntType\":5,\"Detail\":{\"type\":\"FeatureCollection\",\"features\":[{\"type\":\"Feature\",\"properties\":{\"cityNo\":0},\"geometry\":{\"type\":\"Point\",\"coordinates\":[143.867563808275,-25.3952077005036]}},{\"type\":\"Feature\",\"properties\":{\"cityNo\":1},\"geometry\":{\"type\":\"Point\",\"coordinates\":[148.650800422603,-21.3406091967321]}},{\"type\":\"Feature\",\"properties\":{\"cityNo\":2},\"geometry\":{\"type\":\"Point\",\"coordinates\":[147.70423036474,-25.4519063590336]}},{\"type\":\"Feature\",\"properties\":{\"cityNo\":3},\"geometry\":{\"type\":\"Point\",\"coordinates\":[147.90635649483,-21.9078147508706]}},{\"type\":\"Feature\",\"properties\":{\"cityNo\":4},\"geometry\":{\"type\":\"Point\",\"coordinates\":[142.456384286031,-23.3582771836586]}},{\"type\":\"Feature\",\"properties\":{\"cityNo\":5},\"geometry\":{\"type\":\"Point\",\"coordinates\":[145.22966226201,-22.885232692531]}},{\"type\":\"Feature\",\"properties\":{\"cityNo\":6},\"geometry\":{\"type\":\"Point\",\"coordinates\":[142.077799188941,-26.761976752785]}},{\"type\":\"Feature\",\"properties\":{\"cityNo\":7},\"geometry\":{\"type\":\"Point\",\"coordinates\":[146.068306779055,-22.6915270349437]}},{\"type\":\"Feature\",\"properties\":{\"cityNo\":8},\"geometry\":{\"type\":\"Point\",\"coordinates\":[148.761142209061,-21.7728364536412]}},{\"type\":\"Feature\",\"properties\":{\"cityNo\":9},\"geometry\":{\"type\":\"Point\",\"coordinates\":[148.213422938815,-25.9715534434521]}}]},\"LastChanged\":\"1980-01-01 00:00:00Z\"}";
                 Console.WriteLine($"{jTempl} => {jCode}");
 
-                var e = new Engine();
                 var result = e
-                    .SetValue("v", jCode)
-                    .Execute("JSON.parse(v)")
+                    .Execute(jCode)
                     .GetCompletionValue()
                     .ToObject();
-                //var result = e
-                //    .Execute(jCode)
-                //    .GetCompletionValue()
-                //    .ToObject();
                 Console.WriteLine(result);
                 var jResult = JsonConvert.SerializeObject(result);
                 Console.WriteLine(jResult);
@@ -591,12 +591,12 @@ namespace Concurri.Svr.TestHarness
             return (rules, ruleResults, values, rulePrescriptions);
         }
 
-        public static (List<Operation> operations, List<IOpReqProcessing> operationPrescriptions) BuildTheFirstLines(List<RuleResult> cityRuleResults, List<Value> values)
+        public static (List<Operation> operations, List<IOpReqProcessing> operationPrescriptions) BuildTheFirstLines(RuleResult cityRuleResults, List<Value> values)
         {
             // Build the Javascript template for calculating the length of each connecting GeoJSON line
             // Concept - Id of this city, then formula to calculate each distance and output the result as a sorted list.
 
-            for (var ix = 0; ix < cityRuleResults.Count; ix++)
+            for (var ix = 0; ix < values.Count; ix++)
             {
                 var valueBody = $"{{\"cityAId\":\"{{{ix}}}\",\"features\":[";
                 if (ix > 0)

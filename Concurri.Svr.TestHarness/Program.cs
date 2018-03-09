@@ -497,16 +497,20 @@ namespace Concurri.Svr.TestHarness
         {
             var regexToken = new Regex(@".*?(?<Token>\$\{(?<Index>\d+)\}).*?");
             var jTemplate = new StringBuilder();
+            jTemplate.Append("[");
 
-            var lonTempl = "JSON.parse('${{0}}')['geometry']['coordinates'][0]";
-            var latTempl = "JSON.parse('${{0}}')['geometry']['coordinates'][1]";
-            var getDistTempl = "Math.pow(Math.pow({0} - {1}, 2) + Math.pow({2}, {3}, 2), 2)";
-            for (var ix = 0; ix < values.Count; ix++)
+            var lonTempl = "JSON.parse('${{{0}}}')['geometry']['coordinates'][0]";
+            var latTempl = "JSON.parse('${{{0}}}')['geometry']['coordinates'][1]";
+            //var getDistTempl = "Math.pow(Math.pow({1} - {2}, 2) + Math.pow({3} - {4}, 2), 0.5)";
+            var getDistTempl = "[Math.pow({1} - {2}, 2), Math.pow({3} - {4}, 2)]";
+            //var getDistTempl = "[{1}, {2}, {3}, {4}]";
+            for (var ix = 0; ix < 1; ix++) // values.Count; ix++)
             {
                 var cityALonTempl = string.Format(lonTempl, ix);
                 var cityALatTempl = string.Format(latTempl, ix);
 
-                for (var jx = 0; jx < values.Count; jx++)
+                var needsComma = false;
+                for (var jx = 0; jx < 2; jx++) // values.Count; jx++)
                 {
                     if (ix == jx)
                     {
@@ -515,11 +519,22 @@ namespace Concurri.Svr.TestHarness
 
                     var cityBLonTempl = string.Format(lonTempl, jx);
                     var cityBLatTempl = string.Format(latTempl, jx);
-                    var cityAtoBDistTempl = string.Format(getDistTempl, cityALonTempl, cityBLonTempl, cityALatTempl, cityBLatTempl);
+                    var cityAtoBDistTempl = string.Format(getDistTempl, values[jx].EntityId, cityALonTempl, cityBLonTempl, cityALatTempl, cityBLatTempl);
+
+                    if (needsComma)
+                    {
+                        jTemplate.Append(",");
+                    }
+                    jTemplate.Append(cityAtoBDistTempl);
+                    if (!needsComma)
+                    {
+                        needsComma = true;
+                    }
                 }
             }
+            jTemplate.Append("]");
 
-            var jTempl = "Math.pow(JSON.parse('${0}')['geometry']['coordinates'][0] - JSON.parse('${1}')['geometry']['coordinates'][0], 2)";
+            var jTempl = jTemplate.ToString();
 
             var e = new Engine();
             var jCode = jTempl;
@@ -548,7 +563,8 @@ namespace Concurri.Svr.TestHarness
 
             if (isSubstOk)
             {
-                Console.WriteLine($"{jTempl} => {jCode}");
+                Console.WriteLine($"{jTempl} =>");
+                Console.WriteLine($"{jCode}");
 
                 var result = e
                     .Execute(jCode)

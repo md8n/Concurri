@@ -501,16 +501,16 @@ namespace Concurri.Svr.TestHarness
 
             var lonTempl = "JSON.parse('${{{0}}}')['geometry']['coordinates'][0]";
             var latTempl = "JSON.parse('${{{0}}}')['geometry']['coordinates'][1]";
-            //var getDistTempl = "Math.pow(Math.pow({1} - {2}, 2) + Math.pow({3} - {4}, 2), 0.5)";
-            var getDistTempl = "[Math.pow({1} - {2}, 2), Math.pow({3} - {4}, 2)]";
+            var getDistTempl = "{{'cityBId':'{{{0}}}','distance':Math.pow(Math.pow({1} - {2}, 2) + Math.pow({3} - {4}, 2), 0.5)}}";
             //var getDistTempl = "[{1}, {2}, {3}, {4}]";
             for (var ix = 0; ix < 1; ix++) // values.Count; ix++)
             {
+                jTemplate.AppendFormat("{{'cityAId':'{0}',[", values[ix].EntityId);
                 var cityALonTempl = string.Format(lonTempl, ix);
                 var cityALatTempl = string.Format(latTempl, ix);
 
                 var needsComma = false;
-                for (var jx = 0; jx < 2; jx++) // values.Count; jx++)
+                for (var jx = 0; jx < values.Count; jx++)
                 {
                     if (ix == jx)
                     {
@@ -531,8 +531,8 @@ namespace Concurri.Svr.TestHarness
                         needsComma = true;
                     }
                 }
+                jTemplate.Append("].sort(function(a, b) {return a.distance - b.distance;})]");
             }
-            jTemplate.Append("]");
 
             var jTempl = jTemplate.ToString();
 
@@ -558,7 +558,7 @@ namespace Concurri.Svr.TestHarness
 
                 jCode = jCode.Replace(token, values[index].Detail.ToString(Formatting.None));
 
-                Console.WriteLine($"Token:{token}, Index:{index} Value:{values[index].Detail.ToString(Formatting.None)}");
+                //Console.WriteLine($"Token:{token}, Index:{index} Value:{values[index].Detail.ToString(Formatting.None)}");
             }
 
             if (isSubstOk)

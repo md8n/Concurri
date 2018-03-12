@@ -34,9 +34,7 @@ namespace Concurri.Svr.TestHarness
             // Build a Collection Rule, Result and Prescription for all of the above rules
             (var collectRule, var collectRuleResult, var collectRulePrescription) = ruleResults.And(false);
 
-            DoJintTest(values);
-
-            BuildTheFirstLines(collectRuleResult, values);
+            //DoJintTest(values);
 
             // Add the Collection Rule, Result and Prescription
             rules.Add(collectRule);
@@ -44,6 +42,10 @@ namespace Concurri.Svr.TestHarness
             rulePrescriptions.Add(collectRulePrescription);
 
             (var operations, var operationPrescriptions) = BuildTheGeoJsonOutput(cityCount, collectRuleResult, values);
+
+            (var distOperations, var distOperationPrescriptions) = BuildTheCityDistances(collectRuleResult, values);
+            operations.AddRange(distOperations);
+            operationPrescriptions.AddRange(distOperationPrescriptions);
 
             // Build the Rule Engine Store ready for processing
             var startingStore = new RulEngStore
@@ -626,41 +628,73 @@ namespace Concurri.Svr.TestHarness
             return (rules, ruleResults, values, rulePrescriptions);
         }
 
-        public static (List<Operation> operations, List<IOpReqProcessing> operationPrescriptions) BuildTheFirstLines(RuleResult cityRuleResults, List<Value> values)
+        public static (List<Operation> operations, List<IOpReqProcessing> operationPrescriptions) BuildTheCityDistances(RuleResult cityRuleResults, List<Value> values)
         {
-            // Build the Javascript template for calculating the length of each connecting GeoJSON line
-            // Concept - Id of this city, then formula to calculate each distance and output the result as a sorted list.
-
-            for (var ix = 0; ix < values.Count; ix++)
-            {
-                var valueBody = $"{{\"cityAId\":\"{{{ix}}}\",\"features\":[";
-                if (ix > 0)
-                {
-                    valueBody += ",";
-                }
-                valueBody += $"${{{ix}}}";
-
-                valueBody += "]}";
-                var valueTemplate = $"JSON.parse('{valueBody}')";
-            }
-
-            // Add an Operation to reference the collect Rule and merge all of the results into one GeoJSON
-            var opKey = values.Where(c => c.Detail["properties"]["cityNo"] != null).OperandKey(EntityType.Value);
-            //var buildGeoJsonOperation = new Operation
-            //{
-            //    OperationId = Guid.NewGuid(),
-            //    OperationType = OperationType.CreateUpdate,
-            //    RuleResultId = collectRuleResult.EntityId,
-            //    Operands = ImmutableArray.Create(opKey),
-            //    OperationTemplate = valueTemplate
-            //};
-            //var buildGeoJsonPrescription = buildGeoJsonOperation.AddUpdate();
-
             var operations = new List<Operation>();
             var operationPrescriptions = new List<IOpReqProcessing>();
 
-            //operations.Add(buildGeoJsonOperation);
-            //operationPrescriptions.Add(buildGeoJsonPrescription);
+            var cityValues = values.Where(c => c.Detail["properties"]["cityNo"] != null).ToList();
+            var opKeys = cityValues.OperandKey(EntityType.Value);
+
+            // Build the Javascript template for calculating the length of each connecting GeoJSON line
+            // Concept - Id of this city, then formula to calculate each distance and output the result as a sorted list.
+            var cityATempl = "{{'cityAId':'{0}','destinations':[";
+            var lonTempl = "JSON.parse('${{{0}}}')['geometry']['coordinates'][0]";
+            var latTempl = "JSON.parse('${{{0}}}')['geometry']['coordinates'][1]";
+            var getDistTempl = "{{'cityBId':'{{{0}}}','distance':Math.pow(Math.pow({1} - {2}, 2) + Math.pow({3} - {4}, 2), 0.5),'usage':'not set'}}";
+            for (var ix = 0; ix < cityValues.Count; ix++)
+            {
+                var jTemplate = new StringBuilder();
+                jTemplate.AppendLine("[");
+
+                jTemplate.AppendFormat(cityATempl, values[ix].EntityId);
+                jTemplate.AppendLine();
+                var cityALonTempl = string.Format(lonTempl, ix);
+                var cityALatTempl = string.Format(latTempl, ix);
+
+                var needsComma = false;
+                for (var jx = 0; jx < cityValues.Count; jx++)
+                {
+                    if (ix == jx)
+                    {
+                        continue;
+                    }
+
+                    var cityBLonTempl = string.Format(lonTempl, jx);
+                    var cityBLatTempl = string.Format(latTempl, jx);
+                    var cityAtoBDistTempl = string.Format(getDistTempl, values[jx].EntityId, cityALonTempl, cityBLonTempl, cityALatTempl, cityBLatTempl);
+
+                    if (needsComma)
+                    {
+                        jTemplate.AppendLine(",");
+                    }
+                    jTemplate.Append(cityAtoBDistTempl);
+                    if (!needsComma)
+                    {
+                        needsComma = true;
+                    }
+                }
+                jTemplate.AppendLine();
+                jTemplate.AppendLine("].sort(function(a, b) {return a.distance - b.distance;})");
+                jTemplate.AppendLine("}");
+                jTemplate.AppendLine("]");
+
+                var jTempl = jTemplate.ToString();
+
+                // Add an Operation to reference the collect Rule and merge all of the results into one GeoJSON
+                var buildCityDistancesOperation = new Operation
+                {
+                    OperationId = Guid.NewGuid(),
+                    OperationType = OperationType.CreateUpdate,
+                    RuleResultId = cityRuleResults.EntityId,
+                    Operands = ImmutableArray.Create(opKeys),
+                    OperationTemplate = jTempl
+                };
+                var buildCityDistancesPrescription = buildCityDistancesOperation.AddUpdate();
+
+                operations.Add(buildCityDistancesOperation);
+                operationPrescriptions.Add(buildCityDistancesPrescription);
+            }
 
             return (operations, operationPrescriptions);
         }

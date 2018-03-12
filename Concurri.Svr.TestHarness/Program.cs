@@ -497,15 +497,17 @@ namespace Concurri.Svr.TestHarness
         {
             var regexToken = new Regex(@".*?(?<Token>\$\{(?<Index>\d+)\}).*?");
             var jTemplate = new StringBuilder();
-            jTemplate.Append("[");
+            jTemplate.AppendLine("[");
 
+            var cityATempl = "{{'cityAId':'{0}','destinations':[";
             var lonTempl = "JSON.parse('${{{0}}}')['geometry']['coordinates'][0]";
             var latTempl = "JSON.parse('${{{0}}}')['geometry']['coordinates'][1]";
             var getDistTempl = "{{'cityBId':'{{{0}}}','distance':Math.pow(Math.pow({1} - {2}, 2) + Math.pow({3} - {4}, 2), 0.5)}}";
             //var getDistTempl = "[{1}, {2}, {3}, {4}]";
             for (var ix = 0; ix < 1; ix++) // values.Count; ix++)
             {
-                jTemplate.AppendFormat("{{'cityAId':'{0}',[", values[ix].EntityId);
+                jTemplate.AppendFormat(cityATempl, values[ix].EntityId);
+                jTemplate.AppendLine();
                 var cityALonTempl = string.Format(lonTempl, ix);
                 var cityALatTempl = string.Format(latTempl, ix);
 
@@ -523,7 +525,7 @@ namespace Concurri.Svr.TestHarness
 
                     if (needsComma)
                     {
-                        jTemplate.Append(",");
+                        jTemplate.AppendLine(",");
                     }
                     jTemplate.Append(cityAtoBDistTempl);
                     if (!needsComma)
@@ -531,7 +533,10 @@ namespace Concurri.Svr.TestHarness
                         needsComma = true;
                     }
                 }
-                jTemplate.Append("].sort(function(a, b) {return a.distance - b.distance;})]");
+                jTemplate.AppendLine();
+                jTemplate.AppendLine("].sort(function(a, b) {return a.distance - b.distance;})");
+                jTemplate.AppendLine("}");
+                jTemplate.AppendLine("]");
             }
 
             var jTempl = jTemplate.ToString();
@@ -566,13 +571,22 @@ namespace Concurri.Svr.TestHarness
                 Console.WriteLine($"{jTempl} =>");
                 Console.WriteLine($"{jCode}");
 
-                var result = e
-                    .Execute(jCode)
-                    .GetCompletionValue()
-                    .ToObject();
-                Console.WriteLine(result);
-                var jResult = JsonConvert.SerializeObject(result);
-                Console.WriteLine(jResult);
+                object result;
+                try
+                {
+                    result = e
+                        .Execute(jCode)
+                        .GetCompletionValue()
+                        .ToObject();
+
+                    Console.WriteLine(result);
+                    var jResult = JsonConvert.SerializeObject(result);
+                    Console.WriteLine(jResult);
+                }
+                catch (Exception ex)
+                {
+                    File.WriteAllText("jCode.js", jCode);
+                }
             }
 
         }

@@ -641,7 +641,7 @@ namespace Concurri.Svr.TestHarness
             var cityATempl = "{{'cityAId':'{0}','destinations':[";
             var lonTempl = "JSON.parse('${{{0}}}')['geometry']['coordinates'][0]";
             var latTempl = "JSON.parse('${{{0}}}')['geometry']['coordinates'][1]";
-            var getDistTempl = "{{'cityBId':'{{{0}}}','distance':Math.pow(Math.pow({1} - {2}, 2) + Math.pow({3} - {4}, 2), 0.5),'usage':'not set'}}";
+            var getDistTempl = "{{'cityBId':'{0}','distance':Math.pow(Math.pow({1} - {2}, 2) + Math.pow({3} - {4}, 2), 0.5),'usage':'not set'}}";
             for (var ix = 0; ix < cityValues.Count; ix++)
             {
                 var jTemplate = new StringBuilder();

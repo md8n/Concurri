@@ -205,7 +205,7 @@ namespace RulEng.Reformers
                     }
                 }
 
-                newState.RuleResults.RemoveWhere(r => r.RuleResultId == ruleResultIdToProcess);
+                // newState.RuleResults.RemoveWhere(r => r.RuleResultId == ruleResultIdToProcess);
             }
 
             return newState;

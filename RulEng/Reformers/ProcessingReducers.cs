@@ -128,11 +128,17 @@ namespace RulEng.Reformers
                     .Where(o => o.RuleResultId == ruleResultIdToProcess)
                     .ToList();
 
+                if (!relevantOps.Any())
+                {
+                    // TODO: confirm if we should be doing this if there was nothing relevant to process
+                    //newState.RuleResults.RemoveWhere(r => r.RuleResultId == ruleResultIdToProcess);
+                    continue;
+                }
+
                 // Process the acceptable
-                foreach (var relevantOp in relevantOps)
+                foreach (var relevantOp in relevantOps.Where(o => acceptableDestinations.Contains(new { o.Operands[0].EntityId, o.Operands[0].EntType })))
                 {
                     var destEntsToProcess = relevantOp.Operands
-                        .Where(o => acceptableDestinations.Contains(new { o.EntityId, o.EntType }))
                         .Select(de => new
                         {
                             de.EntityId,
@@ -171,11 +177,12 @@ namespace RulEng.Reformers
 
                         if (!isSubstOk)
                         {
+                            Console.WriteLine(jCode);
                             continue;
                         }
 
                         var result = JObject.FromObject(e.Execute(jCode).GetCompletionValue().ToObject());
-                        Console.WriteLine(result);
+                        //Console.WriteLine(result);
                         switch ((EntityType)destEnt.EntType)
                         {
                             case EntityType.Rule:
@@ -198,7 +205,7 @@ namespace RulEng.Reformers
                     }
                 }
 
-                newState.Values.RemoveWhere(v => v.ValueId == ruleResultIdToProcess);
+                newState.RuleResults.RemoveWhere(r => r.RuleResultId == ruleResultIdToProcess);
             }
 
             return newState;

@@ -41,7 +41,9 @@ namespace Concurri.Svr.TestHarness
             ruleResults.Add(collectRuleResult);
             rulePrescriptions.Add(collectRulePrescription);
 
-            (var operations, var operationPrescriptions) = BuildTheGeoJsonOutput(cityCount, collectRuleResult, values);
+            var operations = new List<Operation>();
+            var operationPrescriptions = new List<IOpReqProcessing>();
+            //(var operations, var operationPrescriptions) = BuildTheGeoJsonOutput(cityCount, collectRuleResult, values);
 
             (var distOperations, var distOperationPrescriptions) = BuildTheCityDistances(collectRuleResult, values);
             operations.AddRange(distOperations);
@@ -634,7 +636,6 @@ namespace Concurri.Svr.TestHarness
             var operationPrescriptions = new List<IOpReqProcessing>();
 
             var cityValues = values.Where(c => c.Detail["properties"]["cityNo"] != null).ToList();
-            var opKeys = cityValues.OperandKey(EntityType.Value);
 
             // Build the Javascript template for calculating the length of each connecting GeoJSON line
             // Concept - Id of this city, then formula to calculate each distance and output the result as a sorted list.
@@ -680,6 +681,10 @@ namespace Concurri.Svr.TestHarness
                 jTemplate.AppendLine("]");
 
                 var jTempl = jTemplate.ToString();
+
+                // Although the source values are always the same we need a new OperandKey each time
+                // for each new Value to be generated
+                var opKeys = cityValues.OperandKey(EntityType.Value);
 
                 // Add an Operation to reference the collect Rule and merge all of the results into one GeoJSON
                 var buildCityDistancesOperation = new Operation

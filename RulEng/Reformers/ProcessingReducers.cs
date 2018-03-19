@@ -181,7 +181,15 @@ namespace RulEng.Reformers
                             continue;
                         }
 
-                        var result = JObject.FromObject(e.Execute(jCode).GetCompletionValue().ToObject());
+                        JToken result = null;
+                        if (jCode.StartsWith("{"))
+                        {
+                            result = JObject.FromObject(e.Execute(jCode).GetCompletionValue().ToObject());
+                        }
+                        if (jCode.StartsWith("["))
+                        {
+                            result = JArray.FromObject(e.Execute(jCode).GetCompletionValue().ToObject());
+                        }
                         //Console.WriteLine(result);
                         switch ((EntityType)destEnt.EntType)
                         {

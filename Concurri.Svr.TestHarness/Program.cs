@@ -43,7 +43,10 @@ namespace Concurri.Svr.TestHarness
 
             var operations = new List<Operation>();
             var operationPrescriptions = new List<IOpReqProcessing>();
-            //(var operations, var operationPrescriptions) = BuildTheGeoJsonOutput(cityCount, collectRuleResult, values);
+
+            (var pointOperations, var pointOperationPrescriptions) = BuildTheGeoJsonOutput(cityCount, collectRuleResult, values);
+            operations.AddRange(pointOperations);
+            operationPrescriptions.AddRange(pointOperationPrescriptions);
 
             (var distOperations, var distOperationPrescriptions) = BuildTheCityDistances(collectRuleResult, values);
             operations.AddRange(distOperations);

@@ -22,7 +22,7 @@ namespace RulEng.Helpers
             };
         }
 
-        public static void FromOperationResultAddUpdateRule(this ProcessingRulEngStore newState, JObject result, Guid destEntId)
+        public static void FromOperationResultAddUpdateRule(this ProcessingRulEngStore newState, JToken result, Guid destEntId)
         {
             // Create/Update a rule using destEnt.EntityId and result
             var ruleType = result["RuleType"];
@@ -69,7 +69,7 @@ namespace RulEng.Helpers
             }
         }
 
-        public static void FromOperationResultAddUpdateOperation(this ProcessingRulEngStore newState, JObject result,
+        public static void FromOperationResultAddUpdateOperation(this ProcessingRulEngStore newState, JToken result,
             Guid destEntId)
         {
             // Create/Update an Operation using destEnt.EntityId and result
@@ -127,7 +127,7 @@ namespace RulEng.Helpers
             }
         }
 
-        public static void FromOperationResultAddUpdateRequest(this ProcessingRulEngStore newState, JObject result,
+        public static void FromOperationResultAddUpdateRequest(this ProcessingRulEngStore newState, JToken result,
             Guid destEntId)
         {
             // Create/Update a Request using destEnt.EntityId and result
@@ -176,7 +176,7 @@ namespace RulEng.Helpers
             }
         }
 
-        public static void FromOperationResultAddUpdateValue(this ProcessingRulEngStore newState, JObject result,
+        public static void FromOperationResultAddUpdateValue(this ProcessingRulEngStore newState, JToken result,
             Guid destEntId)
         {
             // Create/Update a Value using destEnt.EntityId and result

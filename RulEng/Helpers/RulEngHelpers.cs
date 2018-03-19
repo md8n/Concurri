@@ -56,6 +56,27 @@ namespace RulEng.Helpers
         }
 
         /// <summary>
+        /// For a given OperandKey (from an Operation / Request) this creates:
+        /// A (not) Exists Rule to test for the presence of the entity to be created / updated
+        /// A RuleResult to accept the result of the Exists Rule
+        /// A RulePrescription referencing the Rule to be performed
+        /// </summary>
+        /// <param name="val"></param>
+        /// <param name="negateResult"></param>
+        /// <returns></returns>
+        public static (Rule rule, RuleResult ruleResult, IRuleProcessing ruleProcessing) Exists<T>(this OperandKey val, bool negateResult) where T : IEntity
+        {
+            var vType = new TypeKey { EntityId = val.EntityId, EntType = val.EntType, LastChanged = val.LastChanged };
+
+            // Create the Rule, RuleResult and RulePrescription and ensure that the RuleResultId is the same for all
+            var rule = vType.ExistsRule(negateResult);
+            var rulePrescription = rule.Exists();
+            var ruleResult = rule.UnifyRuleObjects(rulePrescription);
+
+            return (rule, ruleResult, rulePrescription);
+        }
+
+        /// <summary>
         /// For a given Value this creates:
         /// A HasMeaningfulValue Rule to test its value
         /// A RuleResult to accept the result of the HasMeaningfulValue Rule

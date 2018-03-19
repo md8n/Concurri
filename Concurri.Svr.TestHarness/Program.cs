@@ -52,6 +52,20 @@ namespace Concurri.Svr.TestHarness
             operations.AddRange(distOperations);
             operationPrescriptions.AddRange(distOperationPrescriptions);
 
+            var distRules = new List<Rule>();
+            var distRuleResults = new List<RuleResult>();
+            var distRulePrescriptions = new List<IRuleProcessing>();
+            foreach (var distOpKey in distOperations.SelectMany(dp => dp.Operands))
+            {
+                (var rule, var ruleResult, var rulePrescription) = distOpKey.Exists(false);
+                distRules.Add(rule);
+                distRuleResults.Add(ruleResult);
+                distRulePrescriptions.Add(rulePrescription);
+            }
+            rules.AddRange(distRules);
+            ruleResults.AddRange(distRuleResults);
+            rulePrescriptions.AddRange(distRulePrescriptions);
+
             // Build the Rule Engine Store ready for processing
             var startingStore = new RulEngStore
             {
@@ -81,6 +95,13 @@ namespace Concurri.Svr.TestHarness
                 var act = RvStore.Dispatch(prescription);
             }
             File.WriteAllText("storePass00B.json", RvStore.GetState().ToString());
+
+            // Pass 1 - Part A - Rule Prescriptions
+            foreach (var prescription in rulePrescriptions)
+            {
+                var act = RvStore.Dispatch(prescription);
+            }
+            File.WriteAllText("storePass01A.json", RvStore.GetState().ToString());
 
             // Build all possible roads
             ////for (var ix = 0; ix < cityCount; ix++)

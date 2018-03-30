@@ -45,11 +45,11 @@ namespace RulEng.Helpers
             };
         }
 
-        public static IOpReqProcessing AddUpdate(this Operation OperationMx)
+        public static IOpReqProcessing AddUpdate(this Operation operationMx)
         {
             return new AddUpdate<Operation>
             {
-                Entity = OperationMx
+                Entity = operationMx
             };
         }
     }

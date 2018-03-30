@@ -36,12 +36,24 @@ namespace RulEng.Helpers
         /// <returns></returns>
         public static OperandKey OperandKey(this IEnumerable<Value> values, EntityType entType, Guid? entityId = null)
         {
+            return values.Select(v => v.EntityId).OperandKey(entType, entityId);
+        }
+
+        /// <summary>
+        /// Create an OperandKey from an enumerable of Entity Ids
+        /// </summary>
+        /// <param name="sourceValueIds"></param>
+        /// <param name="entType"></param>
+        /// <param name="entityId"></param>
+        /// <returns></returns>
+        public static OperandKey OperandKey(this IEnumerable<Guid> sourceValueIds, EntityType entType, Guid? entityId = null)
+        {
             if (!entityId.HasValue || entityId == Guid.Empty)
             {
                 entityId = Guid.NewGuid();
             }
 
-            var opKey = new OperandKey { EntType = entType, EntityId = entityId.Value, SourceValueIds = ImmutableArray.CreateRange(values.Select(v => v.EntityId)) };
+            var opKey = new OperandKey { EntType = entType, EntityId = entityId.Value, SourceValueIds = ImmutableArray.CreateRange(sourceValueIds) };
 
             return opKey;
         }

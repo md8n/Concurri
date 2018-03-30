@@ -52,20 +52,6 @@ namespace Concurri.Svr.TestHarness
             operations.AddRange(distOperations);
             operationPrescriptions.AddRange(distOperationPrescriptions);
 
-            var distRules = new List<Rule>();
-            var distRuleResults = new List<RuleResult>();
-            var distRulePrescriptions = new List<IRuleProcessing>();
-            foreach (var distOpKey in distOperations.SelectMany(dp => dp.Operands))
-            {
-                (var rule, var ruleResult, var rulePrescription) = distOpKey.Exists(false);
-                distRules.Add(rule);
-                distRuleResults.Add(ruleResult);
-                distRulePrescriptions.Add(rulePrescription);
-            }
-            rules.AddRange(distRules);
-            ruleResults.AddRange(distRuleResults);
-            rulePrescriptions.AddRange(distRulePrescriptions);
-
             // Build the Rule Engine Store ready for processing
             var startingStore = new RulEngStore
             {
@@ -96,12 +82,57 @@ namespace Concurri.Svr.TestHarness
             }
             File.WriteAllText("storePass00B.json", RvStore.GetState().ToString());
 
-            // Pass 1 - Part A - Rule Prescriptions
-            foreach (var prescription in rulePrescriptions)
+            // Build the tests for the values resulting from the distance operations
+            var distRules = new List<Rule>();
+            var distRuleResults = new List<RuleResult>();
+            var distRulePrescriptions = new List<IRuleProcessing>();
+            foreach (var distOpKey in distOperations.SelectMany(dp => dp.Operands))
+            {
+                (var rule, var ruleResult, var rulePrescription) = distOpKey.Exists(false);
+                distRules.Add(rule);
+                distRuleResults.Add(ruleResult);
+                distRulePrescriptions.Add(rulePrescription);
+            }
+
+            var storeState = RvStore.GetState();
+            var storeRules = storeState.Rules.ToHashSet();
+            var storeRuleResults = storeState.RuleResults.ToHashSet();
+            var storeOperations = storeState.Operations.ToHashSet();
+            var storeValues = storeState.Values.ToList();
+
+            // Build the operations to convert the distance results to roads
+            (var roadOperations, var roadOperationPrescriptions) = BuildTheCityRoads(distRules, storeValues);
+
+            foreach (var dr in distRules)
+            {
+                storeRules.Add(dr);
+            }
+            foreach (var drr in distRuleResults)
+            {
+                storeRuleResults.Add(drr);
+            }
+            foreach (var ro in roadOperations)
+            {
+                storeOperations.Add(ro);
+            }
+
+            RvStore.GetState().Rules = storeRules.ToImmutableHashSet();
+            RvStore.GetState().RuleResults = storeRuleResults.ToImmutableHashSet();
+            RvStore.GetState().Operations = storeOperations.ToImmutableHashSet();
+
+            // Pass 1 - Part A - Rule Prescriptions - dist result tests
+            foreach (var prescription in distRulePrescriptions)
             {
                 var act = RvStore.Dispatch(prescription);
             }
             File.WriteAllText("storePass01A.json", RvStore.GetState().ToString());
+
+            // Pass 1 - Part B - Operations - create roads
+            foreach (var prescription in roadOperationPrescriptions)
+            {
+                var act = RvStore.Dispatch(prescription);
+            }
+            File.WriteAllText("storePass01B.json", RvStore.GetState().ToString());
 
             // Build all possible roads
             ////for (var ix = 0; ix < cityCount; ix++)
@@ -527,11 +558,11 @@ namespace Concurri.Svr.TestHarness
             var jTemplate = new StringBuilder();
             jTemplate.AppendLine("[");
 
-            var cityATempl = "{{'cityAId':'{0}','destinations':[";
-            var lonTempl = "JSON.parse('${{{0}}}')['geometry']['coordinates'][0]";
-            var latTempl = "JSON.parse('${{{0}}}')['geometry']['coordinates'][1]";
-            var getDistTempl = "{{'cityBId':'{{{0}}}','distance':Math.pow(Math.pow({1} - {2}, 2) + Math.pow({3} - {4}, 2), 0.5)}}";
-            //var getDistTempl = "[{1}, {2}, {3}, {4}]";
+            const string cityATempl = "{{'cityAId':'{0}','destinations':[";
+            const string lonTempl = "JSON.parse('${{{0}}}')['geometry']['coordinates'][0]";
+            const string latTempl = "JSON.parse('${{{0}}}')['geometry']['coordinates'][1]";
+            const string getDistTempl = "{{'cityBId':'{{{0}}}','distance':Math.pow(Math.pow({1} - {2}, 2) + Math.pow({3} - {4}, 2), 0.5)}}";
+
             for (var ix = 0; ix < 1; ix++) // values.Count; ix++)
             {
                 jTemplate.AppendFormat(cityATempl, values[ix].EntityId);
@@ -619,7 +650,7 @@ namespace Concurri.Svr.TestHarness
 
         }
 
-        public static (List<Rule> rules, List<RuleResult> ruleResults, List<Value> values, List<IRuleProcessing> ruleProcessing) BuildTheCities(int cityCount)
+        private static (List<Rule> rules, List<RuleResult> ruleResults, List<Value> values, List<IRuleProcessing> ruleProcessing) BuildTheCities(int cityCount)
         {
             var rules = new List<Rule>();
             var ruleResults = new List<RuleResult>();
@@ -654,7 +685,7 @@ namespace Concurri.Svr.TestHarness
             return (rules, ruleResults, values, rulePrescriptions);
         }
 
-        public static (List<Operation> operations, List<IOpReqProcessing> operationPrescriptions) BuildTheCityDistances(RuleResult cityRuleResults, List<Value> values)
+        private static (List<Operation> operations, List<IOpReqProcessing> operationPrescriptions) BuildTheCityDistances(RuleResult cityRuleResults, List<Value> values)
         {
             var operations = new List<Operation>();
             var operationPrescriptions = new List<IOpReqProcessing>();
@@ -663,10 +694,10 @@ namespace Concurri.Svr.TestHarness
 
             // Build the Javascript template for calculating the length of each connecting GeoJSON line
             // Concept - Id of this city, then formula to calculate each distance and output the result as a sorted list.
-            var cityATempl = "{{'cityAId':'{0}','destinations':[";
-            var lonTempl = "JSON.parse('${{{0}}}')['geometry']['coordinates'][0]";
-            var latTempl = "JSON.parse('${{{0}}}')['geometry']['coordinates'][1]";
-            var getDistTempl = "{{'cityBId':'{0}','distance':Math.pow(Math.pow({1} - {2}, 2) + Math.pow({3} - {4}, 2), 0.5),'usage':'not set'}}";
+            const string cityATempl = "{{'cityAId':'{0}','destinations':[";
+            const string lonTempl = "JSON.parse('${{{0}}}')['geometry']['coordinates'][0]";
+            const string latTempl = "JSON.parse('${{{0}}}')['geometry']['coordinates'][1]";
+            const string getDistTempl = "{{'cityBId':'{0}','distance':Math.pow(Math.pow({1} - {2}, 2) + Math.pow({3} - {4}, 2), 0.5),'usage':'not set'}}";
             for (var ix = 0; ix < cityValues.Count; ix++)
             {
                 var jTemplate = new StringBuilder();
@@ -728,6 +759,50 @@ namespace Concurri.Svr.TestHarness
             return (operations, operationPrescriptions);
         }
 
+        private static (List<Operation> operations, List<IOpReqProcessing> operationPrescriptions) BuildTheCityRoads(
+            List<Rule> cityDistRules, List<Value> values)
+        {
+            var operations = new List<Operation>();
+            var operationPrescriptions = new List<IOpReqProcessing>();
+
+            foreach (var cityDistRule in cityDistRules)
+            {
+                var cityDistRuleResultId = cityDistRule.ReferenceValues.RuleResultId;
+                var cityDistSourceEntType = cityDistRule.ReferenceValues.EntityIds[0];
+                var cityDistValue = values.FirstOrDefault(c => c.ValueId == cityDistSourceEntType.EntityId);
+
+                if (cityDistValue == null)
+                {
+                    continue;
+                }
+
+                var cityAId = Guid.Parse((string)cityDistValue.Detail[0]["cityAId"]);
+                var nextCityB = (JObject)((JArray) cityDistValue.Detail[0]["destinations"])
+                    .FirstOrDefault(d => (string) d["usage"] == "not set");
+                nextCityB["usage"] = "accepted";
+                var nextCityBId = Guid.Parse((string) nextCityB["cityBId"]);
+
+                var lineGeo =
+                    $"[{{\"type\":\"Feature\",\"properties\":{{}},\"geometry\":{{\"type\":\"LineString\",\"coordinates\":[JSON.parse('${{0}}')[\"geometry\"][\"coordinates\"],JSON.parse('${{1}}')[\"geometry\"][\"coordinates\"]]}}}}]";
+                var opKeys = new[] { cityAId, nextCityBId }.OperandKey(EntityType.Value);
+
+                // Add an Operation to reference the collect Rule and merge all of the results into one GeoJSON
+                var buildCityRoadOperation = new Operation
+                {
+                    OperationId = Guid.NewGuid(),
+                    OperationType = OperationType.CreateUpdate,
+                    RuleResultId = cityDistRuleResultId,
+                    Operands = ImmutableArray.Create(opKeys),
+                    OperationTemplate = lineGeo
+                };
+                var buildCityRoadPrescription = buildCityRoadOperation.AddUpdate();
+
+                operations.Add(buildCityRoadOperation);
+                operationPrescriptions.Add(buildCityRoadPrescription);
+            }
+
+            return (operations, operationPrescriptions);
+        }
 
         private static (List<Operation> operations, List<IOpReqProcessing> operationPrescriptions) BuildTheGeoJsonOutput(int cityCount, RuleResult collectRuleResult, List<Value> values)
         {

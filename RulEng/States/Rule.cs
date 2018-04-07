@@ -5,7 +5,7 @@ using RulEng.Helpers;
 
 namespace RulEng.States
 {
-    public class Rule : IEquatable<Rule>, IEntity, IAltHash
+    public class Rule : BaseExecutableEntity, IEquatable<Rule>, IEntity, IAltHash
     {
         public Guid RuleId { get; set; }
 
@@ -24,18 +24,8 @@ namespace RulEng.States
 
         public IRulePrescription ReferenceValues { get; set; }
 
-        /// <summary>
-        /// The last time this rule was executed
-        /// </summary>
-        public DateTime LastExecuted { get; set; } = DefaultHelpers.DefDate();
-
         [JsonIgnore]
         public string GetAltHashCode => RuleId.ToString();
-
-        public Rule()
-        {
-            LastExecuted = DefaultHelpers.DefDate();
-        }
 
         public override int GetHashCode()
         {

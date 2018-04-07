@@ -6,7 +6,7 @@ using RulEng.Helpers;
 
 namespace RulEng.States
 {
-    public class Request : IEquatable<Request>, IEntity, IAltHash
+    public class Request : BaseExecutableEntity, IEquatable<Request>, IEntity, IAltHash
     {
         public Guid RequestId { get; set; }
 

@@ -6,15 +6,7 @@ using RulEng.Helpers;
 
 namespace RulEng.States
 {
-    public enum OperationType
-    {
-        Error = -1,
-        Unknown = 0,
-        CreateUpdate,
-        Delete
-    }
-
-    public class Operation : IEquatable<Operation>, IEntity, IAltHash
+    public class Operation : BaseExecutableEntity, IEquatable<Operation>, IEntity, IAltHash
     {
         public Guid OperationId { get; set; }
 

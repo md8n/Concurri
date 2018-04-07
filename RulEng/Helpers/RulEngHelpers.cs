@@ -77,15 +77,40 @@ namespace RulEng.Helpers
         }
 
         /// <summary>
-        /// For a given Value this creates:
-        /// A HasMeaningfulValue Rule to test its value
-        /// A RuleResult to accept the result of the HasMeaningfulValue Rule
-        /// A RulePrescription referencing the Rule to be performed
+        /// For a given list of OperandKeys (from an Operation / Request) this creates:
+        /// A list of (not) Exists Rules to test for the presence of the entities to be created / updated
+        /// A list of RuleResults to accept the result of the Exists Rules
+        /// A list of RulePrescriptions referencing the Rules to be performed
         /// </summary>
-        /// <param name="val"></param>
+        /// <param name="vals"></param>
         /// <param name="negateResult"></param>
         /// <returns></returns>
-        public static (Rule rule, RuleResult ruleResult, IRuleProcessing rulePrescription) HasMeaningfulValue(this Value val, bool negateResult)
+        public static (List<Rule> rules, List<RuleResult> ruleResults, List<IRuleProcessing> rulePrescriptions) Exists(this IEnumerable<OperandKey> vals, bool negateResult)
+        {
+            var rules = new List<Rule>();
+            var ruleResults = new List<RuleResult>();
+            var rulePrescriptions = new List<IRuleProcessing>();
+            foreach (var distOpKey in vals)
+            {
+                (var rule, var ruleResult, var rulePrescription) = distOpKey.Exists(negateResult);
+                rules.Add(rule);
+                ruleResults.Add(ruleResult);
+                rulePrescriptions.Add(rulePrescription);
+            }
+
+            return (rules, ruleResults, rulePrescriptions);
+        }
+
+    /// <summary>
+    /// For a given Value this creates:
+    /// A HasMeaningfulValue Rule to test its value
+    /// A RuleResult to accept the result of the HasMeaningfulValue Rule
+    /// A RulePrescription referencing the Rule to be performed
+    /// </summary>
+    /// <param name="val"></param>
+    /// <param name="negateResult"></param>
+    /// <returns></returns>
+    public static (Rule rule, RuleResult ruleResult, IRuleProcessing rulePrescription) HasMeaningfulValue(this Value val, bool negateResult)
         {
             // Create the Rule, RuleResult and RulePrescription and ensure that the RuleResultId is the same for all
             var rule = val.HasMeaningfulValueRule(negateResult);

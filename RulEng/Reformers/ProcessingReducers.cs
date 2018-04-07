@@ -55,11 +55,19 @@ namespace RulEng.Reformers
                 .Where(v => v.Detail)
                 .Select(v => v.RuleResultId)
                 .ToList();
-            var operationprescriptionsToProcessList = newState.Operations
-                .Where(a => ruleResultIds.Contains(a.RuleResultId))
+
+            // Find all relevant operations/requests for the identified rule results and then filter down by execution date
+            var operationprescriptionsToProcessList = (
+                from op in newState.Operations.Where(a => ruleResultIds.Contains(a.RuleResultId))
+                let rr = newState.RuleResults.First(r => r.RuleResultId == op.RuleResultId)
+                where rr.LastChanged > op.LastExecuted
+                select op)
                 .ToList();
-            var requestprescriptionsToProcessList = newState.Requests
-                .Where(a => ruleResultIds.Contains(a.RuleResultId))
+            var requestprescriptionsToProcessList = (
+                from rq in newState.Requests.Where(a => ruleResultIds.Contains(a.RuleResultId))
+                let rr = newState.RuleResults.First(r => r.RuleResultId == rq.RuleResultId)
+                where rr.LastChanged > rq.LastExecuted
+                select rq)
                 .ToList();
 
             // Restrict the Operation/Request Prescriptions to process to those that are guaranteed not to fail
@@ -210,6 +218,12 @@ namespace RulEng.Reformers
                                 newState.FromOperationResultAddUpdateValue(result, destEnt.EntityId);
                                 break;
                         }
+
+                        // Mark the operation as Executed
+                        var actionDate = DateTime.UtcNow;
+
+                        // Mark this Rule as executed
+                        relevantOp.LastExecuted = actionDate;
                     }
                 }
 

@@ -27,7 +27,7 @@ namespace Concurri.Svr.TestHarness
             Console.WriteLine("Hello Salesman!");
 
             // Travelling Salesman - Setup
-            const int cityCount = 20;
+            const int cityCount = 120;
             Console.WriteLine($"Start Setup for {cityCount} cities : {DateTime.UtcNow.ToString("yyyy-MMM-dd HH:mm:ss.ff")}");
 
             (var rules, var ruleResults, var values, var rulePrescriptions) = BuildTheCities(cityCount);
@@ -47,7 +47,7 @@ namespace Concurri.Svr.TestHarness
             operations.Add(pointOperations);
             operationPrescriptions.Add(pointOperationPrescriptions);
 
-            (var distOperations, var distOperationPrescriptions) = BuildTheCityDistances(collectRuleResult, values);
+            (var distOperations, var distOperationPrescriptions) = BuildTheCityDistances(collectRuleResult, values.Where(c => c.Detail["properties"]["cityNo"] != null).ToList());
             operations.AddRange(distOperations);
             operationPrescriptions.AddRange(distOperationPrescriptions);
 
@@ -129,7 +129,7 @@ namespace Concurri.Svr.TestHarness
 
             // Join the new Roads together in one map
             var roadValues = RvStore.GetState().Values
-                .Where(c => c.Detail != null && c.Detail.Type == JTokenType.Object && c.Detail["properties"]?["road"] != null)
+                .Where(c => c.Detail != null && c.Detail.Type == JTokenType.Object && c.Detail["properties"]?["roadId"] != null)
                 .ToList();
             (var lineOperation, var lineOperationPrescription) = BuildTheGeoJsonOutput(collectRoadRuleResult, roadValues);
 
@@ -154,58 +154,6 @@ namespace Concurri.Svr.TestHarness
             Console.WriteLine($"Pass {pass:0000}B Complete : {DateTime.UtcNow:yyyy-MMM-dd HH:mm:ss.ff}");
             File.WriteAllText($"storePass{pass:0000}B.json", RvStore.GetState().ToString());
 
-
-
-            // Build all possible roads
-            ////for (var ix = 0; ix < cityCount; ix++)
-            ////{
-            ////    var cityAValue = values.First(c => c.Detail["properties"]["cityNo"] != null && (int)c.Detail["properties"]["cityNo"] == ix);
-
-            ////    var aValLon = double.Parse(cityAValue.Detail["geometry"]["coordinates"][0].ToString());
-            ////    var aValLat = double.Parse(cityAValue.Detail["geometry"]["coordinates"][1].ToString());
-
-            ////    var cityRoadValues = new List<Value>();
-
-            ////    for (var jx = 0; jx < cityCount; jx++)
-            ////    {
-            ////        if (jx == ix)
-            ////        {
-            ////            continue;
-            ////        }
-
-            ////        var cityBValue = values.First(c => c.Detail["properties"]?["cityNo"] != null && (int)c.Detail["properties"]["cityNo"] == jx);
-
-            ////        var allRoads = values.Where(r => ((JObject)r.Detail["properties"])["cityAId"] != null);
-
-            ////        var roadAtoBValue = allRoads.FirstOrDefault(r =>
-            ////                ((Guid)r.Detail["properties"]["cityAId"] == cityAValue.EntityId &&
-            ////                (Guid)r.Detail["properties"]["cityBId"] == cityBValue.EntityId) ||
-            ////                ((Guid)r.Detail["properties"]["cityBId"] == cityAValue.EntityId &&
-            ////                (Guid)r.Detail["properties"]["cityAId"] == cityBValue.EntityId));
-
-            ////        if (roadAtoBValue != null)
-            ////        {
-            ////            continue;
-            ////        }
-
-            ////        var bValLon = double.Parse(cityBValue.Detail["geometry"]["coordinates"][0].ToString());
-            ////        var bValLat = double.Parse(cityBValue.Detail["geometry"]["coordinates"][1].ToString());
-
-            ////        var distAtoB = Math.Pow(Math.Pow(aValLon - bValLon, 2) + Math.Pow(aValLat - bValLat, 2), 0.5);
-
-            ////        var lineGeo =
-            ////            $"{{\"type\":\"Feature\",\"properties\":{{\"cityAId\":\"{cityAValue.EntityId}\",\"cityBId\":\"{cityBValue.EntityId}\",\"distance\":{distAtoB},\"usage\":\"Not Set\"}},\"geometry\":{{\"type\":\"LineString\",\"coordinates\":[[{aValLon},{aValLat}],[{bValLon},{bValLat}]]}}}}";
-
-            ////        var lonLat = JObject.Parse(lineGeo);
-            ////        roadAtoBValue = new Value(lonLat);
-            ////        cityRoadValues.Add(roadAtoBValue);
-            ////    }
-
-            ////    var top10Roads = cityRoadValues.OrderBy(r => (double)r.Detail["properties"]["distance"]).Take(10);
-            ////    values.AddRange(top10Roads);
-
-            ////    Console.WriteLine($"City #:{ix}, added up to 10 roads");
-            ////}
 
             // We'll start by adding all the shortest ones as the first set of 'actual' roads
             // A minimum of two * (cityCount - 1) roads will be required
@@ -712,15 +660,13 @@ namespace Concurri.Svr.TestHarness
             var operations = new List<Operation>();
             var operationPrescriptions = new List<IOpReqProcessing>();
 
-            var cityValues = values.Where(c => c.Detail["properties"]["cityNo"] != null).ToList();
-
             // Build the Javascript template for calculating the length of each connecting GeoJSON line
             // Concept - Id of this city, then formula to calculate each distance and output the result as a sorted list.
             const string cityATempl = "{{'cityAId':'{0}','destinations':[";
             const string lonTempl = "JSON.parse('${{{0}}}')['geometry']['coordinates'][0]";
             const string latTempl = "JSON.parse('${{{0}}}')['geometry']['coordinates'][1]";
             const string getDistTempl = "{{'cityBId':'{0}','distance':Math.pow(Math.pow({1} - {2}, 2) + Math.pow({3} - {4}, 2), 0.5),'usage':'not set'}}";
-            for (var ix = 0; ix < cityValues.Count; ix++)
+            for (var ix = 0; ix < values.Count; ix++)
             {
                 var jTemplate = new StringBuilder();
                 jTemplate.AppendLine("[");
@@ -731,7 +677,7 @@ namespace Concurri.Svr.TestHarness
                 var cityALatTempl = string.Format(latTempl, ix);
 
                 var needsComma = false;
-                for (var jx = 0; jx < cityValues.Count; jx++)
+                for (var jx = 0; jx < values.Count; jx++)
                 {
                     if (ix == jx)
                     {
@@ -754,6 +700,8 @@ namespace Concurri.Svr.TestHarness
                 }
                 jTemplate.AppendLine();
                 jTemplate.AppendLine("].sort(function(a, b) {return a.distance - b.distance;})");
+                // Adding a slice at the end (for the 10 shortest paths) reduce the overall file size but did not seem to reduce processing time
+                // jTemplate.AppendLine("].sort(function(a, b) {return a.distance - b.distance;}).slice(0, 10)");
                 jTemplate.AppendLine("}");
                 jTemplate.AppendLine("]");
 
@@ -761,7 +709,7 @@ namespace Concurri.Svr.TestHarness
 
                 // Although the source values are always the same we need a new OperandKey each time
                 // for each new Value to be generated
-                var opKeys = cityValues.OperandKey(EntityType.Value);
+                var opKeys = values.OperandKey(EntityType.Value);
 
                 // Add an Operation to reference the collect Rule and merge all of the results into one GeoJSON
                 var buildCityDistancesOperation = new Operation
@@ -804,8 +752,10 @@ namespace Concurri.Svr.TestHarness
                 nextCityB["usage"] = "accepted";
                 var nextCityBId = Guid.Parse((string) nextCityB["cityBId"]);
 
+                var roadId = cityAId.Merge(nextCityBId);
+
                 var lineGeo =
-                    $"{{JSON.parse(JSON.stringify({{\"type\":\"Feature\",\"properties\":{{\"road\":\"road\"}},\"geometry\":{{\"type\":\"LineString\",\"coordinates\":[JSON.parse('${{0}}')[\"geometry\"][\"coordinates\"],JSON.parse('${{1}}')[\"geometry\"][\"coordinates\"]]}}}}))}}";
+                    $"{{JSON.parse(JSON.stringify({{\"type\":\"Feature\",\"properties\":{{\"roadId\":\"{roadId}\",\"cityAId\":\"{cityAId}\",\"cityBId\":\"{nextCityBId}\"}},\"geometry\":{{\"type\":\"LineString\",\"coordinates\":[JSON.parse('${{0}}')[\"geometry\"][\"coordinates\"],JSON.parse('${{1}}')[\"geometry\"][\"coordinates\"]]}}}}))}}";
                 var opKeys = new[] { cityAId, nextCityBId }.OperandKey(EntityType.Value);
 
                 // Add an Operation to reference the collect Rule and merge all of the results into one GeoJSON

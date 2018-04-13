@@ -1,20 +1,22 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Dynamic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
+
 using Jint;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Redux;
+
 using RulEng.Helpers;
 using RulEng.Reformers;
 using RulEng.States;
 using RulEng.Prescriptions;
-using Newtonsoft.Json;
-using System.Dynamic;
 
 namespace Concurri.Svr.TestHarness
 {
@@ -33,7 +35,7 @@ namespace Concurri.Svr.TestHarness
             (var rules, var ruleResults, var values, var rulePrescriptions) = BuildTheCities(cityCount);
 
             // Build a Collection Rule, Result and Prescription for all of the above rules
-            (var collectRule, var collectRuleResult, var collectRulePrescription) = ruleResults.And(false);
+            (var collectRule, var collectRuleResult, var collectRulePrescription) = ruleResults.And(null, null, false);
 
             // Add the Collection Rule, Result and Prescription
             rules.Add(collectRule);
@@ -41,17 +43,17 @@ namespace Concurri.Svr.TestHarness
             rulePrescriptions.Add(collectRulePrescription);
 
             var operations = new List<Operation>();
-            var operationPrescriptions = new List<IOpReqProcessing>();
+            var operationPrescriptions = new List<OperationMxProcessing>();
 
-            (var pointOperations, var pointOperationPrescriptions) = BuildTheGeoJsonOutput(collectRuleResult, values.Where(c => c.Detail["properties"]["cityNo"] != null).ToList());
+            var cityValues = values.Where(c => c.Detail["properties"]["cityNo"] != null).ToList();
+
+            (var pointOperations, var pointOperationPrescriptions) = BuildTheGeoJsonOutput(collectRuleResult, cityValues);
             operations.Add(pointOperations);
             operationPrescriptions.Add(pointOperationPrescriptions);
 
-            (var distOperations, var distOperationPrescriptions) = BuildTheCityDistances(collectRuleResult, values.Where(c => c.Detail["properties"]["cityNo"] != null).ToList());
+            (var distOperations, var distOperationPrescriptions) = BuildTheCityDistances(collectRuleResult, cityValues);
             operations.AddRange(distOperations);
             operationPrescriptions.AddRange(distOperationPrescriptions);
-
-            //DoJintTest(values);
 
             // Build the Rule Engine Store ready for processing
             var startingStore = new RulEngStore
@@ -70,23 +72,7 @@ namespace Concurri.Svr.TestHarness
             RvStore.Subscribe(state => changes = state);
 
             var pass = 0;
-            Console.WriteLine($"Pass {pass:0000}A Commence : {DateTime.UtcNow:yyyy-MMM-dd HH:mm:ss.ff}");
-            // Pass 0 - Part A - Rule Prescriptions
-            foreach (var prescription in rulePrescriptions)
-            {
-                var act = RvStore.Dispatch(prescription);
-            }
-            Console.WriteLine($"Pass {pass:0000}A Complete : {DateTime.UtcNow:yyyy-MMM-dd HH:mm:ss.ff}");
-            File.WriteAllText($"storePass{pass:0000}A.json", RvStore.GetState().ToString());
-
-            // Pass 0 - Part B - OpReq Prescriptions
-            Console.WriteLine($"Pass {pass:0000}B Commence : {DateTime.UtcNow:yyyy-MMM-dd HH:mm:ss.ff}");
-            foreach (var prescription in operationPrescriptions)
-            {
-                var act = RvStore.Dispatch(prescription);
-            }
-            Console.WriteLine($"Pass {pass:0000}B Complete : {DateTime.UtcNow:yyyy-MMM-dd HH:mm:ss.ff}");
-            File.WriteAllText($"storePass{pass:0000}B.json", RvStore.GetState().ToString());
+            TikTok(pass++, rulePrescriptions, operationPrescriptions);
 
             Console.WriteLine($"Add more to Store for {cityCount} cities : {DateTime.UtcNow.ToString("yyyy-MMM-dd HH:mm:ss.ff")}");
             // Build the exists rules for the values resulting from the distance operations
@@ -98,33 +84,18 @@ namespace Concurri.Svr.TestHarness
             (var roadOperations, var roadOperationPrescriptions) = BuildTheCityRoads(distRules, storeValues);
 
             // Add the new Entities to the Store ready for processing
-            RvStore.Add(distRules, distRuleResults, roadOperations, null);
-
-            pass++;
-            Console.WriteLine($"Pass {pass:0000}A Commence : {DateTime.UtcNow:yyyy-MMM-dd HH:mm:ss.ff}");
-            // Pass 1 - Part A - Rule Prescriptions - dist result tests
-            foreach (var prescription in distRulePrescriptions)
-            {
-                var act = RvStore.Dispatch(prescription);
-            }
-            Console.WriteLine($"Pass {pass:0000}A Complete : {DateTime.UtcNow:yyyy-MMM-dd HH:mm:ss.ff}");
-            File.WriteAllText($"storePass{pass:0000}A.json", RvStore.GetState().ToString());
-
-            // Pass 1 - Part B - Operations - create roads
-            Console.WriteLine($"Pass {pass:0000}B Commence : {DateTime.UtcNow:yyyy-MMM-dd HH:mm:ss.ff}");
-            foreach (var prescription in roadOperationPrescriptions)
-            {
-                var act = RvStore.Dispatch(prescription);
-            }
-            Console.WriteLine($"Pass {pass:0000}B Complete : {DateTime.UtcNow:yyyy-MMM-dd HH:mm:ss.ff}");
-            File.WriteAllText($"storePass{pass:0000}B.json", RvStore.GetState().ToString());
+            RvStore.AddUpdate(distRules, distRuleResults, roadOperations, null);
+            TikTok(pass++, distRulePrescriptions, roadOperationPrescriptions);
 
             Console.WriteLine($"Add more to Store for {cityCount} cities : {DateTime.UtcNow.ToString("yyyy-MMM-dd HH:mm:ss.ff")}");
             // Build the exists rules for the values resulting from the 'road' operations
             (var roadExistsRules, var roadExistsRuleResults, var roadExistsRulePrescriptions) =
                 roadOperations.SelectMany(rp => rp.Operands).Exists(false);
+            // TODO: Build operations to mark the roads between CityA and CityB (and vice versa) as 'accepted'
             // Build a Collection Rule, Result and Prescription for all of the 'road' rules
-            (var collectRoadRule, var collectRoadRuleResult, var collectRoadRulePrescription) = roadExistsRuleResults.And(false);
+            (var collectRoadRule, var collectRoadRuleResult, var collectRoadRulePrescription) = roadExistsRuleResults.And(null, null, false);
+            roadExistsRules.Add(collectRoadRule);
+            roadExistsRuleResults.Add(collectRoadRuleResult);
             roadExistsRulePrescriptions.Add(collectRoadRulePrescription);
 
             // Join the new Roads together in one map
@@ -135,25 +106,84 @@ namespace Concurri.Svr.TestHarness
 
             // Add the new Entities to the Store ready for processing
             RvStore
-                .Add(roadExistsRules, roadExistsRuleResults, null, null)
-                .Add(collectRoadRule, collectRoadRuleResult, lineOperation, null);
+                .AddUpdate(roadExistsRules, roadExistsRuleResults, new[] { lineOperation }.ToList(), null);
 
-            pass++;
-            Console.WriteLine($"Pass {pass:0000}A Commence : {DateTime.UtcNow:yyyy-MMM-dd HH:mm:ss.ff}");
-            // Pass 2 - Part A - Rule Prescriptions - dist result tests
-            foreach (var prescription in roadExistsRulePrescriptions)
+            TikTok(pass++, roadExistsRulePrescriptions, new[] { lineOperationPrescription });
+
+            // Searching or finding entities by arbitrary requirements is not currently supported
+            // It could potentially be implemented with:
+            // a new Rule (e.g. AnyMatch) that triggers
+            // a special Operation (Match -> Generates Exists Rules as simple triggers)
+            // regular Operation(s) to process the matching entities
+
+            // So search for duplicate roads (A->B and B->A) by external code
+            var dupRoadIds = roadValues
+                .Select(rv => (string)rv.Detail["properties"]?["roadId"])
+                .GroupBy(ri => ri)
+                .Select(ri => new { roadId = ri.Key, count = ri.Count() })
+                .Where(ri => ri.count > 1)
+                .ToList();
+
+            // For each duplicate road, find the first one, and delete it.
+            var dupRoadRulePrescriptions = new List<IRuleProcessing>();
+            var dupRoadOpPrescriptions = new List<OperationDxProcessing>();
+            foreach (var dupRoadId in dupRoadIds)
             {
-                var act = RvStore.Dispatch(prescription);
+                var firstDupRoad =
+                    roadValues.First(rv => (string)rv.Detail["properties"]?["roadId"] == dupRoadId.roadId);
+                var firstDupRoadRule = roadExistsRules.First(rer =>
+                    rer.ReferenceValues.EntityIds[0].EntType == EntityType.Value &&
+                    rer.ReferenceValues.EntityIds[0].EntityId == firstDupRoad.ValueId);
+
+                (var roadExistsRule, var roadExistsRuleResult, var roadExistsRulePrescription) =
+                    firstDupRoad.Exists(null, null, false);
+                dupRoadRulePrescriptions.Add(roadExistsRulePrescription);
+
+                (var deleteRoadOperation, var deleteRoadPrescription) =
+                    roadExistsRuleResult.Delete(new[] { firstDupRoad });
+                (var deleteRoadRuleOperation, var deleteRoadRulePrescription) =
+                    roadExistsRuleResult.Delete(new[] { firstDupRoadRule });
+                dupRoadOpPrescriptions.Add(deleteRoadPrescription);
+                dupRoadOpPrescriptions.Add(deleteRoadRulePrescription); // This will also delete the RuleResult and any dependent Operations / Requests
+
+                RvStore.Add(roadExistsRule, roadExistsRuleResult, deleteRoadOperation, null);
+                RvStore.Add(null, null, deleteRoadRuleOperation, null);
             }
-            Console.WriteLine($"Pass {pass:0000}A Complete : {DateTime.UtcNow:yyyy-MMM-dd HH:mm:ss.ff}");
-            File.WriteAllText($"storePass{pass:0000}A.json", RvStore.GetState().ToString());
 
-            // Pass 1 - Part B - Operations - create roads
-            Console.WriteLine($"Pass {pass:0000}B Commence : {DateTime.UtcNow:yyyy-MMM-dd HH:mm:ss.ff}");
-            RvStore.Dispatch(lineOperationPrescription);
-            Console.WriteLine($"Pass {pass:0000}B Complete : {DateTime.UtcNow:yyyy-MMM-dd HH:mm:ss.ff}");
-            File.WriteAllText($"storePass{pass:0000}B.json", RvStore.GetState().ToString());
+            TikTok(pass++, dupRoadRulePrescriptions, dupRoadOpPrescriptions);
 
+            // Refresh the list of roads
+            roadValues = RvStore.GetState().Values
+                .Where(c => c.Detail != null && c.Detail.Type == JTokenType.Object && c.Detail["properties"]?["roadId"] != null)
+                .ToList();
+            roadExistsRules = RvStore.GetState().Rules
+                .Where(c => c.RuleType == RuleType.Exists &&
+                            roadValues.Select(v => v.ValueId).Contains(c.ReferenceValues.EntityIds[0].EntityId))
+                .ToList();
+            roadExistsRuleResults = RvStore.GetState().RuleResults
+                .Where(s => roadExistsRules.Select(c => c.RuleId).Contains(s.RuleId))
+                .ToList();
+
+            // recreate the prescriptions for road rules
+            roadExistsRulePrescriptions = new List<IRuleProcessing>();
+            foreach (var rv in roadExistsRules)
+            {
+                roadExistsRulePrescriptions.Add(rv.Exists());
+            }
+            // Rebuild the Collection Rule, Result and Prescription for all of the 'road' rules
+            (collectRoadRule, collectRoadRuleResult, collectRoadRulePrescription) = roadExistsRuleResults.And(collectRoadRule, collectRoadRuleResult, false);
+            roadExistsRules.Add(collectRoadRule);
+            roadExistsRuleResults.Add(collectRoadRuleResult);
+            roadExistsRulePrescriptions.Add(collectRoadRulePrescription);
+
+            // Join the new Roads together in one map
+            (lineOperation, lineOperationPrescription) = BuildTheGeoJsonOutput(collectRoadRuleResult, roadValues, lineOperation);
+
+            // Add the new Entities to the Store ready for processing
+            RvStore
+                .AddUpdate(roadExistsRules, roadExistsRuleResults, new[] {lineOperation}.ToList(), null);
+
+            TikTok(pass++, roadExistsRulePrescriptions, new[] { lineOperationPrescription });
 
             // We'll start by adding all the shortest ones as the first set of 'actual' roads
             // A minimum of two * (cityCount - 1) roads will be required
@@ -641,7 +671,7 @@ namespace Concurri.Svr.TestHarness
                 Rule rule;
                 RuleResult ruleResult;
                 IRuleProcessing rulePrescription;
-                (rule, ruleResult, rulePrescription) = coordValue.Exists(false);
+                (rule, ruleResult, rulePrescription) = coordValue.Exists(null, null, false);
 
                 if (rule.ReferenceValues.RuleResultId != ruleResult.RuleResultId)
                 {
@@ -655,10 +685,10 @@ namespace Concurri.Svr.TestHarness
             return (rules, ruleResults, values, rulePrescriptions);
         }
 
-        private static (List<Operation> operations, List<IOpReqProcessing> operationPrescriptions) BuildTheCityDistances(RuleResult cityRuleResults, List<Value> values)
+        private static (List<Operation> operations, List<OperationMxProcessing> operationPrescriptions) BuildTheCityDistances(RuleResult cityRuleResults, List<Value> values)
         {
             var operations = new List<Operation>();
-            var operationPrescriptions = new List<IOpReqProcessing>();
+            var operationPrescriptions = new List<OperationMxProcessing>();
 
             // Build the Javascript template for calculating the length of each connecting GeoJSON line
             // Concept - Id of this city, then formula to calculate each distance and output the result as a sorted list.
@@ -720,7 +750,7 @@ namespace Concurri.Svr.TestHarness
                     Operands = ImmutableArray.Create(opKeys),
                     OperationTemplate = jTempl
                 };
-                var buildCityDistancesPrescription = buildCityDistancesOperation.AddUpdate();
+                var buildCityDistancesPrescription = (OperationMxProcessing)buildCityDistancesOperation.AddUpdate();
 
                 operations.Add(buildCityDistancesOperation);
                 operationPrescriptions.Add(buildCityDistancesPrescription);
@@ -729,11 +759,11 @@ namespace Concurri.Svr.TestHarness
             return (operations, operationPrescriptions);
         }
 
-        private static (List<Operation> operations, List<IOpReqProcessing> operationPrescriptions) BuildTheCityRoads(
+        private static (List<Operation> operations, List<OperationMxProcessing> operationPrescriptions) BuildTheCityRoads(
             List<Rule> cityDistRules, List<Value> values)
         {
             var operations = new List<Operation>();
-            var operationPrescriptions = new List<IOpReqProcessing>();
+            var operationPrescriptions = new List<OperationMxProcessing>();
 
             foreach (var cityDistRule in cityDistRules)
             {
@@ -747,10 +777,11 @@ namespace Concurri.Svr.TestHarness
                 }
 
                 var cityAId = Guid.Parse((string)cityDistValue.Detail[0]["cityAId"]);
-                var nextCityB = (JObject)((JArray) cityDistValue.Detail[0]["destinations"])
-                    .FirstOrDefault(d => (string) d["usage"] == "not set");
+                var nextCityB = (JObject)((JArray)cityDistValue.Detail[0]["destinations"])
+                    .FirstOrDefault(d => (string)d["usage"] == "not set");
+                // TODO: Should not be setting usage here - this needs to be its own operation
                 nextCityB["usage"] = "accepted";
-                var nextCityBId = Guid.Parse((string) nextCityB["cityBId"]);
+                var nextCityBId = Guid.Parse((string)nextCityB["cityBId"]);
 
                 var roadId = cityAId.Merge(nextCityBId);
 
@@ -776,7 +807,7 @@ namespace Concurri.Svr.TestHarness
             return (operations, operationPrescriptions);
         }
 
-        private static (Operation operations, IOpReqProcessing operationPrescriptions) BuildTheGeoJsonOutput(RuleResult collectRuleResult, List<Value> values)
+        private static (Operation operation, OperationMxProcessing operationPrescription) BuildTheGeoJsonOutput(RuleResult collectRuleResult, List<Value> values, Operation buildGeoJsonOperation = null)
         {
             var cityCount = values.Count;
 
@@ -794,18 +825,71 @@ namespace Concurri.Svr.TestHarness
             var valueTemplate = $"{{JSON.parse('{valueBody}')}}";
 
             // Add an Operation to reference the collect Rule and merge all of the results into one GeoJSON
-            var opKey = values.OperandKey(EntityType.Value);
-            var buildGeoJsonOperation = new Operation
+            if (buildGeoJsonOperation == null)
             {
-                OperationId = Guid.NewGuid(),
-                OperationType = OperationType.CreateUpdate,
-                RuleResultId = collectRuleResult.EntityId,
-                Operands = ImmutableArray.Create(opKey),
-                OperationTemplate = valueTemplate
-            };
+                var opKey = values.OperandKey(EntityType.Value);
+                buildGeoJsonOperation = new Operation { OperationId = Guid.NewGuid(), Operands = ImmutableArray.Create(opKey) };
+            }
+            else
+            {
+                var opKey = values.OperandKey(EntityType.Value, buildGeoJsonOperation.Operands[0].EntityId);
+                buildGeoJsonOperation.Operands = ImmutableArray.Create(opKey);
+            }
+
+            buildGeoJsonOperation.OperationType = OperationType.CreateUpdate;
+            buildGeoJsonOperation.RuleResultId = collectRuleResult.EntityId;
+            buildGeoJsonOperation.OperationTemplate = valueTemplate;
+
             var buildGeoJsonPrescription = buildGeoJsonOperation.AddUpdate();
 
             return (buildGeoJsonOperation, buildGeoJsonPrescription);
+        }
+
+        private static void TikTok(int pass, IEnumerable<IRuleProcessing> rulePrescriptions, IEnumerable<IOpReqProcessing> operationPrescriptions)
+        {
+            if (rulePrescriptions != null)
+            {
+                var startTime = DateTime.UtcNow;
+                Console.WriteLine($"Pass {pass:0000}A Commence : {startTime:yyyy-MMM-dd HH:mm:ss.ff}");
+                foreach (var prescription in rulePrescriptions)
+                {
+                    var act = RvStore.Dispatch(prescription);
+                }
+
+                var endTime = DateTime.UtcNow;
+                Console.WriteLine($"Pass {pass:0000}A Complete : {endTime:yyyy-MMM-dd HH:mm:ss.ff}");
+
+                var duration = endTime - startTime;
+                Console.WriteLine($"Pass {pass:0000}A Duration : {duration.Days} {duration.Hours:00}:{duration.Minutes:00}:{duration.Seconds:00}.{duration.Milliseconds:00}");
+
+                File.WriteAllText($"storePass{pass:0000}A.json", RvStore.GetState().ToString());
+            }
+            else
+            {
+                Console.WriteLine($"Pass {pass:0000}A Not Performed, no Rule Prescriptions provided : {DateTime.UtcNow:yyyy-MMM-dd HH:mm:ss.ff}");
+            }
+
+            if (operationPrescriptions != null)
+            {
+                var startTime = DateTime.UtcNow;
+                Console.WriteLine($"Pass {pass:0000}B Commence : {startTime:yyyy-MMM-dd HH:mm:ss.ff}");
+                foreach (var prescription in operationPrescriptions)
+                {
+                    var act = RvStore.Dispatch(prescription);
+                }
+
+                var endTime = DateTime.UtcNow;
+                Console.WriteLine($"Pass {pass:0000}B Complete : {endTime:yyyy-MMM-dd HH:mm:ss.ff}");
+
+                var duration = endTime - startTime;
+                Console.WriteLine($"Pass {pass:0000}A Duration :  {duration.Days} {duration.Hours:00}:{duration.Minutes:00}:{duration.Seconds:00}.{duration.Milliseconds:00}");
+
+                File.WriteAllText($"storePass{pass:0000}B.json", RvStore.GetState().ToString());
+            }
+            else
+            {
+                Console.WriteLine($"Pass {pass:0000}B Not Performed, no Operation Prescriptions provided : {DateTime.UtcNow:yyyy-MMM-dd HH:mm:ss.ff}");
+            }
         }
     }
 }

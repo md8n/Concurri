@@ -5,18 +5,23 @@ using RulEng.States;
 
 namespace RulEng.Prescriptions
 {
-    public class AddUpdate<T>: IOpReqProcessing where T: IEntity
-    {
-        public T Entity { get; set; }
-    }
-
-    public class Create<T>: ICrud where T: IEntity
+    public class Create<T> : ICrud where T : IEntity
     {
         public T Entity { get; set; }
     }
 
     public class Delete<T> : ICrud where T : IEntity
     {
-        public Guid EntityId { get; set; }
+        public T Entity { get; set; }
+    }
+
+    public class AddUpdate<T> : OperationMxProcessing where T : IEntity
+    {
+        public T Entity { get; set; }
+    }
+
+    public class DeleteEnt<T> : OperationDxProcessing where T : IEntity
+    {
+        public T Entity { get; set; }
     }
 }

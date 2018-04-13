@@ -24,5 +24,10 @@ namespace RulEng.States
         {
             return ProcessableEntityTypes.Contains(entity.EntType);
         }
+
+        public static bool IsProcessable(this EntityType entType)
+        {
+            return ProcessableEntityTypes.Contains(entType);
+        }
     }
 }

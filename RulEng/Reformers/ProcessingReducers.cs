@@ -56,9 +56,14 @@ namespace RulEng.Reformers
                 .Select(v => v.RuleResultId)
                 .ToList();
 
+            var opType = prescription is OperationMxProcessing
+                ? OperationType.CreateUpdate
+                : prescription is OperationDxProcessing
+                    ? OperationType.Delete
+                    : OperationType.Unknown; // When the prescription is for requests 
             // Find all relevant operations/requests for the identified rule results and then filter down by execution date
             var operationprescriptionsToProcessList = (
-                from op in newState.Operations.Where(a => ruleResultIds.Contains(a.RuleResultId))
+                from op in newState.Operations.Where(a => ruleResultIds.Contains(a.RuleResultId) && a.OperationType == opType)
                 let rr = newState.RuleResults.First(r => r.RuleResultId == op.RuleResultId)
                 where rr.LastChanged > op.LastExecuted
                 select op)
@@ -75,7 +80,7 @@ namespace RulEng.Reformers
             var destinationEntities = new List<TypeKey>();
             foreach (var opPre in operationprescriptionsToProcessList)
             {
-                destinationEntities.AddRange(opPre.Operands.Select(o => (TypeKey) o));
+                destinationEntities.AddRange(opPre.Operands.Select(o => (TypeKey)o));
             }
             foreach (var rqPre in requestprescriptionsToProcessList)
             {
@@ -92,9 +97,25 @@ namespace RulEng.Reformers
             //    .ToList();
             var acceptableDestinations = groupedDestinations
                 .Where(grp => grp.Count == 1)
-                .Select(grp => new { grp.Key.EntityId, grp.Key.EntType })
+                .Select(grp => new EntMatch { EntityId = grp.Key.EntityId, EntType = grp.Key.EntType })
                 .ToList();
 
+            if (prescription is OperationMxProcessing)
+            {
+                newState = OperationMxProcessing(newState, previousState, ruleResultIds, operationprescriptionsToProcessList, acceptableDestinations);
+            }
+            if (prescription is OperationDxProcessing)
+            {
+                newState = OperationDxProcessing(newState, ruleResultIds, operationprescriptionsToProcessList, acceptableDestinations);
+            }
+
+            return newState;
+        }
+
+        private static ProcessingRulEngStore OperationMxProcessing(this ProcessingRulEngStore newState, RulEngStore previousState,
+            List<Guid> ruleResultIds, List<Operation> operationprescriptionsToProcessList,
+            List<EntMatch> acceptableDestinations)
+        {
             // Get all of the sources from the previous state
             var acceptableSourceIds = new List<Guid>();
             foreach (var opPresProc in operationprescriptionsToProcessList)
@@ -144,8 +165,20 @@ namespace RulEng.Reformers
                 }
 
                 // Process the acceptable
-                foreach (var relevantOp in relevantOps.Where(o => acceptableDestinations.Contains(new { o.Operands[0].EntityId, o.Operands[0].EntType })))
+                foreach (var relevantOp in relevantOps)
                 {
+                    var firstEnt = new EntMatch
+                    {
+                        EntityId = relevantOp.Operands[0].EntityId,
+                        EntType = relevantOp.Operands[0].EntType
+                    };
+
+                    if (!acceptableDestinations.Any(ad =>
+                        ad.EntType == firstEnt.EntType && ad.EntityId == firstEnt.EntityId))
+                    {
+                        continue;
+                    }
+
                     var destEntsToProcess = relevantOp.Operands
                         .Select(de => new
                         {
@@ -233,39 +266,82 @@ namespace RulEng.Reformers
             return newState;
         }
 
-        private static ProcessingRulEngStore OperationMxProcessing(this ProcessingRulEngStore newState, OperationMxProcessing prescription)
+        private static ProcessingRulEngStore OperationDxProcessing(this ProcessingRulEngStore newState,
+            List<Guid> ruleResultIds, List<Operation> operationprescriptionsToProcessList,
+            List<EntMatch> acceptableDestinations)
         {
-            var actionDate = DateTime.UtcNow;
-
-            foreach(var entity in prescription.Entities)
+            foreach (var ruleResultIdToProcess in ruleResultIds)
             {
-                switch (entity.EntType)
+                // Get all of the operations relevant to the Rule
+                var relevantOps = operationprescriptionsToProcessList
+                    .Where(o => o.RuleResultId == ruleResultIdToProcess)
+                    .ToList();
+
+                if (!relevantOps.Any())
                 {
-                    case EntityType.Rule:
-                        var rule = newState.GetEntityFromValue<Rule>(entity);
-
-                        newState.Rules.Remove(rule);
-                        newState.Rules.Add(rule);
-                        break;
-                    case EntityType.Operation:
-                        var operation = newState.GetEntityFromValue<Operation>(entity);
-
-                        newState.Operations.Remove(operation);
-                        newState.Operations.Add(operation);
-                        break;
-                    case EntityType.Request:
-                        var request = newState.GetEntityFromValue<Request>(entity);
-
-                        newState.Requests.Remove(request);
-                        newState.Requests.Add(request);
-                        break;
-                    case EntityType.Value:
-                        var value = newState.GetEntityFromValue<Value>(entity);
-
-                        newState.Values.Remove(value);
-                        newState.Values.Add(value);
-                        break;
+                    // TODO: confirm if we should be doing this if there was nothing relevant to process
+                    //newState.RuleResults.RemoveWhere(r => r.RuleResultId == ruleResultIdToProcess);
+                    continue;
                 }
+
+                // Process the acceptable
+                foreach (var relevantOp in relevantOps)
+                {
+                    var firstEnt = new EntMatch
+                    {
+                        EntityId = relevantOp.Operands[0].EntityId,
+                        EntType = relevantOp.Operands[0].EntType
+                    };
+
+                    if (!acceptableDestinations.Any(ad =>
+                        ad.EntType == firstEnt.EntType && ad.EntityId == firstEnt.EntityId))
+                    {
+                        continue;
+                    }
+
+                    //Console.WriteLine(result);
+                    switch (firstEnt.EntType)
+                    {
+                        case EntityType.Rule:
+                            var removeRl = newState.Rules.FirstOrDefault(r => r.RuleId == firstEnt.EntityId);
+                            var removeRr = newState.RuleResults.FirstOrDefault(r => r.RuleId == firstEnt.EntityId);
+                            var rrId = removeRr.RuleResultId;
+                            newState.Rules.Remove(removeRl);
+                            newState.RuleResults.Remove(removeRr);
+
+                            // The directly dependent Operations and Requests are now orphaned
+                            // They should be deleted, they will never execute again
+                            var removeOp = newState.Operations.Where(o => o.RuleResultId == rrId);
+                            var removeRq = newState.Requests.Where(r => r.RuleResultId == rrId);
+                            foreach (var op in removeOp)
+                            {
+                                newState.Operations.Remove(op);
+                            }
+                            foreach (var rq in removeRq)
+                            {
+                                newState.Requests.Remove(rq);
+                            }
+                            break;
+                        case EntityType.Operation:
+                            newState.Operations.RemoveWhere(r => r.OperationId == firstEnt.EntityId);
+                            break;
+                        case EntityType.Request:
+                            newState.Requests.RemoveWhere(r => r.RequestId == firstEnt.EntityId);
+                            break;
+                        case EntityType.Value:
+                            var removeVal = newState.Values.FirstOrDefault(v => v.ValueId == firstEnt.EntityId);
+                            newState.Values.Remove(removeVal);
+                            break;
+                    }
+
+                    // Mark the operation as Executed
+                    var actionDate = DateTime.UtcNow;
+
+                    // Mark this Rule as executed
+                    relevantOp.LastExecuted = actionDate;
+                }
+
+                // newState.RuleResults.RemoveWhere(r => r.RuleResultId == ruleResultIdToProcess);
             }
 
             return newState;

@@ -22,6 +22,17 @@ namespace RulEng.Helpers
             };
         }
 
+        public static Operation DeleteOperation(this RuleResult ruleResult, IEnumerable<OperandKey> operands)
+        {
+            return new Operation
+            {
+                OperationId = Guid.NewGuid(),
+                RuleResultId = ruleResult.RuleResultId,
+                Operands = ImmutableArray.Create(operands.ToArray()),
+                OperationType = OperationType.Delete
+            };
+        }
+
         public static void FromOperationResultAddUpdateRule(this ProcessingRulEngStore newState, JToken result, Guid destEntId)
         {
             // Create/Update a rule using destEnt.EntityId and result

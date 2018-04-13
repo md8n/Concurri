@@ -31,7 +31,7 @@ namespace RulEng.Helpers
 
                 // if even one entity has changed wrt a rule reference value that is 'watching' it
                 // then it is relevant for processing
-                foreach(var ent in entities.Where(e => rrEntTypes.Contains(e.EntType)))
+                foreach (var ent in entities.Where(e => rrEntTypes.Contains(e.EntType)))
                 {
                     var rrEnt = relRuleEnts.FirstOrDefault(rre =>
                         rre.EntType == ent.EntType &&
@@ -81,57 +81,68 @@ namespace RulEng.Helpers
         /// Create an Exists Rule for the value
         /// </summary>
         /// <param name="entity"></param>
+        /// <param name="existingRule"></param>
         /// <param name="negateResult"></param>
         /// <returns></returns>
-        public static Rule ExistsRule(this IEntity entity, bool negateResult = true)
+        public static Rule ExistsRule(this IEntity entity, Rule existingRule = null, bool negateResult = true)
         {
             var nText = negateResult ? "non-" : "";
-            var ruleName = $"Test for {nText}existence of {entity.EntType.ToString()} {((TypeKey)entity)}";
+            var ruleName = $"Test for {nText}existence of {entity.EntType.ToString()} {(TypeKey)entity}";
             var refValues = (IRulePrescription)entity.RulePrescription<RuleUnary>();
 
-            var rule = new Rule
+            if (existingRule == null)
             {
-                RuleId = Guid.NewGuid(),
-                RuleName = ruleName,
-                RuleType = RuleType.Exists,
-                LastChanged = entity.LastChanged,
-                LastExecuted = entity.LastChanged,
-                NegateResult = negateResult,
-                ReferenceValues = refValues
-            };
+                existingRule = new Rule
+                {
+                    RuleId = Guid.NewGuid()
+                };
+            }
 
-            return rule;
+            existingRule.RuleName = ruleName;
+            existingRule.RuleType = RuleType.Exists;
+            existingRule.LastChanged = entity.LastChanged;
+            existingRule.LastExecuted = entity.LastChanged;
+            existingRule.NegateResult = negateResult;
+            existingRule.ReferenceValues = refValues;
+
+            return existingRule;
         }
 
         /// <summary>
         /// Create a HasMeaningfulValue Rule for the value
         /// </summary>
         /// <param name="value"></param>
+        /// <param name="existingRule"></param>
         /// <param name="negateResult"></param>
         /// <returns></returns>
-        public static Rule HasMeaningfulValueRule(this Value value, bool negateResult = false)
+        public static Rule HasMeaningfulValueRule(this Value value, Rule existingRule = null, bool negateResult = false)
         {
-            var rule = new Rule
+            if (existingRule == null)
             {
-                RuleId = Guid.NewGuid(),
-                RuleName = $"Test for meaningful value of Value {(TypeKey)value}",
-                RuleType = RuleType.HasMeaningfulValue,
-                LastChanged = value.LastChanged,
-                LastExecuted = value.LastChanged,
-                NegateResult = negateResult,
-                ReferenceValues = value.RulePrescription<RuleUnary>()
-            };
+                existingRule = new Rule
+                {
+                    RuleId = Guid.NewGuid()
+                };
+            }
 
-            return rule;
+            existingRule.RuleName = $"Test for meaningful value of Value {(TypeKey)value}";
+            existingRule.RuleType = RuleType.HasMeaningfulValue;
+            existingRule.LastChanged = value.LastChanged;
+            existingRule.LastExecuted = value.LastChanged;
+            existingRule.NegateResult = negateResult;
+            existingRule.ReferenceValues = value.RulePrescription<RuleUnary>(existingRule);
+
+            return existingRule;
         }
 
         /// <summary>
-        /// Create an And Rule for the rule results
+        /// Create/Update an And Rule for the rule results
         /// </summary>
         /// <param name="ruleResults"></param>
+        /// <param name="existingRule"></param>
         /// <param name="negateResult"></param>
         /// <returns></returns>
-        public static Rule AndRule(this List<RuleResult> ruleResults, bool negateResult = false)
+        public static Rule AndRule(this List<RuleResult> ruleResults, Rule existingRule = null, bool negateResult = false)
         {
             if (ruleResults.Count < 2)
             {
@@ -140,26 +151,31 @@ namespace RulEng.Helpers
             }
 
             var refValues = ruleResults.Select(rr => (IEntity)(TypeKey)rr);
+
             var refValueIds = new RuleCollect
             {
-                RuleResultId = Guid.NewGuid(),
+                RuleResultId = existingRule?.ReferenceValues.RuleResultId ?? Guid.NewGuid(),
                 EntityIds = ImmutableList.CreateRange(refValues)
             };
 
             var lastChanged = ruleResults.OrderByDescending(rr => rr.LastChanged).First().LastChanged;
 
-            var rule = new Rule
+            if (existingRule == null)
             {
-                RuleId = Guid.NewGuid(),
-                RuleName = $"Test all rule results are {!negateResult}",
-                RuleType = RuleType.And,
-                LastChanged = lastChanged,
-                LastExecuted = lastChanged,
-                NegateResult = negateResult,
-                ReferenceValues = refValueIds
-            };
+                existingRule = new Rule
+                {
+                    RuleId = Guid.NewGuid()
+                };
+            }
 
-            return rule;
+            existingRule.RuleName = $"Test all rule results are {!negateResult}";
+            existingRule.RuleType = RuleType.And;
+            existingRule.LastChanged = lastChanged;
+            existingRule.LastExecuted = lastChanged;
+            existingRule.NegateResult = negateResult;
+            existingRule.ReferenceValues = refValueIds;
+
+            return existingRule;
         }
     }
 }

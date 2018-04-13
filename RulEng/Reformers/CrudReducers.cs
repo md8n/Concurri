@@ -27,7 +27,7 @@ namespace RulEng.Reformers
 
         public static ImmutableHashSet<T> DeleteEntityReducer<T>(ImmutableHashSet<T> previousState, Delete<T> prescription) where T : IEntity
         {
-            var entityToDelete = previousState.First(a => a.EntityId == prescription.EntityId);
+            var entityToDelete = previousState.First(a => a.EntityId == prescription.Entity.EntityId);
 
             return previousState.Remove(entityToDelete);
         }

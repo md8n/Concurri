@@ -10,6 +10,6 @@ namespace RulEng.Prescriptions
     /// </summary>
     public class OperationDxProcessing : IOpReqProcessing
     {
-        public IImmutableList<IEntity> Entities { get; set; }
+        public IImmutableList<OperandKey> Entities { get; set; }
     }
 }

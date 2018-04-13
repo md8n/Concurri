@@ -9,7 +9,43 @@ namespace RulEng.Helpers
     public static class OperandKeyHelpersHelpers
     {
         /// <summary>
-        /// Create an OperandKey from a Value
+        /// Create an OperandKey for a supplied Entity - this OperandKey will not specify any SourceValueIds
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="entity"></param>
+        /// <returns></returns>
+        public static OperandKey OperandKey<T>(this T entity) where T : IEntity
+        {
+            if (entity == null || entity.EntityId == Guid.Empty || !entity.IsProcessable() )
+            {
+                throw new ArgumentException("The supplied entity was null, had no Id, or was not processable");
+            }
+
+            var opKey = new OperandKey { EntType = entity.EntType, EntityId = entity.EntityId, SourceValueIds = ImmutableArray<Guid>.Empty };
+
+            return opKey;
+        }
+
+        /// <summary>
+        /// Create an OperandKey for a supplied EntityType and EntityId - this OperandKey will not specify any SourceValueIds
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="entity"></param>
+        /// <returns></returns>
+        public static OperandKey OperandKey(this EntityType entType, Guid entityId)
+        {
+            if (entityId == Guid.Empty || !entType.IsProcessable())
+            {
+                throw new ArgumentException("The supplied entityId was empty, or the supplied entType was not processable");
+            }
+
+            var opKey = new OperandKey { EntType = entType, EntityId = entityId, SourceValueIds = ImmutableArray<Guid>.Empty };
+
+            return opKey;
+        }
+
+        /// <summary>
+        /// Create an OperandKey from a single Value
         /// </summary>
         /// <param name="value"></param>
         /// <param name="entType"></param>

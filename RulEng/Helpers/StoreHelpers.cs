@@ -1,7 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
-using System.Text;
+
 using Redux;
 using RulEng.ProcessingState;
 using RulEng.States;
@@ -11,7 +10,7 @@ namespace RulEng.Helpers
     public static class StoreHelpers
     {
         /// <summary>
-        /// Add definitions of any Entity Type - including RuleResult but excluding Value into the Store
+        /// Add/Update definitions of any Entity Type - including RuleResult but excluding Value into the Store
         /// </summary>
         /// <param name="store"></param>
         /// <param name="rules"></param>
@@ -19,7 +18,7 @@ namespace RulEng.Helpers
         /// <param name="operations"></param>
         /// <param name="requests"></param>
         /// <returns></returns>
-        public static IStore<RulEngStore> Add(this IStore<RulEngStore> store, List<Rule> rules, List<RuleResult> ruleResults, List<Operation> operations, List<Request> requests)
+        public static IStore<RulEngStore> AddUpdate(this IStore<RulEngStore> store, List<Rule> rules, List<RuleResult> ruleResults, List<Operation> operations, List<Request> requests)
         {
             var storeState = store.GetState();
 
@@ -32,6 +31,13 @@ namespace RulEng.Helpers
             {
                 foreach (var r in rules)
                 {
+                    var existingRule = storeRules.FirstOrDefault(rl => rl.RuleId == r.RuleId);
+
+                    if (existingRule != null)
+                    {
+                        storeRules.Remove(existingRule);
+                    }
+
                     storeRules.Add(r);
                 }
             }
@@ -40,6 +46,13 @@ namespace RulEng.Helpers
             {
                 foreach (var rr in ruleResults)
                 {
+                    var existingRuleResult = storeRuleResults.FirstOrDefault(rl => rl.RuleResultId == rr.RuleResultId);
+
+                    if (existingRuleResult != null)
+                    {
+                        storeRuleResults.Remove(existingRuleResult);
+                    }
+
                     storeRuleResults.Add(rr);
                 }
             }
@@ -48,6 +61,13 @@ namespace RulEng.Helpers
             {
                 foreach (var o in operations)
                 {
+                    var existingOperation = storeOperations.FirstOrDefault(op => op.OperationId == o.OperationId);
+
+                    if (existingOperation != null)
+                    {
+                        storeOperations.Remove(existingOperation);
+                    }
+
                     storeOperations.Add(o);
                 }
             }
@@ -56,6 +76,13 @@ namespace RulEng.Helpers
             {
                 foreach (var q in requests)
                 {
+                    var existingRequest = storeRequests.FirstOrDefault(rq => rq.RequestId == q.RequestId);
+
+                    if (existingRequest != null)
+                    {
+                        storeRequests.Remove(existingRequest);
+                    }
+
                     storeRequests.Add(q);
                 }
             }
@@ -69,7 +96,7 @@ namespace RulEng.Helpers
         }
 
         /// <summary>
-        /// Add single definitions of any Entity Type - including RuleResult but excluding Value into the Store
+        /// Add/Update single definitions of any Entity Type - including RuleResult but excluding Value into the Store
         /// </summary>
         /// <param name="store"></param>
         /// <param name="rule"></param>
@@ -88,21 +115,49 @@ namespace RulEng.Helpers
 
             if (rule != null)
             {
+                var existingRule = storeRules.FirstOrDefault(rl => rl.RuleId == rule.RuleId);
+
+                if (existingRule != null)
+                {
+                    storeRules.Remove(existingRule);
+                }
+
                 storeRules.Add(rule);
             }
 
             if (ruleResult != null)
             {
+                var existingRuleResult = storeRuleResults.FirstOrDefault(rl => rl.RuleResultId == ruleResult.RuleResultId);
+
+                if (existingRuleResult != null)
+                {
+                    storeRuleResults.Remove(existingRuleResult);
+                }
+
                 storeRuleResults.Add(ruleResult);
             }
 
             if (operation != null)
             {
+                var existingOperation = storeOperations.FirstOrDefault(op => op.OperationId == operation.OperationId);
+
+                if (existingOperation != null)
+                {
+                    storeOperations.Remove(existingOperation);
+                }
+
                 storeOperations.Add(operation);
             }
 
             if (request != null)
             {
+                var existingRequest = storeRequests.FirstOrDefault(rq => rq.RequestId == request.RequestId);
+
+                if (existingRequest != null)
+                {
+                    storeRequests.Remove(existingRequest);
+                }
+
                 storeRequests.Add(request);
             }
 

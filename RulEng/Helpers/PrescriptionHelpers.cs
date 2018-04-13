@@ -45,11 +45,29 @@ namespace RulEng.Helpers
             };
         }
 
-        public static IOpReqProcessing AddUpdate(this Operation operationMx)
+        /// <summary>
+        /// Create an AddUpdate Prescription for the supplied Operation
+        /// </summary>
+        /// <param name="operationMx"></param>
+        /// <returns>The Prescription containing the Operation to be performed</returns>
+        public static OperationMxProcessing AddUpdate(this Operation operationMx)
         {
             return new AddUpdate<Operation>
             {
                 Entity = operationMx
+            };
+        }
+
+        /// <summary>
+        /// Create a Delete Prescription for the supplied Operation
+        /// </summary>
+        /// <param name="operationDx"></param>
+        /// <returns>The Prescription containing the Operation to be performed</returns>
+        public static OperationDxProcessing Delete(this Operation operationDx)
+        {
+            return new DeleteEnt<Operation>
+            {
+                Entity = operationDx
             };
         }
     }

@@ -5,6 +5,7 @@
         Error = -1,
         Unknown = 0,
         CreateUpdate,
-        Delete
+        Delete,
+        Search
     }
 }

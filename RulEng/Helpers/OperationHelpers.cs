@@ -11,25 +11,57 @@ namespace RulEng.Helpers
 {
     public static class OperationHelpers
     {
-        public static Operation CreateOperation(this RuleResult ruleResult, IEnumerable<OperandKey> operands)
+        /// <summary>
+        /// Create a new CreateUpdate Operation based on the supplied RuleResult and OperandKeys
+        /// </summary>
+        /// <param name="ruleResult"></param>
+        /// <param name="operands"></param>
+        /// <param name="operationId"></param>
+        /// <returns></returns>
+        public static Operation CreateOperation(this RuleResult ruleResult, IEnumerable<OperandKey> operands, Guid operationId)
         {
             return new Operation
             {
-                OperationId = Guid.NewGuid(),
+                OperationId = operationId == Guid.Empty ? Guid.NewGuid() : operationId,
                 RuleResultId = ruleResult.RuleResultId,
                 Operands = ImmutableArray.Create(operands.ToArray()),
                 OperationType = OperationType.CreateUpdate
             };
         }
 
-        public static Operation DeleteOperation(this RuleResult ruleResult, IEnumerable<OperandKey> operands)
+        /// <summary>
+        /// Create a new Delete Operation based on the supplied RuleResult and OperandKeys
+        /// </summary>
+        /// <param name="ruleResult"></param>
+        /// <param name="operands"></param>
+        /// <param name="operationId"></param>
+        /// <returns></returns>
+        public static Operation DeleteOperation(this RuleResult ruleResult, IEnumerable<OperandKey> operands, Guid operationId)
         {
             return new Operation
             {
-                OperationId = Guid.NewGuid(),
+                OperationId = operationId == Guid.Empty ? Guid.NewGuid() : operationId,
                 RuleResultId = ruleResult.RuleResultId,
                 Operands = ImmutableArray.Create(operands.ToArray()),
                 OperationType = OperationType.Delete
+            };
+        }
+
+        /// <summary>
+        /// Create a new Search Operation based on the supplied RuleResult and OperandKeys
+        /// </summary>
+        /// <param name="ruleResult"></param>
+        /// <param name="operands"></param>
+        /// <param name="operationId"></param>
+        /// <returns></returns>
+        public static Operation SearchOperation(this RuleResult ruleResult, IEnumerable<OperandKey> operands, Guid operationId)
+        {
+            return new Operation
+            {
+                OperationId = operationId == Guid.Empty ? Guid.NewGuid() : operationId,
+                RuleResultId = ruleResult.RuleResultId,
+                Operands = ImmutableArray.Create(operands.ToArray()),
+                OperationType = OperationType.Search
             };
         }
 

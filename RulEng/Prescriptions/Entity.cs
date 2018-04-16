@@ -24,4 +24,9 @@ namespace RulEng.Prescriptions
     {
         public T Entity { get; set; }
     }
+
+    public class Search<T> : OperationSxProcessing where T : IEntity
+    {
+        public T Entity { get; set; }
+    }
 }

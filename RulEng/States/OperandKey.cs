@@ -4,11 +4,15 @@ using System.Collections.Immutable;
 
 namespace RulEng.States
 {
+    /// <summary>
+    /// Identifies all of the relevant information required by an Operation or Request
+    /// </summary>
     public class OperandKey : IEntity
     {
         /// <summary>
         /// An array of source Value Ids that will be used for performing this Operation
         /// </summary>
+        /// <remarks>Not required for Search operations</remarks>
         public ImmutableArray<Guid> SourceValueIds { get; set; }
 
         /// <summary>

@@ -70,5 +70,18 @@ namespace RulEng.Helpers
                 Entity = operationDx
             };
         }
+
+        /// <summary>
+        /// Create a Search Prescription for the supplied Operation
+        /// </summary>
+        /// <param name="operationSx"></param>
+        /// <returns>The Prescription containing the Operation to be performed</returns>
+        public static OperationSxProcessing Search(this Operation operationSx)
+        {
+            return new Search<Operation>
+            {
+                Entity = operationSx
+            };
+        }
     }
 }

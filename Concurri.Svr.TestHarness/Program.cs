@@ -35,7 +35,7 @@ namespace Concurri.Svr.TestHarness
             (var rules, var ruleResults, var values, var rulePrescriptions) = BuildTheCities(cityCount);
 
             // Build a Collection Rule, Result and Prescription for all of the above rules
-            (var collectRule, var collectRuleResult, var collectRulePrescription) = ruleResults.And(null, null, false);
+            (var collectRule, var collectRuleResult, var collectRulePrescription) = ruleResults.And();
 
             // Add the Collection Rule, Result and Prescription
             rules.Add(collectRule);
@@ -93,7 +93,7 @@ namespace Concurri.Svr.TestHarness
                 roadOperations.SelectMany(rp => rp.Operands).Exists(false);
             // TODO: Build operations to mark the roads between CityA and CityB (and vice versa) as 'accepted'
             // Build a Collection Rule, Result and Prescription for all of the 'road' rules
-            (var collectRoadRule, var collectRoadRuleResult, var collectRoadRulePrescription) = roadExistsRuleResults.And(null, null, false);
+            (var collectRoadRule, var collectRoadRuleResult, var collectRoadRulePrescription) = roadExistsRuleResults.And();
             roadExistsRules.Add(collectRoadRule);
             roadExistsRuleResults.Add(collectRoadRuleResult);
             roadExistsRulePrescriptions.Add(collectRoadRulePrescription);
@@ -116,39 +116,12 @@ namespace Concurri.Svr.TestHarness
             // a special Operation (Match -> Generates Exists Rules as simple triggers)
             // regular Operation(s) to process the matching entities
 
-            // So search for duplicate roads (A->B and B->A) by external code
-            var dupRoadIds = roadValues
-                .Select(rv => (string)rv.Detail["properties"]?["roadId"])
-                .GroupBy(ri => ri)
-                .Select(ri => new { roadId = ri.Key, count = ri.Count() })
-                .Where(ri => ri.count > 1)
-                .ToList();
+            // So search for duplicate roads (A->B and B->A) by code external to the RuleEngine store
+            (var dupRoadExistsRules, var dupRoadExistsRuleResults, var dupRoadDeleteOperations,
+                    var dupRoadRulePrescriptions, var dupRoadOpPrescriptions) =
+                DeleteTheDuplicateRoads(roadValues, roadExistsRules);
 
-            // For each duplicate road, find the first one, and delete it.
-            var dupRoadRulePrescriptions = new List<IRuleProcessing>();
-            var dupRoadOpPrescriptions = new List<OperationDxProcessing>();
-            foreach (var dupRoadId in dupRoadIds)
-            {
-                var firstDupRoad =
-                    roadValues.First(rv => (string)rv.Detail["properties"]?["roadId"] == dupRoadId.roadId);
-                var firstDupRoadRule = roadExistsRules.First(rer =>
-                    rer.ReferenceValues.EntityIds[0].EntType == EntityType.Value &&
-                    rer.ReferenceValues.EntityIds[0].EntityId == firstDupRoad.ValueId);
-
-                (var roadExistsRule, var roadExistsRuleResult, var roadExistsRulePrescription) =
-                    firstDupRoad.Exists(null, null, false);
-                dupRoadRulePrescriptions.Add(roadExistsRulePrescription);
-
-                (var deleteRoadOperation, var deleteRoadPrescription) =
-                    roadExistsRuleResult.Delete(new[] { firstDupRoad });
-                (var deleteRoadRuleOperation, var deleteRoadRulePrescription) =
-                    roadExistsRuleResult.Delete(new[] { firstDupRoadRule });
-                dupRoadOpPrescriptions.Add(deleteRoadPrescription);
-                dupRoadOpPrescriptions.Add(deleteRoadRulePrescription); // This will also delete the RuleResult and any dependent Operations / Requests
-
-                RvStore.Add(roadExistsRule, roadExistsRuleResult, deleteRoadOperation, null);
-                RvStore.Add(null, null, deleteRoadRuleOperation, null);
-            }
+            RvStore.AddUpdate(dupRoadExistsRules, dupRoadExistsRuleResults, dupRoadDeleteOperations, null);
 
             TikTok(pass++, dupRoadRulePrescriptions, dupRoadOpPrescriptions);
 
@@ -171,7 +144,7 @@ namespace Concurri.Svr.TestHarness
                 roadExistsRulePrescriptions.Add(rv.Exists());
             }
             // Rebuild the Collection Rule, Result and Prescription for all of the 'road' rules
-            (collectRoadRule, collectRoadRuleResult, collectRoadRulePrescription) = roadExistsRuleResults.And(collectRoadRule, collectRoadRuleResult, false);
+            (collectRoadRule, collectRoadRuleResult, collectRoadRulePrescription) = roadExistsRuleResults.And(collectRoadRule, collectRoadRuleResult);
             roadExistsRules.Add(collectRoadRule);
             roadExistsRuleResults.Add(collectRoadRuleResult);
             roadExistsRulePrescriptions.Add(collectRoadRulePrescription);
@@ -181,7 +154,7 @@ namespace Concurri.Svr.TestHarness
 
             // Add the new Entities to the Store ready for processing
             RvStore
-                .AddUpdate(roadExistsRules, roadExistsRuleResults, new[] {lineOperation}.ToList(), null);
+                .AddUpdate(roadExistsRules, roadExistsRuleResults, new[] { lineOperation }.ToList(), null);
 
             TikTok(pass++, roadExistsRulePrescriptions, new[] { lineOperationPrescription });
 
@@ -828,12 +801,17 @@ namespace Concurri.Svr.TestHarness
             if (buildGeoJsonOperation == null)
             {
                 var opKey = values.OperandKey(EntityType.Value);
-                buildGeoJsonOperation = new Operation { OperationId = Guid.NewGuid(), Operands = ImmutableArray.Create(opKey) };
+                buildGeoJsonOperation = new Operation
+                {
+                    OperationId = Guid.NewGuid(),
+                    Operands = ImmutableArray.Create(opKey)
+                };
             }
             else
             {
                 var opKey = values.OperandKey(EntityType.Value, buildGeoJsonOperation.Operands[0].EntityId);
                 buildGeoJsonOperation.Operands = ImmutableArray.Create(opKey);
+                buildGeoJsonOperation.LastChanged = DateTime.UtcNow;
             }
 
             buildGeoJsonOperation.OperationType = OperationType.CreateUpdate;
@@ -843,6 +821,52 @@ namespace Concurri.Svr.TestHarness
             var buildGeoJsonPrescription = buildGeoJsonOperation.AddUpdate();
 
             return (buildGeoJsonOperation, buildGeoJsonPrescription);
+        }
+
+        private static (
+            List<Rule> dupRoadExistsRules, List<RuleResult> dupRoadExistsRuleResults, List<Operation> dupRoadDeleteOperations, 
+            List<IRuleProcessing> dupRoadRulePrescriptions, List<OperationDxProcessing> dupRoadOpPrescriptions) 
+            DeleteTheDuplicateRoads(List<Value> roadValues, List<Rule> roadExistsRules)
+        {
+            var dupRoadIds = roadValues
+                .Select(rv => (string)rv.Detail["properties"]?["roadId"])
+                .GroupBy(ri => ri)
+                .Select(ri => new { roadId = ri.Key, count = ri.Count() })
+                .Where(ri => ri.count > 1)
+                .ToList();
+
+            // For each duplicate road, find the first one, and delete it.
+            var dupRoadExistsRules = new List<Rule>();
+            var dupRoadExistsRuleResults = new List<RuleResult>();
+            var dupRoadDeleteOperations = new List<Operation>();
+            var dupRoadRulePrescriptions = new List<IRuleProcessing>();
+            var dupRoadOpPrescriptions = new List<OperationDxProcessing>();
+            foreach (var dupRoadId in dupRoadIds)
+            {
+                var firstDupRoad =
+                    roadValues.First(rv => (string)rv.Detail["properties"]?["roadId"] == dupRoadId.roadId);
+                var firstDupRoadRule = roadExistsRules.First(rer =>
+                    rer.ReferenceValues.EntityIds[0].EntType == EntityType.Value &&
+                    rer.ReferenceValues.EntityIds[0].EntityId == firstDupRoad.ValueId);
+
+                (var roadExistsRule, var roadExistsRuleResult, var roadExistsRulePrescription) = firstDupRoad.Exists();
+
+                (var deleteRoadOperation, var deleteRoadPrescription) =
+                    roadExistsRuleResult.Delete(new[] { firstDupRoad }, Guid.Empty);
+                (var deleteRoadRuleOperation, var deleteRoadRulePrescription) =
+                    roadExistsRuleResult.Delete(new[] { firstDupRoadRule }, Guid.Empty);
+
+                dupRoadExistsRules.Add(roadExistsRule);
+                dupRoadExistsRuleResults.Add(roadExistsRuleResult);
+                dupRoadDeleteOperations.Add(deleteRoadOperation);
+                dupRoadDeleteOperations.Add(deleteRoadRuleOperation);
+
+                dupRoadRulePrescriptions.Add(roadExistsRulePrescription);
+                dupRoadOpPrescriptions.Add(deleteRoadPrescription);
+                dupRoadOpPrescriptions.Add(deleteRoadRulePrescription); // This will also delete the RuleResult and any dependent Operations / Requests
+            }
+
+            return (dupRoadExistsRules, dupRoadExistsRuleResults, dupRoadDeleteOperations, dupRoadRulePrescriptions, dupRoadOpPrescriptions);
         }
 
         private static void TikTok(int pass, IEnumerable<IRuleProcessing> rulePrescriptions, IEnumerable<IOpReqProcessing> operationPrescriptions)

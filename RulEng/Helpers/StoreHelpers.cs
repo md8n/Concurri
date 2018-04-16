@@ -104,7 +104,7 @@ namespace RulEng.Helpers
         /// <param name="operation"></param>
         /// <param name="request"></param>
         /// <returns></returns>
-        public static IStore<RulEngStore> Add(this IStore<RulEngStore> store, Rule rule, RuleResult ruleResult, Operation operation, Request request)
+        public static IStore<RulEngStore> AddUpdate(this IStore<RulEngStore> store, Rule rule, RuleResult ruleResult, Operation operation, Request request)
         {
             var storeState = store.GetState();
 

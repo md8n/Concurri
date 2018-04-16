@@ -176,7 +176,7 @@ namespace RulEng.Helpers
             return (ruleResult, rulePrescription);
         }
 
-        public static (Operation operation, IEnumerable<Value> value, OperationMxProcessing operationPrescription) Add(this RuleResult ruleResult, IEnumerable<IEnumerable<Guid>> valueIds)
+        public static (Operation operation, IEnumerable<Value> value, OperationMxProcessing operationPrescription) Add(this RuleResult ruleResult, IEnumerable<IEnumerable<Guid>> valueIds, Guid operationId)
         {
             var values = new List<Value>();
             var vOpers = (from vSet in valueIds.ToArray()
@@ -189,18 +189,18 @@ namespace RulEng.Helpers
                           })
                 .ToArray();
 
-            var operation = ruleResult.CreateOperation(vOpers);
+            var operation = ruleResult.CreateOperation(vOpers, operationId);
             var operationPrescription =
                 new OperationMxProcessing { Entities = ImmutableArray.Create(vOpers) };
 
             return (operation, values, operationPrescription);
         }
 
-        public static (Operation operation, OperationDxProcessing operationPrescription) Delete(this RuleResult ruleResult, IEnumerable<IEntity> entities)
+        public static (Operation operation, OperationDxProcessing operationPrescription) Delete(this RuleResult ruleResult, IEnumerable<IEntity> entities, Guid operationId)
         {
             var opKeys = entities.Select(e => e.OperandKey()).ToArray();
 
-            var operation = ruleResult.DeleteOperation(opKeys);
+            var operation = ruleResult.DeleteOperation(opKeys, operationId);
             var operationPrescription = new OperationDxProcessing { Entities = ImmutableArray.Create(opKeys) };
 
             return (operation, operationPrescription);

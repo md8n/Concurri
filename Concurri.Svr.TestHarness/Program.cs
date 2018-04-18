@@ -712,18 +712,11 @@ namespace Concurri.Svr.TestHarness
 
                 // Although the source values are always the same we need a new OperandKey each time
                 // for each new Value to be generated
-                var opKeys = values.OperandKey(EntityType.Value);
+                var opKeys = new [] {values.OperandKey(EntityType.Value)};
 
                 // Add an Operation to reference the collect Rule and merge all of the results into one GeoJSON
-                var buildCityDistancesOperation = new Operation
-                {
-                    OperationId = Guid.NewGuid(),
-                    OperationType = OperationType.CreateUpdate,
-                    RuleResultId = cityRuleResults.EntityId,
-                    Operands = ImmutableArray.Create(opKeys),
-                    OperationTemplate = jTempl
-                };
-                var buildCityDistancesPrescription = (OperationMxProcessing)buildCityDistancesOperation.AddUpdate();
+                var buildCityDistancesOperation = cityRuleResults.CreateUpdateOperation(opKeys, Guid.NewGuid(), jTempl);
+                var buildCityDistancesPrescription = buildCityDistancesOperation.AddUpdate();
 
                 operations.Add(buildCityDistancesOperation);
                 operationPrescriptions.Add(buildCityDistancesPrescription);
@@ -763,14 +756,7 @@ namespace Concurri.Svr.TestHarness
                 var opKeys = new[] { cityAId, nextCityBId }.OperandKey(EntityType.Value);
 
                 // Add an Operation to reference the collect Rule and merge all of the results into one GeoJSON
-                var buildCityRoadOperation = new Operation
-                {
-                    OperationId = Guid.NewGuid(),
-                    OperationType = OperationType.CreateUpdate,
-                    RuleResultId = cityDistRuleResultId,
-                    Operands = ImmutableArray.Create(opKeys),
-                    OperationTemplate = lineGeo
-                };
+                var buildCityRoadOperation = cityDistRuleResultId.CreateUpdateOperation(new [] {opKeys}, Guid.NewGuid(), lineGeo);
                 var buildCityRoadPrescription = buildCityRoadOperation.AddUpdate();
 
                 operations.Add(buildCityRoadOperation);
@@ -802,7 +788,7 @@ namespace Concurri.Svr.TestHarness
             {
                 var opKey = values.OperandKey(EntityType.Value);
 
-                buildGeoJsonOperation = collectRuleResult.RecreateUpdateOperation(new[] {opKey}, Guid.NewGuid(), valueTemplate);
+                buildGeoJsonOperation = collectRuleResult.CreateUpdateOperation(new[] {opKey}, Guid.NewGuid(), valueTemplate);
             }
             else
             {

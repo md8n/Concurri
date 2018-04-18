@@ -17,19 +17,32 @@ namespace RulEng.Helpers
         /// <param name="ruleResult"></param>
         /// <param name="operands"></param>
         /// <param name="operationId"></param>
+        /// <param name="template"></param>
         /// <returns></returns>
-        public static Operation RecreateUpdateOperation(this RuleResult ruleResult, IEnumerable<OperandKey> operands, Guid operationId, string template)
+        public static Operation CreateUpdateOperation(this RuleResult ruleResult, IEnumerable<OperandKey> operands, Guid operationId, string template)
+        {
+            return ruleResult.RuleResultId.CreateUpdateOperation(operands, operationId, template);
+        }
+
+        /// <summary>
+        /// Create a new CreateUpdate Operation based on the supplied RuleResultId and OperandKeys
+        /// </summary>
+        /// <param name="ruleResultId"></param>
+        /// <param name="operands"></param>
+        /// <param name="operationId"></param>
+        /// <param name="template"></param>
+        /// <returns></returns>
+        public static Operation CreateUpdateOperation(this Guid ruleResultId, IEnumerable<OperandKey> operands, Guid operationId, string template)
         {
             return new Operation
             {
                 OperationId = operationId == Guid.Empty ? Guid.NewGuid() : operationId,
-                RuleResultId = ruleResult.RuleResultId,
+                RuleResultId = ruleResultId,
                 Operands = ImmutableArray.Create(operands.ToArray()),
                 OperationTemplate = template,
                 OperationType = OperationType.CreateUpdate
             };
         }
-
         /// <summary>
         /// Rebuild a CreateUpdate Operation based on an existing Operation and the optional RuleResult, OperandKeys and Template
         /// </summary>

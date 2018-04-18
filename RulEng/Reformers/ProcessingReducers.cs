@@ -96,11 +96,11 @@ namespace RulEng.Reformers
                 .ToList();
             //var conflictDestinations = groupedDestinations
             //    .Where(grp => grp.Count > 1)
-            //    .Select(grp => new TypeKey { EntityId = grp.Key.EntityId, EntType = grp.Key.EntType })
+            //    .Select(grp => new TypeKey { EntityId = grp.Key.EntityId, EntTags = grp.Key.EntTags, EntType = grp.Key.EntType })
             //    .ToList();
             var acceptableDestinations = groupedDestinations
                 .Where(grp => grp.Count == 1)
-                .Select(grp => new EntMatch { EntityId = grp.Key.EntityId, EntType = grp.Key.EntType })
+                .Select(grp => grp.Key)
                 .ToList();
 
             if (prescription is OperationMxProcessing)

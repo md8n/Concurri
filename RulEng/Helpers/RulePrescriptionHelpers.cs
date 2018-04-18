@@ -36,7 +36,7 @@ namespace RulEng.Helpers
                 throw new ArgumentOutOfRangeException(nameof(entity), "RulePrescription helper creator is only for Processable entity types");
             }
 
-            var entTypeKey = new TypeKey { EntityId = entity.EntityId, EntType = entity.EntType, LastChanged = entity.LastChanged };
+            var entTypeKey = new TypeKey { EntityId = entity.EntityId, EntType = entity.EntType, EntTags = entity.EntTags, LastChanged = entity.LastChanged };
             var refValue = new TU { RuleResultId = existingRule?.ReferenceValues.RuleResultId ?? Guid.NewGuid(), EntityIds = ImmutableList.Create((IEntity)entTypeKey) };
 
             return refValue;

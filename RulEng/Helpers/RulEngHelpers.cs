@@ -56,7 +56,7 @@ namespace RulEng.Helpers
                 throw new ArgumentOutOfRangeException(nameof(val), "Exists helper creator is only for Processable entity types");
             }
 
-            var vType = new TypeKey { EntityId = val.EntityId, EntType = val.EntType, LastChanged = val.LastChanged };
+            var vType = new TypeKey { EntityId = val.EntityId, EntType = val.EntType, EntTags = val.EntTags, LastChanged = val.LastChanged };
 
             // Create the Rule, RuleResult and RulePrescription and ensure that the RuleResultId is the same for all
             var rule = vType.ExistsRule(existingRule, negateResult);
@@ -79,7 +79,7 @@ namespace RulEng.Helpers
         /// <returns></returns>
         public static (Rule rule, RuleResult ruleResult, IRuleProcessing ruleProcessing) Exists<T>(this OperandKey val, Rule existingRule = null, RuleResult existingRuleResult = null, bool negateResult = false) where T : IEntity
         {
-            var vType = new TypeKey { EntityId = val.EntityId, EntType = val.EntType, LastChanged = val.LastChanged };
+            TypeKey vType = val;
 
             // Create the Rule, RuleResult and RulePrescription and ensure that the RuleResultId is the same for all
             var rule = vType.ExistsRule(existingRule, negateResult);

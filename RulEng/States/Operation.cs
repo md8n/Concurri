@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -14,6 +15,8 @@ namespace RulEng.States
         public Guid EntityId { get => OperationId; set => OperationId = value; }
 
         public EntityType EntType => EntityType.Operation;
+
+        public List<string> EntTags { get; set; }
 
         public DateTime LastChanged { get; set; } = DefaultHelpers.DefDate();
 
@@ -74,7 +77,7 @@ namespace RulEng.States
 
         public static implicit operator TypeKey(Operation operation)
         {
-            return new TypeKey { EntityId = operation.OperationId, EntType = EntityType.Operation, LastChanged = operation.LastChanged };
+            return new TypeKey { EntityId = operation.OperationId, EntType = EntityType.Operation, EntTags = operation.EntTags, LastChanged = operation.LastChanged };
         }
     }
 }

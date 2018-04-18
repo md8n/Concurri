@@ -1,5 +1,6 @@
 ﻿using RulEng.Helpers;
 using System;
+using System.Collections.Generic;
 using System.Collections.Immutable;
 
 namespace RulEng.States
@@ -21,6 +22,11 @@ namespace RulEng.States
         public EntityType EntType { get; set; }
 
         /// <summary>
+        /// The Tags that will be written to the resulting Entity
+        /// </summary>
+        public List<string> EntTags { get; set; }
+
+        /// <summary>
         /// The Id of the Entity the result will be written to.
         /// If the Entity does not exist it will be created with this Id
         /// </summary>
@@ -37,7 +43,7 @@ namespace RulEng.States
         /// <param name="ok"></param>
         public static implicit operator TypeKey(OperandKey ok)
         {
-            return new TypeKey {EntityId = ok.EntityId, EntType = ok.EntType, LastChanged = ok.LastChanged};
+            return new TypeKey {EntityId = ok.EntityId, EntType = ok.EntType, EntTags = ok.EntTags, LastChanged = ok.LastChanged};
         }
     }
 }

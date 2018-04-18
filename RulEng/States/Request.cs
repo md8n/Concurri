@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using GraphQL.Types;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -14,6 +15,8 @@ namespace RulEng.States
         public Guid EntityId { get => RequestId; set => RequestId = value; }
 
         public EntityType EntType => EntityType.Request;
+
+        public List<string> EntTags { get; set; }
 
         public DateTime LastChanged { get; set; } = DefaultHelpers.DefDate();
 
@@ -74,7 +77,7 @@ namespace RulEng.States
 
         public static implicit operator TypeKey(Request request)
         {
-            return new TypeKey { EntityId = request.RequestId, EntType = EntityType.Request, LastChanged = request.LastChanged };
+            return new TypeKey { EntityId = request.RequestId, EntType = EntityType.Request, EntTags = request.EntTags, LastChanged = request.LastChanged };
         }
     }
 }

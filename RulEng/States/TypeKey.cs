@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using RulEng.Helpers;
@@ -11,6 +12,8 @@ namespace RulEng.States
     public class TypeKey : IEntity
     {
         public EntityType EntType { get; set; }
+
+        public List<string> EntTags { get; set; }
 
         public Guid EntityId { get; set; }
 

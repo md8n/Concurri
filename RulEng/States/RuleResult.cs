@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using RulEng.Helpers;
@@ -16,6 +18,8 @@ namespace RulEng.States
 
         public EntityType EntType => EntityType.RuleResult;
 
+        public List<string> EntTags { get; set; }
+
         public DateTime LastChanged { get; set; } = DefaultHelpers.DefDate();
 
         public bool Detail { get; set; }
@@ -24,15 +28,17 @@ namespace RulEng.States
         {
         }
 
-        public RuleResult(bool jToken)
+        public RuleResult(bool jToken, List<string> entTags = null)
         {
             RuleResultId = Guid.NewGuid();
+            EntTags = entTags;
             Detail = jToken;
         }
 
-        public RuleResult(Rule rule)
+        public RuleResult(Rule rule, List<string> entTags = null)
         {
             RuleResultId = Guid.NewGuid();
+            EntTags = (entTags != null && entTags.Any()) ? entTags : rule.EntTags;
             RuleId = rule.RuleId;
             Detail = false;
         }
@@ -77,7 +83,7 @@ namespace RulEng.States
 
         public static implicit operator TypeKey(RuleResult ruleResult)
         {
-            return new TypeKey { EntityId = ruleResult.RuleResultId, EntType = EntityType.RuleResult, LastChanged = ruleResult.LastChanged };
+            return new TypeKey { EntityId = ruleResult.RuleResultId, EntType = EntityType.RuleResult, EntTags = ruleResult.EntTags, LastChanged = ruleResult.LastChanged };
         }
     }
 }

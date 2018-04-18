@@ -9,6 +9,7 @@ namespace RulEng.GraphModels
         {
             Field(x => x.SourceValueIds);
             Field(x => x.EntType).Description("The type of this entity");
+            Field(x => x.EntTags).Description("The tags associated with this entity");
             Field(x => x.EntityId).Description("The id of this entity");
         }
     }

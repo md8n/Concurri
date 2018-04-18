@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using RulEng.Helpers;
@@ -14,17 +15,24 @@ namespace RulEng.States
 
         public EntityType EntType => EntityType.Value;
 
+        public List<string> EntTags { get; set; }
+
         public DateTime LastChanged { get; set; } = DefaultHelpers.DefDate();
 
         public JToken Detail { get; set; }
 
-        public Value() : this(null)
+        public Value() : this(null, null)
         {
         }
 
-        public Value(object jToken)
+        public Value(List<string> entTags) : this(null, entTags)
+        {
+        }
+
+        public Value(object jToken, List<string> entTags = null)
         {
             ValueId = Guid.NewGuid();
+            EntTags = entTags;
             try
             {
                 Detail = JToken.Parse(jToken.ToString());
@@ -35,9 +43,10 @@ namespace RulEng.States
             }
         }
 
-        public Value(bool jToken)
+        public Value(bool jToken, List<string> entTags = null)
         {
             ValueId = Guid.NewGuid();
+            EntTags = entTags;
             try
             {
                 Detail = JToken.Parse(jToken.ToString());
@@ -48,9 +57,10 @@ namespace RulEng.States
             }
         }
 
-        public Value(int jToken)
+        public Value(int jToken, List<string> entTags = null)
         {
             ValueId = Guid.NewGuid();
+            EntTags = entTags;
             try
             {
                 Detail = JToken.Parse(jToken.ToString());
@@ -61,15 +71,17 @@ namespace RulEng.States
             }
         }
 
-        public Value(JToken jToken)
+        public Value(JToken jToken, List<string> entTags = null)
         {
             ValueId = Guid.NewGuid();
+            EntTags = entTags;
             Detail = jToken;
         }
 
-        public Value(string jToken)
+        public Value(string jToken, List<string> entTags = null)
         {
             ValueId = Guid.NewGuid();
+            EntTags = entTags;
             try
             {
                 Detail = JToken.Parse(jToken);
@@ -119,7 +131,7 @@ namespace RulEng.States
 
         public static implicit operator TypeKey (Value value)
         {
-            return new TypeKey { EntityId = value.ValueId, EntType = EntityType.Value, LastChanged = value.LastChanged };
+            return new TypeKey { EntityId = value.ValueId, EntType = EntityType.Value, EntTags = value.EntTags, LastChanged = value.LastChanged };
         }
     }
 }

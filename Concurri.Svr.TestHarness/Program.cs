@@ -801,22 +801,16 @@ namespace Concurri.Svr.TestHarness
             if (buildGeoJsonOperation == null)
             {
                 var opKey = values.OperandKey(EntityType.Value);
-                buildGeoJsonOperation = new Operation
-                {
-                    OperationId = Guid.NewGuid(),
-                    Operands = ImmutableArray.Create(opKey)
-                };
+
+                buildGeoJsonOperation = collectRuleResult.RecreateUpdateOperation(new[] {opKey}, Guid.NewGuid(), valueTemplate);
             }
             else
             {
                 var opKey = values.OperandKey(EntityType.Value, buildGeoJsonOperation.Operands[0].EntityId);
-                buildGeoJsonOperation.Operands = ImmutableArray.Create(opKey);
-                buildGeoJsonOperation.LastChanged = DateTime.UtcNow;
-            }
 
-            buildGeoJsonOperation.OperationType = OperationType.CreateUpdate;
-            buildGeoJsonOperation.RuleResultId = collectRuleResult.EntityId;
-            buildGeoJsonOperation.OperationTemplate = valueTemplate;
+                buildGeoJsonOperation =
+                    buildGeoJsonOperation.RecreateUpdateOperation(collectRuleResult, new[] {opKey}, valueTemplate);
+            }
 
             var buildGeoJsonPrescription = buildGeoJsonOperation.AddUpdate();
 

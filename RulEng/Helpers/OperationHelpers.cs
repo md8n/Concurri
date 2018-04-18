@@ -18,15 +18,47 @@ namespace RulEng.Helpers
         /// <param name="operands"></param>
         /// <param name="operationId"></param>
         /// <returns></returns>
-        public static Operation CreateOperation(this RuleResult ruleResult, IEnumerable<OperandKey> operands, Guid operationId)
+        public static Operation RecreateUpdateOperation(this RuleResult ruleResult, IEnumerable<OperandKey> operands, Guid operationId, string template)
         {
             return new Operation
             {
                 OperationId = operationId == Guid.Empty ? Guid.NewGuid() : operationId,
                 RuleResultId = ruleResult.RuleResultId,
                 Operands = ImmutableArray.Create(operands.ToArray()),
+                OperationTemplate = template,
                 OperationType = OperationType.CreateUpdate
             };
+        }
+
+        /// <summary>
+        /// Rebuild a CreateUpdate Operation based on an existing Operation and the optional RuleResult, OperandKeys and Template
+        /// </summary>
+        /// <param name="operation"></param>
+        /// <param name="ruleResult"></param>
+        /// <param name="operands"></param>
+        /// <param name="template"></param>
+        /// <returns></returns>
+        public static Operation RecreateUpdateOperation(this Operation operation, RuleResult ruleResult = null, IEnumerable<OperandKey> operands = null, string template = null)
+        {
+            if (ruleResult != null)
+            {
+                operation.RuleResultId = ruleResult.EntityId;
+            }
+
+            if (operands != null)
+            {
+                operation.Operands = ImmutableArray.Create(operands.ToArray());
+            }
+
+            if (!string.IsNullOrWhiteSpace(template))
+            {
+                operation.OperationTemplate = template.Trim();
+            }
+
+            operation.LastChanged = DateTime.UtcNow;
+            operation.OperationType = OperationType.CreateUpdate;
+
+            return operation;
         }
 
         /// <summary>

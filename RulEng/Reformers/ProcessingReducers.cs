@@ -60,7 +60,10 @@ namespace RulEng.Reformers
                 ? OperationType.CreateUpdate
                 : prescription is OperationDxProcessing
                     ? OperationType.Delete
-                    : OperationType.Unknown; // When the prescription is for requests 
+                    : prescription is OperationSxProcessing 
+                        ? OperationType.Search 
+                        : OperationType.Unknown; // When the prescription is for requests 
+
             // Find all relevant operations/requests for the identified rule results and then filter down by execution date
             var operationprescriptionsToProcessList = (
                 from op in newState.Operations.Where(a => ruleResultIds.Contains(a.RuleResultId) && a.OperationType == opType)
@@ -88,7 +91,7 @@ namespace RulEng.Reformers
             }
 
             var groupedDestinations = destinationEntities
-                .GroupBy(de => new { de.EntityId, de.EntType })
+                .GroupBy(de => new EntMatch { EntityId = de.EntityId, EntType = de.EntType })
                 .Select(grp => new { grp.Key, Count = grp.Count() })
                 .ToList();
             //var conflictDestinations = groupedDestinations
@@ -105,6 +108,10 @@ namespace RulEng.Reformers
                 newState = OperationMxProcessing(newState, previousState, ruleResultIds, operationprescriptionsToProcessList, acceptableDestinations);
             }
             if (prescription is OperationDxProcessing)
+            {
+                newState = OperationDxProcessing(newState, ruleResultIds, operationprescriptionsToProcessList, acceptableDestinations);
+            }
+            if (prescription is OperationSxProcessing)
             {
                 newState = OperationDxProcessing(newState, ruleResultIds, operationprescriptionsToProcessList, acceptableDestinations);
             }
@@ -343,6 +350,158 @@ namespace RulEng.Reformers
 
                 // newState.RuleResults.RemoveWhere(r => r.RuleResultId == ruleResultIdToProcess);
             }
+
+            return newState;
+        }
+
+
+        private static ProcessingRulEngStore OperationSxProcessing(this ProcessingRulEngStore newState, RulEngStore previousState,
+            List<Guid> ruleResultIds, List<Operation> operationprescriptionsToProcessList,
+            List<EntMatch> acceptableDestinations)
+        {
+            // Get all of the sources from the previous state
+            var acceptableSourceIds = new List<Guid>();
+            //foreach (var opPresProc in operationprescriptionsToProcessList)
+            //{
+            //    var opPresOperands = opPresProc.Operands;
+
+            //    var matchFound = false;
+            //    foreach (var opo in opPresOperands)
+            //    {
+            //        if (!acceptableDestinations
+            //            .Any(ad => ad.EntType == opo.EntType && (ad.EntityId == opo.EntityId || opo.EntityId == Guid.Empty)))
+            //        {
+            //            continue;
+            //        }
+
+            //        matchFound = true;
+            //        break;
+            //    }
+
+            //    if (!matchFound)
+            //    {
+            //        continue;
+            //    }
+
+            //    acceptableSourceIds.AddRange(opPresOperands.SelectMany(oo => oo.SourceValueIds));
+            //}
+
+            //var acceptableSources = previousState.Values
+            //    .Where(v => acceptableSourceIds.Contains(v.EntityId))
+            //    .ToList();
+
+            //foreach (var ruleResultIdToProcess in ruleResultIds)
+            //{
+            //    // Get all of the operations relevant to the Rule
+            //    var relevantOps = operationprescriptionsToProcessList
+            //        .Where(o => o.RuleResultId == ruleResultIdToProcess)
+            //        .ToList();
+
+            //    if (!relevantOps.Any())
+            //    {
+            //        // TODO: confirm if we should be doing this if there was nothing relevant to process
+            //        //newState.RuleResults.RemoveWhere(r => r.RuleResultId == ruleResultIdToProcess);
+            //        continue;
+            //    }
+
+            //    // Process the acceptable
+            //    foreach (var relevantOp in relevantOps)
+            //    {
+            //        var firstEnt = new EntMatch
+            //        {
+            //            EntityId = relevantOp.Operands[0].EntityId,
+            //            EntType = relevantOp.Operands[0].EntType
+            //        };
+
+            //        if (!acceptableDestinations.Any(ad =>
+            //            ad.EntType == firstEnt.EntType && ad.EntityId == firstEnt.EntityId))
+            //        {
+            //            continue;
+            //        }
+
+            //        var destEntsToProcess = relevantOp.Operands
+            //            .Select(de => new
+            //            {
+            //                de.EntityId,
+            //                EntType = Convert.ToInt32(de.EntType),
+            //                sourceValues = de.SourceValueIds
+            //                    .Select(sv => JObject.Parse($"{{\"Id\":\"{sv}\",\"Value\":{acceptableSources.FirstOrDefault(a => a.EntityId == sv)?.Detail.ToString(Formatting.None)}}}"))
+            //                    .ToArray()
+            //            })
+            //            .ToList();
+
+            //        var jTempl = relevantOp.OperationTemplate;
+            //        var jCode = jTempl;
+            //        foreach (var destEnt in destEntsToProcess)
+            //        {
+            //            var sourceVals = destEnt.sourceValues;
+            //            var isSubstOk = true;
+
+            //            foreach (Match match in regexToken.Matches(jTempl))
+            //            {
+            //                var token = match.Groups["Token"].Value;
+            //                var indexOk = int.TryParse(match.Groups["Index"].Value, out var index);
+
+            //                if (!indexOk)
+            //                {
+            //                    break;
+            //                }
+
+            //                if (sourceVals.Length < index)
+            //                {
+            //                    isSubstOk = false;
+            //                    break;
+            //                }
+
+            //                jCode = jCode.Replace(token, sourceVals[index]["Value"].ToString(Formatting.None));
+            //            }
+
+            //            if (!isSubstOk)
+            //            {
+            //                Console.WriteLine(jCode);
+            //                continue;
+            //            }
+
+            //            JToken result = null;
+            //            if (jCode.StartsWith("{"))
+            //            {
+            //                result = JObject.FromObject(e.Execute(jCode).GetCompletionValue().ToObject());
+            //            }
+            //            if (jCode.StartsWith("["))
+            //            {
+            //                result = JArray.FromObject(e.Execute(jCode).GetCompletionValue().ToObject());
+            //            }
+            //            //Console.WriteLine(result);
+            //            switch ((EntityType)destEnt.EntType)
+            //            {
+            //                case EntityType.Rule:
+            //                    // Create/Update a rule using destEnt.EntityId and result
+            //                    newState.FromOperationResultAddUpdateRule(result, destEnt.EntityId);
+            //                    break;
+            //                case EntityType.Operation:
+            //                    // Create/Update an Operation using destEnt.EntityId and result
+            //                    newState.FromOperationResultAddUpdateOperation(result, destEnt.EntityId);
+            //                    break;
+            //                case EntityType.Request:
+            //                    // Create/Update a Request using destEnt.EntityId and result
+            //                    newState.FromOperationResultAddUpdateRequest(result, destEnt.EntityId);
+            //                    break;
+            //                case EntityType.Value:
+            //                    // Create/Update a Value using destEnt.EntityId and result
+            //                    newState.FromOperationResultAddUpdateValue(result, destEnt.EntityId);
+            //                    break;
+            //            }
+
+            //            // Mark the operation as Executed
+            //            var actionDate = DateTime.UtcNow;
+
+            //            // Mark this Rule as executed
+            //            relevantOp.LastExecuted = actionDate;
+            //        }
+            //    }
+
+            //    // newState.RuleResults.RemoveWhere(r => r.RuleResultId == ruleResultIdToProcess);
+            //}
 
             return newState;
         }

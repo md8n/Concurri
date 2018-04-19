@@ -113,7 +113,7 @@ namespace RulEng.Reformers
             }
             if (prescription is OperationSxProcessing)
             {
-                newState = OperationDxProcessing(newState, ruleResultIds, operationprescriptionsToProcessList, acceptableDestinations);
+                newState = OperationSxProcessing(newState, previousState, ruleResultIds, operationprescriptionsToProcessList, acceptableDestinations);
             }
 
             return newState;
@@ -147,7 +147,7 @@ namespace RulEng.Reformers
                     continue;
                 }
 
-                acceptableSourceIds.AddRange(opPresOperands.SelectMany(oo => oo.SourceValueIds));
+                acceptableSourceIds.AddRange(opPresOperands.SelectMany(oo => oo.SourceEntityIds));
             }
 
             var acceptableSources = previousState.Values
@@ -174,11 +174,8 @@ namespace RulEng.Reformers
                 // Process the acceptable
                 foreach (var relevantOp in relevantOps)
                 {
-                    var firstEnt = new EntMatch
-                    {
-                        EntityId = relevantOp.Operands[0].EntityId,
-                        EntType = relevantOp.Operands[0].EntType
-                    };
+                    // Ensure the first entity in the operation is an acceptable destination
+                    EntMatch firstEnt = relevantOp.Operands[0];
 
                     if (!acceptableDestinations.Any(ad =>
                         ad.EntType == firstEnt.EntType && ad.EntityId == firstEnt.EntityId))
@@ -191,7 +188,7 @@ namespace RulEng.Reformers
                         {
                             de.EntityId,
                             EntType = Convert.ToInt32(de.EntType),
-                            sourceValues = de.SourceValueIds
+                            sourceValues = de.SourceEntityIds
                                 .Select(sv => JObject.Parse($"{{\"Id\":\"{sv}\",\"Value\":{acceptableSources.FirstOrDefault(a => a.EntityId == sv)?.Detail.ToString(Formatting.None)}}}"))
                                 .ToArray()
                         })
@@ -390,118 +387,149 @@ namespace RulEng.Reformers
             //    .Where(v => acceptableSourceIds.Contains(v.EntityId))
             //    .ToList();
 
-            //foreach (var ruleResultIdToProcess in ruleResultIds)
-            //{
-            //    // Get all of the operations relevant to the Rule
-            //    var relevantOps = operationprescriptionsToProcessList
-            //        .Where(o => o.RuleResultId == ruleResultIdToProcess)
-            //        .ToList();
+            var e = new Engine();
 
-            //    if (!relevantOps.Any())
-            //    {
-            //        // TODO: confirm if we should be doing this if there was nothing relevant to process
-            //        //newState.RuleResults.RemoveWhere(r => r.RuleResultId == ruleResultIdToProcess);
-            //        continue;
-            //    }
+            foreach (var ruleResultIdToProcess in ruleResultIds)
+            {
+                // Get all of the operations relevant to the Rule
+                var relevantOps = operationprescriptionsToProcessList
+                    .Where(o => o.RuleResultId == ruleResultIdToProcess)
+                    .ToList();
 
-            //    // Process the acceptable
-            //    foreach (var relevantOp in relevantOps)
-            //    {
-            //        var firstEnt = new EntMatch
-            //        {
-            //            EntityId = relevantOp.Operands[0].EntityId,
-            //            EntType = relevantOp.Operands[0].EntType
-            //        };
+                if (!relevantOps.Any())
+                {
+                    // TODO: confirm if we should be doing this if there was nothing relevant to process
+                    //newState.RuleResults.RemoveWhere(r => r.RuleResultId == ruleResultIdToProcess);
+                    continue;
+                }
 
-            //        if (!acceptableDestinations.Any(ad =>
-            //            ad.EntType == firstEnt.EntType && ad.EntityId == firstEnt.EntityId))
-            //        {
-            //            continue;
-            //        }
+                // Process the acceptable
+                foreach (var relevantOp in relevantOps)
+                {
+                    // Note: A Search operation does not specify an output destination as it does not 'know' in advance how many results will be found
+                    // However, it may specify a reduced set of Ids to search through.
+                    // These will be provided in the SourceValueIds field of each relevantOp.Operand
 
-            //        var destEntsToProcess = relevantOp.Operands
-            //            .Select(de => new
-            //            {
-            //                de.EntityId,
-            //                EntType = Convert.ToInt32(de.EntType),
-            //                sourceValues = de.SourceValueIds
-            //                    .Select(sv => JObject.Parse($"{{\"Id\":\"{sv}\",\"Value\":{acceptableSources.FirstOrDefault(a => a.EntityId == sv)?.Detail.ToString(Formatting.None)}}}"))
-            //                    .ToArray()
-            //            })
-            //            .ToList();
+                    //        var firstEnt = new EntMatch
+                    //        {
+                    //            EntityId = relevantOp.Operands[0].EntityId,
+                    //            EntType = relevantOp.Operands[0].EntType
+                    //        };
 
-            //        var jTempl = relevantOp.OperationTemplate;
-            //        var jCode = jTempl;
-            //        foreach (var destEnt in destEntsToProcess)
-            //        {
-            //            var sourceVals = destEnt.sourceValues;
-            //            var isSubstOk = true;
+                    //        if (!acceptableDestinations.Any(ad =>
+                    //            ad.EntType == firstEnt.EntType && ad.EntityId == firstEnt.EntityId))
+                    //        {
+                    //            continue;
+                    //        }
 
-            //            foreach (Match match in regexToken.Matches(jTempl))
-            //            {
-            //                var token = match.Groups["Token"].Value;
-            //                var indexOk = int.TryParse(match.Groups["Index"].Value, out var index);
+                    //        var destEntsToProcess = relevantOp.Operands
+                    //            .Select(de => new
+                    //            {
+                    //                de.EntityId,
+                    //                EntType = Convert.ToInt32(de.EntType),
+                    //                sourceValues = de.SourceValueIds
+                    //                    .Select(sv => JObject.Parse($"{{\"Id\":\"{sv}\",\"Value\":{acceptableSources.FirstOrDefault(a => a.EntityId == sv)?.Detail.ToString(Formatting.None)}}}"))
+                    //                    .ToArray()
+                    //            })
+                    //            .ToList();
 
-            //                if (!indexOk)
-            //                {
-            //                    break;
-            //                }
+                    var jTempl = relevantOp.OperationTemplate;
+                    var jCode = jTempl;
 
-            //                if (sourceVals.Length < index)
-            //                {
-            //                    isSubstOk = false;
-            //                    break;
-            //                }
+                    switch (relevantOp.Operands[0].SourceEntType)
+                    {
+                        case EntityType.Rule:
+                            e.SetValue("source", previousState.Rules);
+                            break;
+                        case EntityType.RuleResult:
+                            e.SetValue("source", previousState.RuleResults);
+                            break;
+                        case EntityType.Operation:
+                            e.SetValue("source", previousState.Operations);
+                            break;
+                        case EntityType.Request:
+                            e.SetValue("source", previousState.Requests);
+                            break;
+                        case EntityType.Value:
+                            e.SetValue("source", previousState.Values);
+                            break;
+                    }
 
-            //                jCode = jCode.Replace(token, sourceVals[index]["Value"].ToString(Formatting.None));
-            //            }
+                    var result = e
+                        .Execute(jCode)
+                        .GetCompletionValue()
+                        .ToObject();
 
-            //            if (!isSubstOk)
-            //            {
-            //                Console.WriteLine(jCode);
-            //                continue;
-            //            }
+                    //        foreach (var destEnt in destEntsToProcess)
+                    //        {
+                    //            var sourceVals = destEnt.sourceValues;
+                    //            var isSubstOk = true;
 
-            //            JToken result = null;
-            //            if (jCode.StartsWith("{"))
-            //            {
-            //                result = JObject.FromObject(e.Execute(jCode).GetCompletionValue().ToObject());
-            //            }
-            //            if (jCode.StartsWith("["))
-            //            {
-            //                result = JArray.FromObject(e.Execute(jCode).GetCompletionValue().ToObject());
-            //            }
-            //            //Console.WriteLine(result);
-            //            switch ((EntityType)destEnt.EntType)
-            //            {
-            //                case EntityType.Rule:
-            //                    // Create/Update a rule using destEnt.EntityId and result
-            //                    newState.FromOperationResultAddUpdateRule(result, destEnt.EntityId);
-            //                    break;
-            //                case EntityType.Operation:
-            //                    // Create/Update an Operation using destEnt.EntityId and result
-            //                    newState.FromOperationResultAddUpdateOperation(result, destEnt.EntityId);
-            //                    break;
-            //                case EntityType.Request:
-            //                    // Create/Update a Request using destEnt.EntityId and result
-            //                    newState.FromOperationResultAddUpdateRequest(result, destEnt.EntityId);
-            //                    break;
-            //                case EntityType.Value:
-            //                    // Create/Update a Value using destEnt.EntityId and result
-            //                    newState.FromOperationResultAddUpdateValue(result, destEnt.EntityId);
-            //                    break;
-            //            }
+                    //            foreach (Match match in regexToken.Matches(jTempl))
+                    //            {
+                    //                var token = match.Groups["Token"].Value;
+                    //                var indexOk = int.TryParse(match.Groups["Index"].Value, out var index);
 
-            //            // Mark the operation as Executed
-            //            var actionDate = DateTime.UtcNow;
+                    //                if (!indexOk)
+                    //                {
+                    //                    break;
+                    //                }
 
-            //            // Mark this Rule as executed
-            //            relevantOp.LastExecuted = actionDate;
-            //        }
-            //    }
+                    //                if (sourceVals.Length < index)
+                    //                {
+                    //                    isSubstOk = false;
+                    //                    break;
+                    //                }
 
-            //    // newState.RuleResults.RemoveWhere(r => r.RuleResultId == ruleResultIdToProcess);
-            //}
+                    //                jCode = jCode.Replace(token, sourceVals[index]["Value"].ToString(Formatting.None));
+                    //            }
+
+                    //            if (!isSubstOk)
+                    //            {
+                    //                Console.WriteLine(jCode);
+                    //                continue;
+                    //            }
+
+                    //            JToken result = null;
+                    //            if (jCode.StartsWith("{"))
+                    //            {
+                    //                result = JObject.FromObject(e.Execute(jCode).GetCompletionValue().ToObject());
+                    //            }
+                    //            if (jCode.StartsWith("["))
+                    //            {
+                    //                result = JArray.FromObject(e.Execute(jCode).GetCompletionValue().ToObject());
+                    //            }
+                    //            //Console.WriteLine(result);
+                    //            switch ((EntityType)destEnt.EntType)
+                    //            {
+                    //                case EntityType.Rule:
+                    //                    // Create/Update a rule using destEnt.EntityId and result
+                    //                    newState.FromOperationResultAddUpdateRule(result, destEnt.EntityId);
+                    //                    break;
+                    //                case EntityType.Operation:
+                    //                    // Create/Update an Operation using destEnt.EntityId and result
+                    //                    newState.FromOperationResultAddUpdateOperation(result, destEnt.EntityId);
+                    //                    break;
+                    //                case EntityType.Request:
+                    //                    // Create/Update a Request using destEnt.EntityId and result
+                    //                    newState.FromOperationResultAddUpdateRequest(result, destEnt.EntityId);
+                    //                    break;
+                    //                case EntityType.Value:
+                    //                    // Create/Update a Value using destEnt.EntityId and result
+                    //                    newState.FromOperationResultAddUpdateValue(result, destEnt.EntityId);
+                    //                    break;
+                    //            }
+
+                    //            // Mark the operation as Executed
+                    //            var actionDate = DateTime.UtcNow;
+
+                    //            // Mark this Rule as executed
+                    //            relevantOp.LastExecuted = actionDate;
+                    //        }
+                }
+
+                // newState.RuleResults.RemoveWhere(r => r.RuleResultId == ruleResultIdToProcess);
+            }
 
             return newState;
         }
@@ -509,7 +537,7 @@ namespace RulEng.Reformers
         public static T GetEntityFromValue<T>(this ProcessingRulEngStore newState, OperandKey entity) where T : IEntity
         {
             var newEntity = default(T);
-            var refValueId = entity.SourceValueIds.FirstOrDefault();
+            var refValueId = entity.SourceEntityIds.FirstOrDefault();
             if (refValueId != null)
             {
                 newEntity = ((JProperty)newState.Values.FirstOrDefault(v => v.ValueId == refValueId).Detail).ToObject<T>();

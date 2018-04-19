@@ -11,10 +11,15 @@ namespace RulEng.States
     public class OperandKey : IEntity
     {
         /// <summary>
-        /// An array of source Value Ids that will be used for performing this Operation
+        /// An array of source Entity Ids that will be used for performing this Operation
         /// </summary>
         /// <remarks>Not required for Search operations</remarks>
-        public ImmutableArray<Guid> SourceValueIds { get; set; }
+        public ImmutableArray<Guid> SourceEntityIds { get; set; }
+
+        /// <summary>
+        /// The EntityType of all of the SourceEntityIds - defaults to Value
+        /// </summary>
+        public EntityType SourceEntType { get; set; } = EntityType.Value;
 
         /// <summary>
         /// The type of Entity the result will be written to
@@ -44,6 +49,15 @@ namespace RulEng.States
         public static implicit operator TypeKey(OperandKey ok)
         {
             return new TypeKey {EntityId = ok.EntityId, EntType = ok.EntType, EntTags = ok.EntTags, LastChanged = ok.LastChanged};
+        }
+
+        /// <summary>
+        /// Implicitly convert an OperandKey to a EntMatch
+        /// </summary>
+        /// <param name="ok"></param>
+        public static implicit operator EntMatch(OperandKey ok)
+        {
+            return new EntMatch { EntityId = ok.EntityId, EntType = ok.EntType };
         }
     }
 }

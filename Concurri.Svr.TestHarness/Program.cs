@@ -29,7 +29,7 @@ namespace Concurri.Svr.TestHarness
             Console.WriteLine("Hello Salesman!");
 
             // Travelling Salesman - Setup
-            const int cityCount = 120;
+            const int cityCount = 12;
             Console.WriteLine($"Start Setup for {cityCount} cities : {DateTime.UtcNow.ToString("yyyy-MMM-dd HH:mm:ss.ff")}");
 
             (var rules, var ruleResults, var values, var rulePrescriptions) = BuildTheCities(cityCount);
@@ -157,6 +157,24 @@ namespace Concurri.Svr.TestHarness
                 .AddUpdate(roadExistsRules, roadExistsRuleResults, new[] { lineOperation }.ToList(), null);
 
             TikTok(pass++, roadExistsRulePrescriptions, new[] { lineOperationPrescription });
+
+            var opKey = new OperandKey
+            {
+                EntityId = Guid.NewGuid(),
+                EntTags = new List<string> {"Duplicates"},
+                EntType = EntityType.Rule,
+                SourceEntType = EntityType.Value
+            };
+
+            var source = RvStore.GetState().Rules;
+            var searchTemplate = "Object.keys(source).map(k => source[k]).filter(va => va.Detail && va.Detail.properties && va.Detail.properties.roadId)";
+
+            let valuesArray = Object.keys(source)
+                .map(k => source[k])
+                .filter(va => va.Detail && va.Detail.properties && va.Detail.properties.roadId)
+                .map(r => { return { ValueId: r.ValueId, roadId: r.Detail.properties.roadId} });
+
+            var buildRoadSearch = collectRuleResult.SearchOperation(new[] { opKey }, Guid.NewGuid(), searchTemplate);
 
             // We'll start by adding all the shortest ones as the first set of 'actual' roads
             // A minimum of two * (cityCount - 1) roads will be required

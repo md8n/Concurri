@@ -9,7 +9,7 @@ namespace RulEng.Helpers
     public static class OperandKeyHelpersHelpers
     {
         /// <summary>
-        /// Create an OperandKey for a supplied Entity - this OperandKey will not specify any SourceValueIds
+        /// Create an OperandKey for a supplied Entity - this OperandKey will not specify any SourceEntityIds
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <param name="entity"></param>
@@ -21,13 +21,13 @@ namespace RulEng.Helpers
                 throw new ArgumentException("The supplied entity was null, had no Id, or was not processable");
             }
 
-            var opKey = new OperandKey { EntType = entity.EntType, EntityId = entity.EntityId, SourceValueIds = ImmutableArray<Guid>.Empty };
+            var opKey = new OperandKey { EntType = entity.EntType, EntityId = entity.EntityId, SourceEntityIds = ImmutableArray<Guid>.Empty };
 
             return opKey;
         }
 
         /// <summary>
-        /// Create an OperandKey for a supplied EntityType and EntityId - this OperandKey will not specify any SourceValueIds
+        /// Create an OperandKey for a supplied EntityType and EntityId - this OperandKey will not specify any SourceEntityIds
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <param name="entity"></param>
@@ -39,7 +39,7 @@ namespace RulEng.Helpers
                 throw new ArgumentException("The supplied entityId was empty, or the supplied entType was not processable");
             }
 
-            var opKey = new OperandKey { EntType = entType, EntityId = entityId, SourceValueIds = ImmutableArray<Guid>.Empty };
+            var opKey = new OperandKey { EntType = entType, EntityId = entityId, SourceEntityIds = ImmutableArray<Guid>.Empty };
 
             return opKey;
         }
@@ -58,7 +58,7 @@ namespace RulEng.Helpers
                 entityId = Guid.NewGuid();
             }
 
-            var opKey = new OperandKey { EntType = entType, EntityId = entityId.Value, SourceValueIds = ImmutableArray.Create(value.EntityId) };
+            var opKey = new OperandKey { EntType = entType, EntityId = entityId.Value, SourceEntityIds = ImmutableArray.Create(value.EntityId) };
 
             return opKey;
         }
@@ -89,7 +89,7 @@ namespace RulEng.Helpers
                 entityId = Guid.NewGuid();
             }
 
-            var opKey = new OperandKey { EntType = entType, EntityId = entityId.Value, SourceValueIds = ImmutableArray.CreateRange(sourceValueIds) };
+            var opKey = new OperandKey { EntType = entType, EntityId = entityId.Value, SourceEntityIds = ImmutableArray.CreateRange(sourceValueIds) };
 
             return opKey;
         }

@@ -439,26 +439,42 @@ namespace RulEng.Reformers
                     switch (relevantOp.Operands[0].SourceEntType)
                     {
                         case EntityType.Rule:
-                            e.SetValue("source", previousState.Rules);
+                            e.SetValue("source", previousState.Rules.ToArray());
                             break;
                         case EntityType.RuleResult:
-                            e.SetValue("source", previousState.RuleResults);
+                            e.SetValue("source", previousState.RuleResults.ToArray());
                             break;
                         case EntityType.Operation:
-                            e.SetValue("source", previousState.Operations);
+                            e.SetValue("source", previousState.Operations.ToArray());
                             break;
                         case EntityType.Request:
-                            e.SetValue("source", previousState.Requests);
+                            e.SetValue("source", previousState.Requests.ToArray());
                             break;
                         case EntityType.Value:
-                            e.SetValue("source", previousState.Values);
+                            e.SetValue("source", previousState.Values.ToArray().Select(JsonConvert.SerializeObject).ToArray());
                             break;
                     }
+
+                    jCode = "source.filter(function(s){return s.indexOf('\"roadId\"') != -1;})" 
+                            + ".map(function(s){return JSON.parse(s);})"
+                            + ".map(function(s){return {vId:s.ValueId,rId:s.Detail};})"
+                        ;
+
+                    //+ ".filter(v => v.Detail&&v.Detail.properties&&v.Detail.properties.roadId)"
+                    //+ ".map(r => {return{vId:r.ValueId,rId:r.Detail.properties.roadId}})"
+                    //+ ".reduce((a,c) => ((a[a.findIndex(d => d.e.rId===c.rId)]||a[a.push({e:c,t:0})-1]).t++,a),[])"
+                    //+ ".filter(c => c.t > 1)"
+                    //+ ".map(t => t.e.vId)"
+                    //jCode = "var d=source.filter(function(v){return v.Detail && v.Detail.properties});d;";//"var e=d.filter(function(v){return v.Detail.properties.roadId});e;"; //".map(function(v){return JSON.stringify(v)})"; //  && v.Detail.properties.roadId
+
+                    // {{"Detail":{"type":"Feature","geometry":{"type":"LineString","coordinates":[[144.602577717324,-25.2692293432864],[144.17640360453,-25.7303549878906]]}}}}
 
                     var result = e
                         .Execute(jCode)
                         .GetCompletionValue()
                         .ToObject();
+
+                    Console.WriteLine(result);
 
                     //        foreach (var destEnt in destEntsToProcess)
                     //        {

@@ -29,7 +29,7 @@ namespace Concurri.Svr.TestHarness
             Console.WriteLine("Hello Salesman!");
 
             // Travelling Salesman - Setup
-            const int cityCount = 12;
+            const int cityCount = 48;
             Console.WriteLine($"Start Setup for {cityCount} cities : {DateTime.UtcNow.ToString("yyyy-MMM-dd HH:mm:ss.ff")}");
 
             (var rules, var ruleResults, var values, var rulePrescriptions) = BuildTheCities(cityCount);
@@ -161,20 +161,27 @@ namespace Concurri.Svr.TestHarness
             var opKey = new OperandKey
             {
                 EntityId = Guid.NewGuid(),
-                EntTags = new List<string> {"Duplicates"},
+                EntTags = new List<string> { "Duplicates" },
                 EntType = EntityType.Rule,
                 SourceEntType = EntityType.Value
             };
 
-            var source = RvStore.GetState().Rules;
-            var searchTemplate = "Object.keys(source).map(k => source[k]).filter(va => va.Detail && va.Detail.properties && va.Detail.properties.roadId)";
+            var searchTemplate = "{" +
+                "JSON.stringify(Object.keys(source)"
+                + ".map(function(k){return source[k];})"
+                                 //+ ".filter(v => v.Detail&&v.Detail.properties&&v.Detail.properties.roadId)"
+                                 //+ ".map(r => {return{vId:r.ValueId,rId:r.Detail.properties.roadId}})"
+                                 //+ ".reduce((a,c) => ((a[a.findIndex(d => d.e.rId===c.rId)]||a[a.push({e:c,t:0})-1]).t++,a),[])"
+                                 //+ ".filter(c => c.t > 1)"
+                                 //+ ".map(t => t.e.vId)"
+                                 + ")}";
 
-            let valuesArray = Object.keys(source)
-                .map(k => source[k])
-                .filter(va => va.Detail && va.Detail.properties && va.Detail.properties.roadId)
-                .map(r => { return { ValueId: r.ValueId, roadId: r.Detail.properties.roadId} });
+            var opRoadSearch = collectRuleResult.SearchOperation(new[] { opKey }, Guid.NewGuid(), searchTemplate);
+            var opRoadSearchPRescription = opRoadSearch.Search();
 
-            var buildRoadSearch = collectRuleResult.SearchOperation(new[] { opKey }, Guid.NewGuid(), searchTemplate);
+            RvStore.AddUpdate(null, null, opRoadSearch, null);
+
+            TikTok(pass++, null, new[] { opRoadSearchPRescription });
 
             // We'll start by adding all the shortest ones as the first set of 'actual' roads
             // A minimum of two * (cityCount - 1) roads will be required
@@ -730,7 +737,7 @@ namespace Concurri.Svr.TestHarness
 
                 // Although the source values are always the same we need a new OperandKey each time
                 // for each new Value to be generated
-                var opKeys = new [] {values.OperandKey(EntityType.Value)};
+                var opKeys = new[] { values.OperandKey(EntityType.Value) };
 
                 // Add an Operation to reference the collect Rule and merge all of the results into one GeoJSON
                 var buildCityDistancesOperation = cityRuleResults.CreateUpdateOperation(opKeys, Guid.NewGuid(), jTempl);
@@ -774,7 +781,7 @@ namespace Concurri.Svr.TestHarness
                 var opKeys = new[] { cityAId, nextCityBId }.OperandKey(EntityType.Value);
 
                 // Add an Operation to reference the collect Rule and merge all of the results into one GeoJSON
-                var buildCityRoadOperation = cityDistRuleResultId.CreateUpdateOperation(new [] {opKeys}, Guid.NewGuid(), lineGeo);
+                var buildCityRoadOperation = cityDistRuleResultId.CreateUpdateOperation(new[] { opKeys }, Guid.NewGuid(), lineGeo);
                 var buildCityRoadPrescription = buildCityRoadOperation.AddUpdate();
 
                 operations.Add(buildCityRoadOperation);
@@ -806,14 +813,14 @@ namespace Concurri.Svr.TestHarness
             {
                 var opKey = values.OperandKey(EntityType.Value);
 
-                buildGeoJsonOperation = collectRuleResult.CreateUpdateOperation(new[] {opKey}, Guid.NewGuid(), valueTemplate);
+                buildGeoJsonOperation = collectRuleResult.CreateUpdateOperation(new[] { opKey }, Guid.NewGuid(), valueTemplate);
             }
             else
             {
                 var opKey = values.OperandKey(EntityType.Value, buildGeoJsonOperation.Operands[0].EntityId);
 
                 buildGeoJsonOperation =
-                    buildGeoJsonOperation.RecreateUpdateOperation(collectRuleResult, new[] {opKey}, valueTemplate);
+                    buildGeoJsonOperation.RecreateUpdateOperation(collectRuleResult, new[] { opKey }, valueTemplate);
             }
 
             var buildGeoJsonPrescription = buildGeoJsonOperation.AddUpdate();
@@ -822,8 +829,8 @@ namespace Concurri.Svr.TestHarness
         }
 
         private static (
-            List<Rule> dupRoadExistsRules, List<RuleResult> dupRoadExistsRuleResults, List<Operation> dupRoadDeleteOperations, 
-            List<IRuleProcessing> dupRoadRulePrescriptions, List<OperationDxProcessing> dupRoadOpPrescriptions) 
+            List<Rule> dupRoadExistsRules, List<RuleResult> dupRoadExistsRuleResults, List<Operation> dupRoadDeleteOperations,
+            List<IRuleProcessing> dupRoadRulePrescriptions, List<OperationDxProcessing> dupRoadOpPrescriptions)
             DeleteTheDuplicateRoads(List<Value> roadValues, List<Rule> roadExistsRules)
         {
             var dupRoadIds = roadValues

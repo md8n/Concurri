@@ -451,13 +451,14 @@ namespace RulEng.Reformers
                             e.SetValue("source", previousState.Requests.ToArray());
                             break;
                         case EntityType.Value:
-                            e.SetValue("source", previousState.Values.ToArray().Select(JsonConvert.SerializeObject).ToArray());
+                            e.SetValue("source", JsonConvert.SerializeObject(previousState.Values.ToArray()));
                             break;
                     }
 
-                    jCode = "source.filter(function(s){return s.indexOf('\"roadId\"') != -1;})" 
-                            + ".map(function(s){return JSON.parse(s);})"
-                            + ".map(function(s){return {vId:s.ValueId,rId:s.Detail};})"
+                    jCode = "JSON.parse(source)"
+                            + ".filter(function(s){return s.Detail&&s.Detail.properties&&s.Detail.properties.roadId})"
+                            + ".map(function(s){return {vId:s.ValueId,rId:s.Detail.properties.roadId};})"
+                            //+ ".reduce(function(a,c){((a[a.findIndex(function(d){d.e.rId===c.rId})]||a[a.push({e:c,t:0})-1]).t++,a),[]})"
                         ;
 
                     //+ ".filter(v => v.Detail&&v.Detail.properties&&v.Detail.properties.roadId)"
@@ -474,7 +475,7 @@ namespace RulEng.Reformers
                         .GetCompletionValue()
                         .ToObject();
 
-                    Console.WriteLine(result);
+                    Console.WriteLine(JsonConvert.SerializeObject(result));
 
                     //        foreach (var destEnt in destEntsToProcess)
                     //        {

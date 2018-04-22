@@ -439,26 +439,26 @@ namespace RulEng.Reformers
                     switch (relevantOp.Operands[0].SourceEntType)
                     {
                         case EntityType.Rule:
-                            e.SetValue("source", previousState.Rules.ToArray());
+                            e.SetValue("source", JsonConvert.SerializeObject(previousState.Rules.ToArray()));
                             break;
                         case EntityType.RuleResult:
-                            e.SetValue("source", previousState.RuleResults.ToArray());
+                            e.SetValue("source", JsonConvert.SerializeObject(previousState.RuleResults.ToArray()));
                             break;
                         case EntityType.Operation:
-                            e.SetValue("source", previousState.Operations.ToArray());
+                            e.SetValue("source", JsonConvert.SerializeObject(previousState.Operations.ToArray()));
                             break;
                         case EntityType.Request:
-                            e.SetValue("source", previousState.Requests.ToArray());
+                            e.SetValue("source", JsonConvert.SerializeObject(previousState.Requests.ToArray()));
                             break;
                         case EntityType.Value:
                             e.SetValue("source", JsonConvert.SerializeObject(previousState.Values.ToArray()));
                             break;
                     }
 
-                    jCode = "JSON.parse(source)"
+                    jCode = PolyFillFindIndex + "JSON.parse(source)"
                             + ".filter(function(s){return s.Detail&&s.Detail.properties&&s.Detail.properties.roadId})"
                             + ".map(function(s){return {vId:s.ValueId,rId:s.Detail.properties.roadId};})"
-                            //+ ".reduce(function(a,c){((a[a.findIndex(function(d){d.e.rId===c.rId})]||a[a.push({e:c,t:0})-1]).t++,a),[]})"
+                            + ".reduce(function(a,c){((a[a.findIndex(function(d){d.e.rId===c.rId})]||a[a.push({e:c,t:0})-1]).t++,a),[]})"
                         ;
 
                     //+ ".filter(v => v.Detail&&v.Detail.properties&&v.Detail.properties.roadId)"
@@ -550,6 +550,20 @@ namespace RulEng.Reformers
 
             return newState;
         }
+
+        private const string PolyFillFindIndex = "if(!Array.prototype.findIndex){"
+            + "Object.defineProperty(Array.prototype,'findIndex',{"
+            + "value:function(predicate){"
+            + "var o=Object(this);"
+            + "var len=o.length>>>0;"
+            + "var thisArg=arguments[1];"
+            + "var k=0;"
+            + "while(k<len){var kVal=o[k];if(predicate.call(thisArg,kVal,k,o)){return k;}k++;}"
+            + "return -1;"
+            + "},"
+            + "configurable:true,writable:true"
+            + "});"
+            + "}";
 
         public static T GetEntityFromValue<T>(this ProcessingRulEngStore newState, OperandKey entity) where T : IEntity
         {

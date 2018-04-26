@@ -455,21 +455,6 @@ namespace RulEng.Reformers
                             break;
                     }
 
-                    jCode = PolyFillFindIndex + "JSON.parse(source)"
-                            + ".filter(function(s){return s.Detail&&s.Detail.properties&&s.Detail.properties.roadId})"
-                            + ".map(function(s){return {vId:s.ValueId,rId:s.Detail.properties.roadId};})"
-                            + ".reduce(function(a,c){((a[a.findIndex(function(d){d.e.rId===c.rId})]||a[a.push({e:c,t:0})-1]).t++,a),[]})"
-                        ;
-
-                    //+ ".filter(v => v.Detail&&v.Detail.properties&&v.Detail.properties.roadId)"
-                    //+ ".map(r => {return{vId:r.ValueId,rId:r.Detail.properties.roadId}})"
-                    //+ ".reduce((a,c) => ((a[a.findIndex(d => d.e.rId===c.rId)]||a[a.push({e:c,t:0})-1]).t++,a),[])"
-                    //+ ".filter(c => c.t > 1)"
-                    //+ ".map(t => t.e.vId)"
-                    //jCode = "var d=source.filter(function(v){return v.Detail && v.Detail.properties});d;";//"var e=d.filter(function(v){return v.Detail.properties.roadId});e;"; //".map(function(v){return JSON.stringify(v)})"; //  && v.Detail.properties.roadId
-
-                    // {{"Detail":{"type":"Feature","geometry":{"type":"LineString","coordinates":[[144.602577717324,-25.2692293432864],[144.17640360453,-25.7303549878906]]}}}}
-
                     var result = e
                         .Execute(jCode)
                         .GetCompletionValue()
@@ -550,20 +535,6 @@ namespace RulEng.Reformers
 
             return newState;
         }
-
-        private const string PolyFillFindIndex = "if(!Array.prototype.findIndex){"
-            + "Object.defineProperty(Array.prototype,'findIndex',{"
-            + "value:function(predicate){"
-            + "var o=Object(this);"
-            + "var len=o.length>>>0;"
-            + "var thisArg=arguments[1];"
-            + "var k=0;"
-            + "while(k<len){var kVal=o[k];if(predicate.call(thisArg,kVal,k,o)){return k;}k++;}"
-            + "return -1;"
-            + "},"
-            + "configurable:true,writable:true"
-            + "});"
-            + "}";
 
         public static T GetEntityFromValue<T>(this ProcessingRulEngStore newState, OperandKey entity) where T : IEntity
         {

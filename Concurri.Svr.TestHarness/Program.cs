@@ -29,7 +29,7 @@ namespace Concurri.Svr.TestHarness
             Console.WriteLine("Hello Salesman!");
 
             // Travelling Salesman - Setup
-            const int cityCount = 48;
+            const int cityCount = 50;
             Console.WriteLine($"Start Setup for {cityCount} cities : {DateTime.UtcNow.ToString("yyyy-MMM-dd HH:mm:ss.ff")}");
 
             (var rules, var ruleResults, var values, var rulePrescriptions) = BuildTheCities(cityCount);
@@ -117,13 +117,13 @@ namespace Concurri.Svr.TestHarness
             // regular Operation(s) to process the matching entities
 
             // So search for duplicate roads (A->B and B->A) by code external to the RuleEngine store
-            (var dupRoadExistsRules, var dupRoadExistsRuleResults, var dupRoadDeleteOperations,
-                    var dupRoadRulePrescriptions, var dupRoadOpPrescriptions) =
-                DeleteTheDuplicateRoads(roadValues, roadExistsRules);
+            //(var dupRoadExistsRules, var dupRoadExistsRuleResults, var dupRoadDeleteOperations,
+            //        var dupRoadRulePrescriptions, var dupRoadOpPrescriptions) =
+            //    DeleteTheDuplicateRoads(roadValues, roadExistsRules);
 
-            RvStore.AddUpdate(dupRoadExistsRules, dupRoadExistsRuleResults, dupRoadDeleteOperations, null);
+            //RvStore.AddUpdate(dupRoadExistsRules, dupRoadExistsRuleResults, dupRoadDeleteOperations, null);
 
-            TikTok(pass++, dupRoadRulePrescriptions, dupRoadOpPrescriptions);
+            //TikTok(pass++, dupRoadRulePrescriptions, dupRoadOpPrescriptions);
 
             // Refresh the list of roads
             roadValues = RvStore.GetState().Values
@@ -166,15 +166,23 @@ namespace Concurri.Svr.TestHarness
                 SourceEntType = EntityType.Value
             };
 
-            var searchTemplate = "{" +
-                "JSON.stringify(Object.keys(source)"
-                + ".map(function(k){return source[k];})"
-                                 //+ ".filter(v => v.Detail&&v.Detail.properties&&v.Detail.properties.roadId)"
-                                 //+ ".map(r => {return{vId:r.ValueId,rId:r.Detail.properties.roadId}})"
-                                 //+ ".reduce((a,c) => ((a[a.findIndex(d => d.e.rId===c.rId)]||a[a.push({e:c,t:0})-1]).t++,a),[])"
-                                 //+ ".filter(c => c.t > 1)"
-                                 //+ ".map(t => t.e.vId)"
-                                 + ")}";
+            // The source data is always presented as a serialised JSON string
+            var searchTemplate = "JSON.parse(source)"
+                                 // Filter for values with a roadId property
+                    + ".filter(function(s){return s.Detail&&s.Detail.properties&&s.Detail.properties.roadId})"
+                                 // Map the results to just the values Id and the roadId (a hash)
+                    + ".map(function(s){return {vId:s.ValueId,rId:s.Detail.properties.roadId};})"
+                                 // Reduce to an array grouping by the roadId, the first valueId with that roadId will also be in the structure
+                    + ".reduce(function(a,c){var ix=0;"
+                    + "for(;ix<a.length;ix++){if(a[ix].el.rId===c.rId)break;}"
+                    + "if(ix<a.length){a[ix].t++;}else{a.push({el:c,t:1});}"
+                    + "return a;},[])"
+                                 // Filter for roadIds that occur more than once
+                    + ".filter(function(s){return s.t>1})"
+                                 // Get the valueId
+                    + ".map(function(s){return s.el.vId})"
+                                 // Sort (makes it easier to follow
+                    + ".sort(function(a,b){if(a<b)return -1;return(a>b)?1:0;})";
 
             var opRoadSearch = collectRuleResult.SearchOperation(new[] { opKey }, Guid.NewGuid(), searchTemplate);
             var opRoadSearchPRescription = opRoadSearch.Search();

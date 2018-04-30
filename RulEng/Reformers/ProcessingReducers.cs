@@ -433,9 +433,6 @@ namespace RulEng.Reformers
                     //            })
                     //            .ToList();
 
-                    var jTempl = relevantOp.OperationTemplate;
-                    var jCode = jTempl;
-
                     switch (relevantOp.Operands[0].SourceEntType)
                     {
                         case EntityType.Rule:
@@ -455,12 +452,49 @@ namespace RulEng.Reformers
                             break;
                     }
 
+                    // The result must be a list of guids for the entities that met the search criteria
                     var result = e
-                        .Execute(jCode)
-                        .GetCompletionValue()
-                        .ToObject();
+                        .Execute(relevantOp.OperationTemplate)
+                        .GetCompletionValue();
+
+                    var sourceGuids = result.ToString()
+                        .Split(new [] {','}, StringSplitOptions.RemoveEmptyEntries)
+                        .Select(Guid.Parse)
+                        .ToList();
+
+                    for (var ix = 0; ix < sourceGuids.Count; ix++)
+                    {
+                        switch (relevantOp.Operands[0].EntType)
+                        {
+                            case EntityType.Rule:
+                                // Create/Update a rule using destEnt.EntityId and result
+                                newState.FromOperationResultAddUpdateRule(result, destEnt.EntityId);
+                                break;
+                            case EntityType.Operation:
+                                // Create/Update an Operation using destEnt.EntityId and result
+                                newState.FromOperationResultAddUpdateOperation(result, destEnt.EntityId);
+                                break;
+                            case EntityType.Request:
+                                // Create/Update a Request using destEnt.EntityId and result
+                                newState.FromOperationResultAddUpdateRequest(result, destEnt.EntityId);
+                                break;
+                            case EntityType.Value:
+                                // Create/Update a Value using destEnt.EntityId and result
+                                newState.FromOperationResultAddUpdateValue(result, destEnt.EntityId);
+                                break;
+                                //            }
+                        }
+
+                    //var values = new List<string>();
+                    //for (var i = 0; i < a.GetLength(); i++)
+                    //{
+                    //    values.Add(a.Get(i.ToString()).AsString());
+                    //}
+                    //return values;
 
                     Console.WriteLine(JsonConvert.SerializeObject(result));
+
+                    
 
                     //        foreach (var destEnt in destEntsToProcess)
                     //        {

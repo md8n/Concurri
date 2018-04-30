@@ -193,6 +193,54 @@ namespace RulEng.Helpers
             }
         }
 
+
+        public static void FromSearchOperationAddUpdateRule(this ProcessingRulEngStore newState, Guid sourceEntId, Guid destEntId)
+        {
+            // Create/Update a rule using destEnt.EntityId and result
+            var ruleType = result["RuleType"];
+            var negateResult = result["NegateResult"];
+            var referenceValues = result["ReferenceValues"];
+            var rlType = ruleType?.ToObject<RuleType>() ?? RuleType.Unknown;
+            var refValArray = referenceValues?.ToObject<IRulePrescription>();
+            if (refValArray == null)
+            {
+                rlType = RuleType.Error;
+            }
+
+            var rule = newState.Rules.FirstOrDefault(r => r.EntityId == destEntId);
+            if (rule != null)
+            {
+                if (negateResult != null)
+                {
+                    rule.NegateResult = (bool)negateResult;
+                }
+                if (ruleType != null)
+                {
+                    rule.RuleType = rlType;
+                }
+                if (referenceValues != null)
+                {
+                    rule.ReferenceValues = refValArray;
+                }
+                rule.LastChanged = DateTime.UtcNow;
+
+                // TODO: Confirm the existing entity is updated
+            }
+            else
+            {
+                rule = new Rule
+                {
+                    EntityId = destEntId,
+                    NegateResult = negateResult != null && (bool)negateResult,
+                    RuleType = rlType,
+                    ReferenceValues = refValArray,
+                    LastChanged = DateTime.UtcNow
+                };
+
+                newState.Rules.Add(rule);
+            }
+        }
+
         public static void FromOperationResultAddUpdateOperation(this ProcessingRulEngStore newState, JToken result,
             Guid destEntId)
         {

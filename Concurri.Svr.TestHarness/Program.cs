@@ -168,20 +168,20 @@ namespace Concurri.Svr.TestHarness
 
             // The source data is always presented as a serialised JSON string
             var searchTemplate = "JSON.parse(source)"
-                                 // Filter for values with a roadId property
+                    // Filter for values with a roadId property
                     + ".filter(function(s){return s.Detail&&s.Detail.properties&&s.Detail.properties.roadId})"
-                                 // Map the results to just the values Id and the roadId (a hash)
+                    // Map the results to just the values Id and the roadId (a hash)
                     + ".map(function(s){return {vId:s.ValueId,rId:s.Detail.properties.roadId};})"
-                                 // Reduce to an array grouping by the roadId, the first valueId with that roadId will also be in the structure
+                    // Reduce to an array grouping by the roadId, the first valueId with that roadId will also be in the structure
                     + ".reduce(function(a,c){var ix=0;"
                     + "for(;ix<a.length;ix++){if(a[ix].el.rId===c.rId)break;}"
                     + "if(ix<a.length){a[ix].t++;}else{a.push({el:c,t:1});}"
                     + "return a;},[])"
-                                 // Filter for roadIds that occur more than once
+                    // Filter for roadIds that occur more than once
                     + ".filter(function(s){return s.t>1})"
-                                 // Get the valueId
+                    // Get the valueId
                     + ".map(function(s){return s.el.vId})"
-                                 // Sort (makes it easier to follow
+                    // Sort (makes it easier to follow what's going on)
                     + ".sort(function(a,b){if(a<b)return -1;return(a>b)?1:0;})";
 
             var opRoadSearch = collectRuleResult.SearchOperation(new[] { opKey }, Guid.NewGuid(), searchTemplate);

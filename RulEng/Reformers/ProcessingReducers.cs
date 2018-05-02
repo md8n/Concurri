@@ -458,113 +458,122 @@ namespace RulEng.Reformers
                         .GetCompletionValue();
 
                     var sourceGuids = result.ToString()
-                        .Split(new [] {','}, StringSplitOptions.RemoveEmptyEntries)
+                        .Split(new[] {','}, StringSplitOptions.RemoveEmptyEntries)
                         .Select(Guid.Parse)
                         .ToList();
 
                     for (var ix = 0; ix < sourceGuids.Count; ix++)
                     {
+                        var sourceEnt = new TypeKey
+                        {
+                            EntityId = sourceGuids[ix],
+                            EntType = relevantOp.Operands[0].SourceEntType,
+                            EntTags = relevantOp.EntTags
+                        } as IEntity;
                         switch (relevantOp.Operands[0].EntType)
                         {
                             case EntityType.Rule:
                                 // Create/Update a rule using destEnt.EntityId and result
-                                newState.FromOperationResultAddUpdateRule(result, destEnt.EntityId);
+                                var rl = newState.FromSearchOperationAddUpdateRule(sourceEnt, relevantOp.EntTags, Guid.NewGuid());
+                                var rr = new RuleResult(rl);
+                                newState.RuleResults.Add(rr);
                                 break;
-                            case EntityType.Operation:
-                                // Create/Update an Operation using destEnt.EntityId and result
-                                newState.FromOperationResultAddUpdateOperation(result, destEnt.EntityId);
-                                break;
-                            case EntityType.Request:
-                                // Create/Update a Request using destEnt.EntityId and result
-                                newState.FromOperationResultAddUpdateRequest(result, destEnt.EntityId);
-                                break;
-                            case EntityType.Value:
-                                // Create/Update a Value using destEnt.EntityId and result
-                                newState.FromOperationResultAddUpdateValue(result, destEnt.EntityId);
-                                break;
-                                //            }
+                            //case EntityType.Operation:
+                            //    // Create/Update an Operation using destEnt.EntityId and result
+                            //    newState.FromOperationResultAddUpdateOperation(result, destEnt.EntityId);
+                            //    break;
+                            //case EntityType.Request:
+                            //    // Create/Update a Request using destEnt.EntityId and result
+                            //    newState.FromOperationResultAddUpdateRequest(result, destEnt.EntityId);
+                            //    break;
+                            //case EntityType.Value:
+                            //    // Create/Update a Value using destEnt.EntityId and result
+                            //    newState.FromOperationResultAddUpdateValue(result, destEnt.EntityId);
+                            //    break;
+                            //            }
                         }
 
-                    //var values = new List<string>();
-                    //for (var i = 0; i < a.GetLength(); i++)
-                    //{
-                    //    values.Add(a.Get(i.ToString()).AsString());
-                    //}
-                    //return values;
+                        //var values = new List<string>();
+                        //for (var i = 0; i < a.GetLength(); i++)
+                        //{
+                        //    values.Add(a.Get(i.ToString()).AsString());
+                        //}
+                        //return values;
 
-                    Console.WriteLine(JsonConvert.SerializeObject(result));
+                        Console.WriteLine(JsonConvert.SerializeObject(result));
 
-                    
 
-                    //        foreach (var destEnt in destEntsToProcess)
-                    //        {
-                    //            var sourceVals = destEnt.sourceValues;
-                    //            var isSubstOk = true;
 
-                    //            foreach (Match match in regexToken.Matches(jTempl))
-                    //            {
-                    //                var token = match.Groups["Token"].Value;
-                    //                var indexOk = int.TryParse(match.Groups["Index"].Value, out var index);
+                        //        foreach (var destEnt in destEntsToProcess)
+                        //        {
+                        //            var sourceVals = destEnt.sourceValues;
+                        //            var isSubstOk = true;
 
-                    //                if (!indexOk)
-                    //                {
-                    //                    break;
-                    //                }
+                        //            foreach (Match match in regexToken.Matches(jTempl))
+                        //            {
+                        //                var token = match.Groups["Token"].Value;
+                        //                var indexOk = int.TryParse(match.Groups["Index"].Value, out var index);
 
-                    //                if (sourceVals.Length < index)
-                    //                {
-                    //                    isSubstOk = false;
-                    //                    break;
-                    //                }
+                        //                if (!indexOk)
+                        //                {
+                        //                    break;
+                        //                }
 
-                    //                jCode = jCode.Replace(token, sourceVals[index]["Value"].ToString(Formatting.None));
-                    //            }
+                        //                if (sourceVals.Length < index)
+                        //                {
+                        //                    isSubstOk = false;
+                        //                    break;
+                        //                }
 
-                    //            if (!isSubstOk)
-                    //            {
-                    //                Console.WriteLine(jCode);
-                    //                continue;
-                    //            }
+                        //                jCode = jCode.Replace(token, sourceVals[index]["Value"].ToString(Formatting.None));
+                        //            }
 
-                    //            JToken result = null;
-                    //            if (jCode.StartsWith("{"))
-                    //            {
-                    //                result = JObject.FromObject(e.Execute(jCode).GetCompletionValue().ToObject());
-                    //            }
-                    //            if (jCode.StartsWith("["))
-                    //            {
-                    //                result = JArray.FromObject(e.Execute(jCode).GetCompletionValue().ToObject());
-                    //            }
-                    //            //Console.WriteLine(result);
-                    //            switch ((EntityType)destEnt.EntType)
-                    //            {
-                    //                case EntityType.Rule:
-                    //                    // Create/Update a rule using destEnt.EntityId and result
-                    //                    newState.FromOperationResultAddUpdateRule(result, destEnt.EntityId);
-                    //                    break;
-                    //                case EntityType.Operation:
-                    //                    // Create/Update an Operation using destEnt.EntityId and result
-                    //                    newState.FromOperationResultAddUpdateOperation(result, destEnt.EntityId);
-                    //                    break;
-                    //                case EntityType.Request:
-                    //                    // Create/Update a Request using destEnt.EntityId and result
-                    //                    newState.FromOperationResultAddUpdateRequest(result, destEnt.EntityId);
-                    //                    break;
-                    //                case EntityType.Value:
-                    //                    // Create/Update a Value using destEnt.EntityId and result
-                    //                    newState.FromOperationResultAddUpdateValue(result, destEnt.EntityId);
-                    //                    break;
-                    //            }
+                        //            if (!isSubstOk)
+                        //            {
+                        //                Console.WriteLine(jCode);
+                        //                continue;
+                        //            }
 
-                    //            // Mark the operation as Executed
-                    //            var actionDate = DateTime.UtcNow;
+                        //            JToken result = null;
+                        //            if (jCode.StartsWith("{"))
+                        //            {
+                        //                result = JObject.FromObject(e.Execute(jCode).GetCompletionValue().ToObject());
+                        //            }
+                        //            if (jCode.StartsWith("["))
+                        //            {
+                        //                result = JArray.FromObject(e.Execute(jCode).GetCompletionValue().ToObject());
+                        //            }
+                        //            //Console.WriteLine(result);
+                        //            switch ((EntityType)destEnt.EntType)
+                        //            {
+                        //                case EntityType.Rule:
+                        //                    // Create/Update a rule using destEnt.EntityId and result
+                        //                    newState.FromOperationResultAddUpdateRule(result, destEnt.EntityId);
+                        //                    break;
+                        //                case EntityType.Operation:
+                        //                    // Create/Update an Operation using destEnt.EntityId and result
+                        //                    newState.FromOperationResultAddUpdateOperation(result, destEnt.EntityId);
+                        //                    break;
+                        //                case EntityType.Request:
+                        //                    // Create/Update a Request using destEnt.EntityId and result
+                        //                    newState.FromOperationResultAddUpdateRequest(result, destEnt.EntityId);
+                        //                    break;
+                        //                case EntityType.Value:
+                        //                    // Create/Update a Value using destEnt.EntityId and result
+                        //                    newState.FromOperationResultAddUpdateValue(result, destEnt.EntityId);
+                        //                    break;
+                        //            }
 
-                    //            // Mark this Rule as executed
-                    //            relevantOp.LastExecuted = actionDate;
-                    //        }
+                        //            // Mark the operation as Executed
+                        //            var actionDate = DateTime.UtcNow;
+
+                        //            // Mark this Rule as executed
+                        //            relevantOp.LastExecuted = actionDate;
+                        //        }
+                    }
+
+                    // newState.RuleResults.RemoveWhere(r => r.RuleResultId == ruleResultIdToProcess);
                 }
-
-                // newState.RuleResults.RemoveWhere(r => r.RuleResultId == ruleResultIdToProcess);
             }
 
             return newState;

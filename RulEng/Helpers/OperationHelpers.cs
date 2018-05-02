@@ -194,34 +194,20 @@ namespace RulEng.Helpers
         }
 
 
-        public static void FromSearchOperationAddUpdateRule(this ProcessingRulEngStore newState, Guid sourceEntId, Guid destEntId)
+        public static Rule FromSearchOperationAddUpdateRule(this ProcessingRulEngStore newState, IEntity sourceEnt, List<string> entTags, Guid destEntId)
         {
             // Create/Update a rule using destEnt.EntityId and result
-            var ruleType = result["RuleType"];
-            var negateResult = result["NegateResult"];
-            var referenceValues = result["ReferenceValues"];
-            var rlType = ruleType?.ToObject<RuleType>() ?? RuleType.Unknown;
-            var refValArray = referenceValues?.ToObject<IRulePrescription>();
-            if (refValArray == null)
-            {
-                rlType = RuleType.Error;
-            }
+            const RuleType rlType = RuleType.Exists;
+            entTags = (entTags == null || entTags.Count == 0) ? sourceEnt.EntTags : entTags;
+            var refValArray = sourceEnt.RulePrescription<RuleUnary>();
 
             var rule = newState.Rules.FirstOrDefault(r => r.EntityId == destEntId);
             if (rule != null)
             {
-                if (negateResult != null)
-                {
-                    rule.NegateResult = (bool)negateResult;
-                }
-                if (ruleType != null)
-                {
-                    rule.RuleType = rlType;
-                }
-                if (referenceValues != null)
-                {
-                    rule.ReferenceValues = refValArray;
-                }
+                rule.NegateResult = false;
+                rule.RuleType = rlType;
+                rule.EntTags = sourceEnt.EntTags;
+                rule.ReferenceValues = refValArray;
                 rule.LastChanged = DateTime.UtcNow;
 
                 // TODO: Confirm the existing entity is updated
@@ -231,14 +217,17 @@ namespace RulEng.Helpers
                 rule = new Rule
                 {
                     EntityId = destEntId,
-                    NegateResult = negateResult != null && (bool)negateResult,
+                    NegateResult = false,
                     RuleType = rlType,
+                    EntTags = sourceEnt.EntTags,
                     ReferenceValues = refValArray,
                     LastChanged = DateTime.UtcNow
                 };
 
                 newState.Rules.Add(rule);
             }
+
+            return rule;
         }
 
         public static void FromOperationResultAddUpdateOperation(this ProcessingRulEngStore newState, JToken result,

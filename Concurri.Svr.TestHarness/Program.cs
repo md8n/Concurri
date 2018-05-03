@@ -158,7 +158,7 @@ namespace Concurri.Svr.TestHarness
 
             TikTok(pass++, roadExistsRulePrescriptions, new[] { lineOperationPrescription });
 
-            var opKey = new OperandKey
+            var opKeyDups = new OperandKey
             {
                 EntityId = Guid.NewGuid(),
                 EntTags = new List<string> { "Duplicates" },
@@ -184,12 +184,35 @@ namespace Concurri.Svr.TestHarness
                     // Sort (makes it easier to follow what's going on)
                     + ".sort(function(a,b){if(a<b)return -1;return(a>b)?1:0;})";
 
-            var opRoadSearch = collectRuleResult.SearchOperation(new[] { opKey }, Guid.NewGuid(), searchTemplate);
-            var opRoadSearchPRescription = opRoadSearch.Search();
+            var opRoadSearch = collectRuleResult.SearchOperation(new[] { opKeyDups }, Guid.NewGuid(), searchTemplate);
+            var opRoadSearchPrescription = opRoadSearch.Search();
 
             RvStore.AddUpdate(null, null, opRoadSearch, null);
 
-            TikTok(pass++, null, new[] { opRoadSearchPRescription });
+            var opKeyDels = new OperandKey
+            {
+                EntityId = Guid.NewGuid(),
+                EntTags = new List<string> { "Duplicates" },
+                EntType = EntityType.Operation,
+                SourceEntType = EntityType.RuleResult
+            };
+
+            // The source data is always presented as a serialised JSON string
+            var searchDupsTemplate = "JSON.parse(source)"
+                                 // Filter for values with a roadId property
+                                 + ".filter(function(s){return s.EntTags&&s.EntTags[0]==='Duplicates'})"
+                                 // Map the results to just the ruleresult Id
+                                 + ".map(function(s){return s.RuleResultId;})"
+                                 // Sort (makes it easier to follow what's going on)
+                                 + ".sort(function(a,b){if(a<b)return -1;return(a>b)?1:0;})";
+
+            var opDelRoadSearch = collectRuleResult.SearchOperation(new[] { opKeyDels }, Guid.NewGuid(), searchDupsTemplate);
+            var opDelRoadSearchPrescription = opDelRoadSearch.Search();
+
+            RvStore.AddUpdate(null, null, opDelRoadSearch, null);
+
+
+            TikTok(pass++, null, new[] { opRoadSearchPrescription });
 
             // We'll start by adding all the shortest ones as the first set of 'actual' roads
             // A minimum of two * (cityCount - 1) roads will be required

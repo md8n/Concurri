@@ -478,19 +478,23 @@ namespace RulEng.Reformers
                                 var rr = new RuleResult(rl);
                                 newState.RuleResults.Add(rr);
                                 break;
-                            //case EntityType.Operation:
-                            //    // Create/Update an Operation using destEnt.EntityId and result
-                            //    newState.FromOperationResultAddUpdateOperation(result, destEnt.EntityId);
-                            //    break;
-                            //case EntityType.Request:
-                            //    // Create/Update a Request using destEnt.EntityId and result
-                            //    newState.FromOperationResultAddUpdateRequest(result, destEnt.EntityId);
-                            //    break;
-                            //case EntityType.Value:
-                            //    // Create/Update a Value using destEnt.EntityId and result
-                            //    newState.FromOperationResultAddUpdateValue(result, destEnt.EntityId);
-                            //    break;
-                            //            }
+                            case EntityType.Operation:
+                                // Create/Update an Operation using destEnt.EntityId and result
+                                //var op = newState.FromSearchOperationAddUpdateOperation(sourceEnt, relevantOp.EntTags, Guid.NewGuid());
+                                //var rr = new RuleResult(rl);
+                                //newState.RuleResults.Add(rr);
+
+                                //newState.FromOperationResultAddUpdateOperation(result, destEnt.EntityId);
+                                break;
+                                //case EntityType.Request:
+                                //    // Create/Update a Request using destEnt.EntityId and result
+                                //    newState.FromOperationResultAddUpdateRequest(result, destEnt.EntityId);
+                                //    break;
+                                //case EntityType.Value:
+                                //    // Create/Update a Value using destEnt.EntityId and result
+                                //    newState.FromOperationResultAddUpdateValue(result, destEnt.EntityId);
+                                //    break;
+                                //            }
                         }
 
                         //var values = new List<string>();

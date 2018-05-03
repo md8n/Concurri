@@ -213,7 +213,7 @@ namespace RulEng.Helpers
             {
                 rule.NegateResult = false;
                 rule.RuleType = rlType;
-                rule.EntTags = sourceEnt.EntTags;
+                rule.EntTags = entTags;
                 rule.ReferenceValues = refValArray;
                 rule.LastChanged = DateTime.UtcNow;
 
@@ -226,7 +226,7 @@ namespace RulEng.Helpers
                     EntityId = destEntId,
                     NegateResult = false,
                     RuleType = rlType,
-                    EntTags = sourceEnt.EntTags,
+                    EntTags = entTags,
                     ReferenceValues = refValArray,
                     LastChanged = DateTime.UtcNow
                 };
@@ -286,7 +286,7 @@ namespace RulEng.Helpers
                     EntityId = destEntId,
                     OperationType = opType,
                     RuleResultId = rlResId,
-                    OperationTemplate = operationTemplate == null ? string.Empty : operationTemplate.ToString(),
+                    OperationTemplate = opTempl,
                     Operands = oprndArray,
                     LastChanged = DateTime.UtcNow
                 };
@@ -294,6 +294,47 @@ namespace RulEng.Helpers
                 newState.Operations.Add(operation);
             }
         }
+
+        public static Operation FromSearchOperationAddUpdateOperation(this ProcessingRulEngStore newState, IEntity sourceEnt, List<string> entTags, OperationType opType, string operationTemplate, Guid destEntId)
+        {
+            // Create/Update an operation using destEnt.EntityId and result
+            var ruleResultId = sourceEnt.EntityId;
+            var opTempl = string.IsNullOrWhiteSpace(operationTemplate) ? string.Empty : operationTemplate.Trim();
+
+            const RuleType rlType = RuleType.Exists;
+            entTags = (entTags == null || entTags.Count == 0) ? sourceEnt.EntTags : entTags;
+            var refValArray = sourceEnt.RulePrescription<RuleUnary>();
+
+            var operation = newState.Operations.FirstOrDefault(r => r.EntityId == destEntId);
+            if (operation != null)
+            {
+                //operation.NegateResult = false;
+                //operation.RuleType = rlType;
+                operation.EntTags = entTags;
+                //operation.ReferenceValues = refValArray;
+                operation.LastChanged = DateTime.UtcNow;
+
+                // TODO: Confirm the existing entity is updated
+            }
+            else
+            {
+                operation = new Operation
+                {
+                    EntityId = destEntId,
+                    OperationType = opType,
+                    RuleResultId = sourceEnt.EntityId,
+                    OperationTemplate = opTempl,
+                    // Operands = oprndArray,
+                    LastChanged = DateTime.UtcNow
+                };
+
+                newState.Operations.Add(operation);
+            }
+
+            return operation;
+        }
+
+
 
         public static void FromOperationResultAddUpdateRequest(this ProcessingRulEngStore newState, JToken result,
             Guid destEntId)

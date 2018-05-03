@@ -30,10 +30,7 @@ namespace RulEng.States
 
         public Operation ()
         {
-            if (Operands.IsDefault)
-            {
-                Operands = ImmutableArray<OperandKey>.Empty;
-            }
+            CleanOperands();
         }
 
         [JsonIgnore]
@@ -72,12 +69,22 @@ namespace RulEng.States
         {
             var serl = new JsonSerializer {ReferenceLoopHandling = ReferenceLoopHandling.Ignore};
 
+            CleanOperands();
+
             return JObject.FromObject(this, serl).ToString(Formatting.None);
         }
 
         public static implicit operator TypeKey(Operation operation)
         {
             return new TypeKey { EntityId = operation.OperationId, EntType = EntityType.Operation, EntTags = operation.EntTags, LastChanged = operation.LastChanged };
+        }
+
+        private void CleanOperands()
+        {
+            if (Operands.IsDefault)
+            {
+                Operands = ImmutableArray<OperandKey>.Empty;
+            }
         }
     }
 }

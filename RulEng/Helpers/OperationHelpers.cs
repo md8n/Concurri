@@ -38,7 +38,7 @@ namespace RulEng.Helpers
             {
                 OperationId = operationId == Guid.Empty ? Guid.NewGuid() : operationId,
                 RuleResultId = ruleResultId,
-                Operands = ImmutableArray.Create(operands.ToArray()),
+                Operands = ImmutableArray.Create(operands?.ToArray() ?? new OperandKey[0]),
                 OperationTemplate = template,
                 OperationType = OperationType.CreateUpdate
             };
@@ -59,10 +59,7 @@ namespace RulEng.Helpers
                 operation.RuleResultId = ruleResult.EntityId;
             }
 
-            if (operands != null)
-            {
-                operation.Operands = ImmutableArray.Create(operands.ToArray());
-            }
+            operation.Operands = ImmutableArray.Create(operands?.ToArray() ?? new OperandKey[0]);
 
             if (!string.IsNullOrWhiteSpace(template))
             {
@@ -98,11 +95,21 @@ namespace RulEng.Helpers
         /// <returns></returns>
         public static Operation SearchOperation(this Guid ruleResultId, IEnumerable<OperandKey> operands, Guid operationId, string template)
         {
+            var ops = operands?.ToArray() ?? new OperandKey[0];
+            foreach (var op in ops)
+            {
+                if (op.SourceEntityIds.IsDefault)
+                {
+                    op.SourceEntityIds = ImmutableArray<Guid>.Empty;
+                }
+            }
+
             return new Operation
             {
                 OperationId = operationId == Guid.Empty ? Guid.NewGuid() : operationId,
+                EntTags = ops.SelectMany(o => o.EntTags).Distinct().ToList(),
                 RuleResultId = ruleResultId,
-                Operands = ImmutableArray.Create(operands.ToArray()),
+                Operands = ImmutableArray.Create(ops),
                 OperationTemplate = template,
                 OperationType = OperationType.Search
             };
@@ -123,7 +130,7 @@ namespace RulEng.Helpers
             {
                 OperationId = operationId == Guid.Empty ? Guid.NewGuid() : operationId,
                 RuleResultId = ruleResult.RuleResultId,
-                Operands = ImmutableArray.Create(operands.ToArray()),
+                Operands = ImmutableArray.Create(operands?.ToArray() ?? new OperandKey[0]),
                 OperationType = OperationType.Delete
             };
         }
@@ -141,7 +148,7 @@ namespace RulEng.Helpers
             {
                 OperationId = operationId == Guid.Empty ? Guid.NewGuid() : operationId,
                 RuleResultId = ruleResult.RuleResultId,
-                Operands = ImmutableArray.Create(operands.ToArray()),
+                Operands = ImmutableArray.Create(operands?.ToArray() ?? new OperandKey[0]),
                 OperationType = OperationType.Search
             };
         }

@@ -89,7 +89,7 @@ namespace RulEng.Helpers
                 entityId = Guid.NewGuid();
             }
 
-            var opKey = new OperandKey { EntType = entType, EntityId = entityId.Value, SourceEntityIds = ImmutableArray.CreateRange(sourceValueIds) };
+            var opKey = new OperandKey { EntType = entType, EntityId = entityId.Value, SourceEntityIds = ImmutableArray.CreateRange(sourceValueIds?.ToArray() ?? new Guid[0]) };
 
             return opKey;
         }

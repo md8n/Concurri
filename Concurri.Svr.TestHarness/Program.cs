@@ -158,6 +158,8 @@ namespace Concurri.Svr.TestHarness
 
             TikTok(pass++, roadExistsRulePrescriptions, new[] { lineOperationPrescription });
 
+            // Find the Duplicate roads to be deleted
+            // First create a Search Operation to generate Exists Rules and RuleResults
             var opKeyDups = new OperandKey
             {
                 EntityId = Guid.NewGuid(),
@@ -189,6 +191,17 @@ namespace Concurri.Svr.TestHarness
 
             RvStore.AddUpdate(null, null, opRoadSearch, null);
 
+            TikTok(pass++, null, new[] { opRoadSearchPrescription });
+
+            // Generate Prescriptions for all of the Rules and execute them
+            var searchForDupPrescriptions = RvStore.GetState()
+                .Rules
+                .Where(r => r.EntTags != null && r.EntTags[0] == "Duplicates")
+                .Select(r => r.Exists())
+                .ToList();
+
+            TikTok(pass++, searchForDupPrescriptions, null);
+
             var opKeyDels = new OperandKey
             {
                 EntityId = Guid.NewGuid(),
@@ -207,12 +220,13 @@ namespace Concurri.Svr.TestHarness
                                  + ".sort(function(a,b){if(a<b)return -1;return(a>b)?1:0;})";
 
             var opDelRoadSearch = collectRuleResult.SearchOperation(new[] { opKeyDels }, Guid.NewGuid(), searchDupsTemplate);
+            opDelRoadSearch.OperationType = OperationType.Delete;
             var opDelRoadSearchPrescription = opDelRoadSearch.Search();
 
             RvStore.AddUpdate(null, null, opDelRoadSearch, null);
 
+            TikTok(pass++, null, new[] { opDelRoadSearchPrescription });
 
-            TikTok(pass++, null, new[] { opRoadSearchPrescription });
 
             // We'll start by adding all the shortest ones as the first set of 'actual' roads
             // A minimum of two * (cityCount - 1) roads will be required

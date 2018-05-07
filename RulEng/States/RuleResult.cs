@@ -37,7 +37,7 @@ namespace RulEng.States
 
         public RuleResult(Rule rule, List<string> entTags = null)
         {
-            RuleResultId = Guid.NewGuid();
+            RuleResultId = rule.ReferenceValues.RuleResultId;
             EntTags = entTags != null && entTags.Any() ? entTags : rule.EntTags;
             RuleId = rule.RuleId;
             Detail = false;

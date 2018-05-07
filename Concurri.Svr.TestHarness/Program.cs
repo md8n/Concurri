@@ -212,7 +212,7 @@ namespace Concurri.Svr.TestHarness
 
             // The source data is always presented as a serialised JSON string
             var searchDupsTemplate = "JSON.parse(source)"
-                                 // Filter for values with a roadId property
+                                 // Filter for Rule Results with a Duplicates tag
                                  + ".filter(function(s){return s.EntTags&&s.EntTags[0]==='Duplicates'})"
                                  // Map the results to just the ruleresult Id
                                  + ".map(function(s){return s.RuleResultId;})"

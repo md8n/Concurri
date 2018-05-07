@@ -201,16 +201,18 @@ namespace RulEng.Helpers
         }
 
 
-        public static Rule FromSearchOperationAddUpdateRule(this ProcessingRulEngStore newState, IEntity sourceEnt, List<string> entTags, Guid destEntId)
+        public static Rule FromSearchOperationAddUpdateExistsRule(this ProcessingRulEngStore newState, IEntity sourceEnt, List<string> entTags, Guid destEntId)
         {
             // Create/Update a rule using destEnt.EntityId and result
             const RuleType rlType = RuleType.Exists;
             entTags = (entTags == null || entTags.Count == 0) ? sourceEnt.EntTags : entTags;
             var refValArray = sourceEnt.RulePrescription<RuleUnary>();
+            var ruleName = $"Test for existence of {sourceEnt.EntType.ToString()} {(TypeKey)sourceEnt}";
 
             var rule = newState.Rules.FirstOrDefault(r => r.EntityId == destEntId);
             if (rule != null)
             {
+                rule.RuleName = ruleName;
                 rule.NegateResult = false;
                 rule.RuleType = rlType;
                 rule.EntTags = entTags;
@@ -224,6 +226,7 @@ namespace RulEng.Helpers
                 rule = new Rule
                 {
                     EntityId = destEntId,
+                    RuleName = ruleName,
                     NegateResult = false,
                     RuleType = rlType,
                     EntTags = entTags,
@@ -301,15 +304,16 @@ namespace RulEng.Helpers
             var ruleResultId = sourceEnt.EntityId;
             var opTempl = string.IsNullOrWhiteSpace(operationTemplate) ? string.Empty : operationTemplate.Trim();
 
-            const RuleType rlType = RuleType.Exists;
             entTags = (entTags == null || entTags.Count == 0) ? sourceEnt.EntTags : entTags;
             var refValArray = sourceEnt.RulePrescription<RuleUnary>();
 
             var operation = newState.Operations.FirstOrDefault(r => r.EntityId == destEntId);
             if (operation != null)
             {
-                //operation.NegateResult = false;
-                //operation.RuleType = rlType;
+                operation.OperationId = destEntId;
+                operation.OperationType = opType;
+                operation.RuleResultId = ruleResultId;
+                operation.OperationTemplate = opTempl;
                 operation.EntTags = entTags;
                 //operation.ReferenceValues = refValArray;
                 operation.LastChanged = DateTime.UtcNow;
@@ -320,10 +324,11 @@ namespace RulEng.Helpers
             {
                 operation = new Operation
                 {
-                    EntityId = destEntId,
+                    OperationId = destEntId,
                     OperationType = opType,
-                    RuleResultId = sourceEnt.EntityId,
+                    RuleResultId = ruleResultId,
                     OperationTemplate = opTempl,
+                    EntTags = entTags,
                     // Operands = oprndArray,
                     LastChanged = DateTime.UtcNow
                 };

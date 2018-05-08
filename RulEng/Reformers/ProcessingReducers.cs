@@ -65,8 +65,10 @@ namespace RulEng.Reformers
                         : OperationType.Unknown; // When the prescription is for requests 
 
             // Find all relevant operations/requests for the identified rule results and then filter down by execution date
+            var possibleOps = newState.Operations
+                .Where(a => ruleResultIds.Contains(a.RuleResultId) && a.OperationType == opType).ToList();
             var operationprescriptionsToProcessList = (
-                from op in newState.Operations.Where(a => ruleResultIds.Contains(a.RuleResultId) && a.OperationType == opType)
+                from op in possibleOps
                 let rr = newState.RuleResults.First(r => r.RuleResultId == op.RuleResultId)
                 where rr.LastChanged > op.LastExecuted
                 select op)

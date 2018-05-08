@@ -202,6 +202,12 @@ namespace Concurri.Svr.TestHarness
 
             TikTok(pass++, searchForDupPrescriptions, null);
 
+            // Grab one of the Rule Results from above that was successful and use it to trigger the next operation
+            var dupRuleResults = searchForDupPrescriptions.Select(fdp => fdp.Entities.RuleResultId).ToList();
+            var dupRoadRuleResult = RvStore.GetState()
+                .RuleResults
+                .FirstOrDefault(r => r.EntTags != null && r.EntTags[0] == "Duplicates" && dupRuleResults.Contains(r.RuleResultId) && r.Detail);
+
             var opKeyDels = new OperandKey
             {
                 EntityId = Guid.NewGuid(),
@@ -219,7 +225,7 @@ namespace Concurri.Svr.TestHarness
                                  // Sort (makes it easier to follow what's going on)
                                  + ".sort(function(a,b){if(a<b)return -1;return(a>b)?1:0;})";
 
-            var opDelRoadSearch = collectRuleResult.SearchOperation(new[] { opKeyDels }, Guid.NewGuid(), searchDupsTemplate);
+            var opDelRoadSearch = dupRoadRuleResult.SearchOperation(new[] { opKeyDels }, Guid.NewGuid(), searchDupsTemplate);
             opDelRoadSearch.OperationType = OperationType.Delete;
             var opDelRoadSearchPrescription = opDelRoadSearch.Search();
 

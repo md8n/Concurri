@@ -162,7 +162,7 @@ namespace Concurri.Svr.TestHarness
             // First create a Search Operation to generate Exists Rules and RuleResults
             var opKeyDups = new OperandKey
             {
-                EntityId = Guid.NewGuid(),
+                EntityId = GuidHelpers.NewTimeUuid(),
                 EntTags = new List<string> { "Duplicates" },
                 EntType = EntityType.Rule,
                 SourceEntType = EntityType.Value
@@ -186,7 +186,7 @@ namespace Concurri.Svr.TestHarness
                     // Sort (makes it easier to follow what's going on)
                     + ".sort(function(a,b){if(a<b)return -1;return(a>b)?1:0;})";
 
-            var opRoadSearch = collectRuleResult.SearchOperation(new[] { opKeyDups }, Guid.NewGuid(), searchTemplate);
+            var opRoadSearch = collectRuleResult.SearchOperation(new[] { opKeyDups }, GuidHelpers.NewTimeUuid(), searchTemplate);
             var opRoadSearchPrescription = opRoadSearch.Search();
 
             RvStore.AddUpdate(null, null, opRoadSearch, null);
@@ -210,7 +210,7 @@ namespace Concurri.Svr.TestHarness
 
             var opKeyDels = new OperandKey
             {
-                EntityId = Guid.NewGuid(),
+                EntityId = GuidHelpers.NewTimeUuid(),
                 EntTags = new List<string> { "Duplicates" },
                 EntType = EntityType.Operation,
                 SourceEntType = EntityType.RuleResult
@@ -225,7 +225,7 @@ namespace Concurri.Svr.TestHarness
                                  // Sort (makes it easier to follow what's going on)
                                  + ".sort(function(a,b){if(a<b)return -1;return(a>b)?1:0;})";
 
-            var opDelRoadSearch = dupRoadRuleResult.SearchOperation(new[] { opKeyDels }, Guid.NewGuid(), searchDupsTemplate);
+            var opDelRoadSearch = dupRoadRuleResult.SearchOperation(new[] { opKeyDels }, GuidHelpers.NewTimeUuid(), searchDupsTemplate);
             opDelRoadSearch.OperationType = OperationType.Delete;
             var opDelRoadSearchPrescription = opDelRoadSearch.Search();
 
@@ -791,7 +791,7 @@ namespace Concurri.Svr.TestHarness
                 var opKeys = new[] { values.OperandKey(EntityType.Value) };
 
                 // Add an Operation to reference the collect Rule and merge all of the results into one GeoJSON
-                var buildCityDistancesOperation = cityRuleResults.CreateUpdateOperation(opKeys, Guid.NewGuid(), jTempl);
+                var buildCityDistancesOperation = cityRuleResults.CreateUpdateOperation(opKeys, GuidHelpers.NewTimeUuid(), jTempl);
                 var buildCityDistancesPrescription = buildCityDistancesOperation.AddUpdate();
 
                 operations.Add(buildCityDistancesOperation);
@@ -832,7 +832,7 @@ namespace Concurri.Svr.TestHarness
                 var opKeys = new[] { cityAId, nextCityBId }.OperandKey(EntityType.Value);
 
                 // Add an Operation to reference the collect Rule and merge all of the results into one GeoJSON
-                var buildCityRoadOperation = cityDistRuleResultId.CreateUpdateOperation(new[] { opKeys }, Guid.NewGuid(), lineGeo);
+                var buildCityRoadOperation = cityDistRuleResultId.CreateUpdateOperation(new[] { opKeys }, GuidHelpers.NewTimeUuid(), lineGeo);
                 var buildCityRoadPrescription = buildCityRoadOperation.AddUpdate();
 
                 operations.Add(buildCityRoadOperation);
@@ -864,7 +864,7 @@ namespace Concurri.Svr.TestHarness
             {
                 var opKey = values.OperandKey(EntityType.Value);
 
-                buildGeoJsonOperation = collectRuleResult.CreateUpdateOperation(new[] { opKey }, Guid.NewGuid(), valueTemplate);
+                buildGeoJsonOperation = collectRuleResult.CreateUpdateOperation(new[] { opKey }, GuidHelpers.NewTimeUuid(), valueTemplate);
             }
             else
             {

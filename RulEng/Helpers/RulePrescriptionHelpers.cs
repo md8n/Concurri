@@ -15,7 +15,7 @@ namespace RulEng.Helpers
         /// <returns></returns>
         public static T RulePrescription<T>(this IEntity entity, Rule existingRule = null) where T: IRulePrescription, new()
         {
-            var refValue = new T { RuleResultId = existingRule?.ReferenceValues.RuleResultId ?? Guid.NewGuid(), EntityIds = ImmutableList.Create(entity) };
+            var refValue = new T { RuleResultId = existingRule?.ReferenceValues.RuleResultId ?? GuidHelpers.NewTimeUuid(), EntityIds = ImmutableList.Create(entity) };
 
             return refValue;
         }
@@ -37,7 +37,7 @@ namespace RulEng.Helpers
             }
 
             var entTypeKey = new TypeKey { EntityId = entity.EntityId, EntType = entity.EntType, EntTags = entity.EntTags, LastChanged = entity.LastChanged };
-            var refValue = new TU { RuleResultId = existingRule?.ReferenceValues.RuleResultId ?? Guid.NewGuid(), EntityIds = ImmutableList.Create((IEntity)entTypeKey) };
+            var refValue = new TU { RuleResultId = existingRule?.ReferenceValues.RuleResultId ?? GuidHelpers.NewTimeUuid(), EntityIds = ImmutableList.Create((IEntity)entTypeKey) };
 
             return refValue;
         }

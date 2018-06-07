@@ -36,7 +36,7 @@ namespace RulEng.Helpers
         {
             return new Operation
             {
-                OperationId = operationId == Guid.Empty ? Guid.NewGuid() : operationId,
+                OperationId = operationId.NonEmptyUuid(),
                 RuleResultId = ruleResultId,
                 Operands = ImmutableArray.Create(operands?.ToArray() ?? new OperandKey[0]),
                 OperationTemplate = template,
@@ -106,7 +106,7 @@ namespace RulEng.Helpers
 
             return new Operation
             {
-                OperationId = operationId == Guid.Empty ? Guid.NewGuid() : operationId,
+                OperationId = operationId.NonEmptyUuid(),
                 EntTags = ops.SelectMany(o => o.EntTags).Distinct().ToList(),
                 RuleResultId = ruleResultId,
                 Operands = ImmutableArray.Create(ops),
@@ -128,7 +128,7 @@ namespace RulEng.Helpers
         {
             return new Operation
             {
-                OperationId = operationId == Guid.Empty ? Guid.NewGuid() : operationId,
+                OperationId = operationId.NonEmptyUuid(),
                 RuleResultId = ruleResult.RuleResultId,
                 Operands = ImmutableArray.Create(operands?.ToArray() ?? new OperandKey[0]),
                 OperationType = OperationType.Delete
@@ -146,7 +146,7 @@ namespace RulEng.Helpers
         {
             return new Operation
             {
-                OperationId = operationId == Guid.Empty ? Guid.NewGuid() : operationId,
+                OperationId = operationId.NonEmptyUuid(),
                 RuleResultId = ruleResult.RuleResultId,
                 Operands = ImmutableArray.Create(operands?.ToArray() ?? new OperandKey[0]),
                 OperationType = OperationType.Search

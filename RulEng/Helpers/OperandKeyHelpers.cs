@@ -55,7 +55,7 @@ namespace RulEng.Helpers
         {
             if (!entityId.HasValue || entityId == Guid.Empty)
             {
-                entityId = Guid.NewGuid();
+                entityId = GuidHelpers.NewTimeUuid();
             }
 
             var opKey = new OperandKey { EntType = entType, EntityId = entityId.Value, SourceEntityIds = ImmutableArray.Create(value.EntityId) };
@@ -86,7 +86,7 @@ namespace RulEng.Helpers
         {
             if (!entityId.HasValue || entityId == Guid.Empty)
             {
-                entityId = Guid.NewGuid();
+                entityId = GuidHelpers.NewTimeUuid();
             }
 
             var opKey = new OperandKey { EntType = entType, EntityId = entityId.Value, SourceEntityIds = ImmutableArray.CreateRange(sourceValueIds?.ToArray() ?? new Guid[0]) };

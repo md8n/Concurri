@@ -1,17 +1,18 @@
 ﻿using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Linq;
 using RulEng.States;
 
 namespace RulEng.ProcessingState
 {
     public static class ProcessingHelpers
     {
-        public static HashSet<T> ToHashSet<T>(this IEnumerable<T> source)
-        {
-            return source == null 
-                ? new HashSet<T>() 
-                : new HashSet<T>(source);
-        }
+        //public static HashSet<T> ToHashSet<T>(this IEnumerable<T> source)
+        //{
+        //    return source == null 
+        //        ? new HashSet<T>() 
+        //        : new HashSet<T>(source);
+        //}
 
         public static ImmutableHashSet<T> ToImmutableHashSet<T>(this IEnumerable<T> source)
         {

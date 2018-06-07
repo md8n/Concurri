@@ -31,7 +31,7 @@ namespace RulEng.States
 
         public Value(object jToken, List<string> entTags = null)
         {
-            ValueId = Guid.NewGuid();
+            ValueId = GuidHelpers.NewTimeUuid();
             EntTags = entTags;
             try
             {
@@ -45,7 +45,7 @@ namespace RulEng.States
 
         public Value(bool jToken, List<string> entTags = null)
         {
-            ValueId = Guid.NewGuid();
+            ValueId = GuidHelpers.NewTimeUuid();
             EntTags = entTags;
             try
             {
@@ -59,7 +59,7 @@ namespace RulEng.States
 
         public Value(int jToken, List<string> entTags = null)
         {
-            ValueId = Guid.NewGuid();
+            ValueId = GuidHelpers.NewTimeUuid();
             EntTags = entTags;
             try
             {
@@ -73,14 +73,14 @@ namespace RulEng.States
 
         public Value(JToken jToken, List<string> entTags = null)
         {
-            ValueId = Guid.NewGuid();
+            ValueId = GuidHelpers.NewTimeUuid();
             EntTags = entTags;
             Detail = jToken;
         }
 
         public Value(string jToken, List<string> entTags = null)
         {
-            ValueId = Guid.NewGuid();
+            ValueId = GuidHelpers.NewTimeUuid();
             EntTags = entTags;
             try
             {

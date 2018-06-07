@@ -30,7 +30,7 @@ namespace RulEng.States
 
         public RuleResult(bool jToken, List<string> entTags = null)
         {
-            RuleResultId = Guid.NewGuid();
+            RuleResultId = GuidHelpers.NewTimeUuid();
             EntTags = entTags;
             Detail = jToken;
         }

@@ -94,7 +94,7 @@ namespace RulEng.Helpers
             {
                 existingRule = new Rule
                 {
-                    RuleId = Guid.NewGuid()
+                    RuleId = GuidHelpers.NewTimeUuid()
                 };
             }
 
@@ -121,7 +121,7 @@ namespace RulEng.Helpers
             {
                 existingRule = new Rule
                 {
-                    RuleId = Guid.NewGuid()
+                    RuleId = GuidHelpers.NewTimeUuid()
                 };
             }
 
@@ -154,7 +154,7 @@ namespace RulEng.Helpers
 
             var refValueIds = new RuleCollect
             {
-                RuleResultId = existingRule?.ReferenceValues.RuleResultId ?? Guid.NewGuid(),
+                RuleResultId = existingRule?.ReferenceValues.RuleResultId ?? GuidHelpers.NewTimeUuid(),
                 EntityIds = ImmutableList.CreateRange(refValues)
             };
 
@@ -164,7 +164,7 @@ namespace RulEng.Helpers
             {
                 existingRule = new Rule
                 {
-                    RuleId = Guid.NewGuid()
+                    RuleId = GuidHelpers.NewTimeUuid()
                 };
             }
 

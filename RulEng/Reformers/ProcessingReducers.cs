@@ -476,13 +476,13 @@ namespace RulEng.Reformers
                         {
                             case EntityType.Rule:
                                 // Create/Update a rule using destEnt.EntityId and result
-                                var rl = newState.FromSearchOperationAddUpdateExistsRule(sourceEnt, relevantOp.EntTags, Guid.NewGuid());
+                                var rl = newState.FromSearchOperationAddUpdateExistsRule(sourceEnt, relevantOp.EntTags, GuidHelpers.NewTimeUuid());
                                 var rr = new RuleResult(rl);
                                 newState.RuleResults.Add(rr);
                                 break;
                             case EntityType.Operation:
                                 // Create/Update an Operation using destEnt.EntityId and result
-                                var op = newState.FromSearchOperationAddUpdateOperation(sourceEnt, relevantOp.EntTags, OperationType.Delete, "", Guid.NewGuid());
+                                var op = newState.FromSearchOperationAddUpdateOperation(sourceEnt, relevantOp.EntTags, OperationType.Delete, "", GuidHelpers.NewTimeUuid());
                                 //var rr = new RuleResult(rl);
                                 //newState.RuleResults.Add(rr);
 

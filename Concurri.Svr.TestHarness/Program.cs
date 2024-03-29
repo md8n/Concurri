@@ -6,17 +6,17 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 
 using Jint;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using Redux;
 
 using RulEng.Helpers;
 using RulEng.Reformers;
 using RulEng.States;
 using RulEng.Prescriptions;
+using System.Text.Json.Nodes;
 
 namespace Concurri.Svr.TestHarness
 {
@@ -30,7 +30,7 @@ namespace Concurri.Svr.TestHarness
 
             // Travelling Salesman - Setup
             const int cityCount = 50;
-            Console.WriteLine($"Start Setup for {cityCount} cities : {DateTime.UtcNow.ToString("yyyy-MMM-dd HH:mm:ss.ff")}");
+            Console.WriteLine($"Start Setup for {cityCount} cities : {DateTime.UtcNow:yyyy-MMM-dd HH:mm:ss.ff}");
 
             (var rules, var ruleResults, var values, var rulePrescriptions) = BuildTheCities(cityCount);
 
@@ -58,10 +58,10 @@ namespace Concurri.Svr.TestHarness
             // Build the Rule Engine Store ready for processing
             var startingStore = new RulEngStore
             {
-                Rules = rules.ToImmutableHashSet(),
-                RuleResults = ruleResults.ToImmutableHashSet(),
-                Operations = operations.ToImmutableHashSet(),
-                Values = values.ToImmutableHashSet()
+                Rules = [.. rules],
+                RuleResults = [.. ruleResults],
+                Operations = [.. operations],
+                Values = [.. values]
             };
 
             RvStore = new Store<RulEngStore>(StoreReducers.ReduceStore, startingStore);
@@ -72,9 +72,9 @@ namespace Concurri.Svr.TestHarness
             RvStore.Subscribe(state => changes = state);
 
             var pass = 0;
-            TikTok(pass++, rulePrescriptions, operationPrescriptions);
+            TickTock(pass++, rulePrescriptions, operationPrescriptions);
 
-            Console.WriteLine($"Add more to Store for {cityCount} cities : {DateTime.UtcNow.ToString("yyyy-MMM-dd HH:mm:ss.ff")}");
+            Console.WriteLine($"Add more to Store for {cityCount} cities : {DateTime.UtcNow:yyyy-MMM-dd HH:mm:ss.ff}");
             // Build the exists rules for the values resulting from the distance operations
             (var distRules, var distRuleResults, var distRulePrescriptions) =
                 distOperations.SelectMany(dp => dp.Operands).Exists(false);
@@ -85,9 +85,9 @@ namespace Concurri.Svr.TestHarness
 
             // Add the new Entities to the Store ready for processing
             RvStore.AddUpdate(distRules, distRuleResults, roadOperations, null);
-            TikTok(pass++, distRulePrescriptions, roadOperationPrescriptions);
+            TickTock(pass++, distRulePrescriptions, roadOperationPrescriptions);
 
-            Console.WriteLine($"Add more to Store for {cityCount} cities : {DateTime.UtcNow.ToString("yyyy-MMM-dd HH:mm:ss.ff")}");
+            Console.WriteLine($"Add more to Store for {cityCount} cities : {DateTime.UtcNow:yyyy-MMM-dd HH:mm:ss.ff}");
             // Build the exists rules for the values resulting from the 'road' operations
             (var roadExistsRules, var roadExistsRuleResults, var roadExistsRulePrescriptions) =
                 roadOperations.SelectMany(rp => rp.Operands).Exists(false);
@@ -100,7 +100,7 @@ namespace Concurri.Svr.TestHarness
 
             // Join the new Roads together in one map
             var roadValues = RvStore.GetState().Values
-                .Where(c => c.Detail != null && c.Detail.Type == JTokenType.Object && c.Detail["properties"]?["roadId"] != null)
+                .Where(c => c.Detail != null && c.Detail.GetValueKind() == JsonValueKind.Object && c.Detail["properties"]?["roadId"] != null)
                 .ToList();
             (var lineOperation, var lineOperationPrescription) = BuildTheGeoJsonOutput(collectRoadRuleResult, roadValues);
 
@@ -108,7 +108,7 @@ namespace Concurri.Svr.TestHarness
             RvStore
                 .AddUpdate(roadExistsRules, roadExistsRuleResults, new[] { lineOperation }.ToList(), null);
 
-            TikTok(pass++, roadExistsRulePrescriptions, new[] { lineOperationPrescription });
+            TickTock(pass++, roadExistsRulePrescriptions, new[] { lineOperationPrescription });
 
             // Searching or finding entities by arbitrary requirements is not currently supported
             // It could potentially be implemented with:
@@ -127,7 +127,7 @@ namespace Concurri.Svr.TestHarness
 
             // Refresh the list of roads
             roadValues = RvStore.GetState().Values
-                .Where(c => c.Detail != null && c.Detail.Type == JTokenType.Object && c.Detail["properties"]?["roadId"] != null)
+                .Where(c => c.Detail != null && c.Detail.GetValueKind() == JsonValueKind.Object && c.Detail["properties"]?["roadId"] != null)
                 .ToList();
             roadExistsRules = RvStore.GetState().Rules
                 .Where(c => c.RuleType == RuleType.Exists &&
@@ -156,7 +156,7 @@ namespace Concurri.Svr.TestHarness
             RvStore
                 .AddUpdate(roadExistsRules, roadExistsRuleResults, new[] { lineOperation }.ToList(), null);
 
-            TikTok(pass++, roadExistsRulePrescriptions, new[] { lineOperationPrescription });
+            TickTock(pass++, roadExistsRulePrescriptions, new[] { lineOperationPrescription });
 
             // Find the Duplicate roads to be deleted
             // First create a Search Operation to generate Exists Rules and RuleResults
@@ -191,7 +191,7 @@ namespace Concurri.Svr.TestHarness
 
             RvStore.AddUpdate(null, null, opRoadSearch, null);
 
-            TikTok(pass++, null, new[] { opRoadSearchPrescription });
+            TickTock(pass++, null, new[] { opRoadSearchPrescription });
 
             // Generate Prescriptions for all of the Rules and execute them
             var searchForDupPrescriptions = RvStore.GetState()
@@ -200,7 +200,7 @@ namespace Concurri.Svr.TestHarness
                 .Select(r => r.Exists())
                 .ToList();
 
-            TikTok(pass++, searchForDupPrescriptions, null);
+            TickTock(pass++, searchForDupPrescriptions, null);
 
             // Grab one of the Rule Results from above that was successful and use it to trigger the next operation
             var dupRuleResults = searchForDupPrescriptions.Select(fdp => fdp.Entities.RuleResultId).ToList();
@@ -231,7 +231,7 @@ namespace Concurri.Svr.TestHarness
 
             RvStore.AddUpdate(null, null, opDelRoadSearch, null);
 
-            TikTok(pass++, null, new[] { opDelRoadSearchPrescription });
+            TickTock(pass++, null, new[] { opDelRoadSearchPrescription });
 
 
             // We'll start by adding all the shortest ones as the first set of 'actual' roads
@@ -607,10 +607,10 @@ namespace Concurri.Svr.TestHarness
             var jTemplate = new StringBuilder();
             jTemplate.AppendLine("[");
 
-            const string cityATempl = "{{'cityAId':'{0}','destinations':[";
+            const string cityATempl = @"{{""cityAId"":""{0}"",""destinations"":[";
             const string lonTempl = "JSON.parse('${{{0}}}')['geometry']['coordinates'][0]";
             const string latTempl = "JSON.parse('${{{0}}}')['geometry']['coordinates'][1]";
-            const string getDistTempl = "{{'cityBId':'{{{0}}}','distance':Math.pow(Math.pow({1} - {2}, 2) + Math.pow({3} - {4}, 2), 0.5)}}";
+            const string getDistTempl = "{{\"cityBId\":\"{{{0}}}\",\"distance\":Math.pow(Math.pow({1} - {2}, 2) + Math.pow({3} - {4}, 2), 0.5)}}";
 
             for (var ix = 0; ix < 1; ix++) // values.Count; ix++)
             {
@@ -652,7 +652,7 @@ namespace Concurri.Svr.TestHarness
             var e = new Engine();
             var jCode = jTempl;
             var isSubstOk = true;
-            foreach (Match match in regexToken.Matches(jTempl))
+            foreach (Match match in regexToken.Matches(jTempl).Cast<Match>())
             {
                 var token = match.Groups["Token"].Value;
                 var indexOk = int.TryParse(match.Groups["Index"].Value, out var index);
@@ -669,7 +669,7 @@ namespace Concurri.Svr.TestHarness
                     break;
                 }
 
-                jCode = jCode.Replace(token, values[index].Detail.ToString(Formatting.None));
+                jCode = jCode.Replace(token, values[index].Detail.ToString());
 
                 //Console.WriteLine($"Token:{token}, Index:{index} Value:{values[index].Detail.ToString(Formatting.None)}");
             }
@@ -683,12 +683,11 @@ namespace Concurri.Svr.TestHarness
                 try
                 {
                     result = e
-                        .Execute(jCode)
-                        .GetCompletionValue()
+                        .Evaluate(jCode)
                         .ToObject();
 
                     Console.WriteLine(result);
-                    var jResult = JsonConvert.SerializeObject(result);
+                    string jResult = JsonSerializer.Serialize(result);
                     Console.WriteLine(jResult);
                 }
                 catch (Exception ex)
@@ -713,7 +712,7 @@ namespace Concurri.Svr.TestHarness
                 var lon = 142.0 + 7.0 * rnd.NextDouble();
                 var pointGeo =
                     $"{{\"type\":\"Feature\",\"properties\":{{\"cityNo\":{ix}}},\"geometry\":{{\"type\":\"Point\",\"coordinates\":[{lon},{lat}]}}}}";
-                var lonLat = JObject.Parse(pointGeo);
+                JsonNode lonLat = (JsonNode)JsonNode.Parse(pointGeo);
                 var coordValue = new Value(lonLat);
                 values.Add(coordValue);
 
@@ -741,25 +740,22 @@ namespace Concurri.Svr.TestHarness
 
             // Build the Javascript template for calculating the length of each connecting GeoJSON line
             // Concept - Id of this city, then formula to calculate each distance and output the result as a sorted list.
-            const string cityATempl = "{{'cityAId':'{0}','destinations':[";
+            const string cityATempl = @"{{""cityAId"":""{0}"",""destinations"":[";
             const string lonTempl = "JSON.parse('${{{0}}}')['geometry']['coordinates'][0]";
             const string latTempl = "JSON.parse('${{{0}}}')['geometry']['coordinates'][1]";
-            const string getDistTempl = "{{'cityBId':'{0}','distance':Math.pow(Math.pow({1} - {2}, 2) + Math.pow({3} - {4}, 2), 0.5),'usage':'not set'}}";
-            for (var ix = 0; ix < values.Count; ix++)
+            const string getDistTempl = @"{{""cityBId"":""{0}"",""distance"":|||Math.pow(Math.pow({1} - {2}, 2) + Math.pow({3} - {4}, 2), 0.5)|||,""usage"":""not set""}}";
+            for (int ix = 0; ix < values.Count; ix++)
             {
                 var jTemplate = new StringBuilder();
-                jTemplate.AppendLine("[");
+                jTemplate.Append('[');
 
                 jTemplate.AppendFormat(cityATempl, values[ix].EntityId);
-                jTemplate.AppendLine();
                 var cityALonTempl = string.Format(lonTempl, ix);
                 var cityALatTempl = string.Format(latTempl, ix);
 
                 var needsComma = false;
-                for (var jx = 0; jx < values.Count; jx++)
-                {
-                    if (ix == jx)
-                    {
+                for (var jx = 0; jx < values.Count; jx++) {
+                    if (ix == jx) {
                         continue;
                     }
 
@@ -767,22 +763,19 @@ namespace Concurri.Svr.TestHarness
                     var cityBLatTempl = string.Format(latTempl, jx);
                     var cityAtoBDistTempl = string.Format(getDistTempl, values[jx].EntityId, cityALonTempl, cityBLonTempl, cityALatTempl, cityBLatTempl);
 
-                    if (needsComma)
-                    {
-                        jTemplate.AppendLine(",");
+                    if (needsComma) {
+                        jTemplate.Append(',');
                     }
                     jTemplate.Append(cityAtoBDistTempl);
-                    if (!needsComma)
-                    {
+                    if (!needsComma) {
                         needsComma = true;
                     }
                 }
-                jTemplate.AppendLine();
-                jTemplate.AppendLine("].sort(function(a, b) {return a.distance - b.distance;})");
+                jTemplate.Append("].sort(function(a, b) {return a.distance - b.distance;})");
                 // Adding a slice at the end (for the 10 shortest paths) reduce the overall file size but did not seem to reduce processing time
                 // jTemplate.AppendLine("].sort(function(a, b) {return a.distance - b.distance;}).slice(0, 10)");
-                jTemplate.AppendLine("}");
-                jTemplate.AppendLine("]");
+                jTemplate.Append('}');
+                jTemplate.Append(']');
 
                 var jTempl = jTemplate.ToString();
 
@@ -819,20 +812,30 @@ namespace Concurri.Svr.TestHarness
                 }
 
                 var cityAId = Guid.Parse((string)cityDistValue.Detail[0]["cityAId"]);
-                var nextCityB = (JObject)((JArray)cityDistValue.Detail[0]["destinations"])
+                var nextCityB = cityDistValue.Detail[0]["destinations"].AsArray()
                     .FirstOrDefault(d => (string)d["usage"] == "not set");
                 // TODO: Should not be setting usage here - this needs to be its own operation
                 nextCityB["usage"] = "accepted";
                 var nextCityBId = Guid.Parse((string)nextCityB["cityBId"]);
 
-                var roadId = cityAId.Merge(nextCityBId);
+                string gFeature = @"""type"":""Feature""";
+
+                string roadId = @"""roadId"":""" + cityAId.Merge(nextCityBId) + @"""";
+                string cityA = @"""cityAId"":""" + cityAId + @"""";
+                string cityB = @"""cityBId"":""" + nextCityBId + @"""";
+                string properties = @"""properties"":""" + $"{{{roadId},{cityA},{cityB}}}" + @"""";
+
+                string gLine = @"""type"":""LineString""";
+                string geom = @"""geometry""";
+                string coords = @"""coordinates""";
+                string geoCo = @"[""geometry""][""coordinates""]";
 
                 var lineGeo =
-                    $"{{JSON.parse(JSON.stringify({{\"type\":\"Feature\",\"properties\":{{\"roadId\":\"{roadId}\",\"cityAId\":\"{cityAId}\",\"cityBId\":\"{nextCityBId}\"}},\"geometry\":{{\"type\":\"LineString\",\"coordinates\":[JSON.parse('${{0}}')[\"geometry\"][\"coordinates\"],JSON.parse('${{1}}')[\"geometry\"][\"coordinates\"]]}}}}))}}";
+                    $"{{JSON.parse(JSON.stringify({{{gFeature},{properties},{geom}:{{{gLine},{coords}:[JSON.parse('${{0}}'){geoCo},JSON.parse('${{1}}'){geoCo}]}}}}))}}";
                 var opKeys = new[] { cityAId, nextCityBId }.OperandKey(EntityType.Value);
 
                 // Add an Operation to reference the collect Rule and merge all of the results into one GeoJSON
-                var buildCityRoadOperation = cityDistRuleResultId.CreateUpdateOperation(new[] { opKeys }, GuidHelpers.NewTimeUuid(), lineGeo);
+                var buildCityRoadOperation = cityDistRuleResultId.CreateUpdateOperation([opKeys], GuidHelpers.NewTimeUuid(), lineGeo);
                 var buildCityRoadPrescription = buildCityRoadOperation.AddUpdate();
 
                 operations.Add(buildCityRoadOperation);
@@ -844,14 +847,12 @@ namespace Concurri.Svr.TestHarness
 
         private static (Operation operation, OperationMxProcessing operationPrescription) BuildTheGeoJsonOutput(RuleResult collectRuleResult, List<Value> values, Operation buildGeoJsonOperation = null)
         {
-            var cityCount = values.Count;
+            int cityCount = values.Count;
 
             // Build the Javascript template for creating the entire GeoJSON Value
-            var valueBody = "{\"type\":\"FeatureCollection\",\"features\":[";
-            for (var ix = 0; ix < cityCount; ix++)
-            {
-                if (ix > 0)
-                {
+            string valueBody = "{\"type\":\"FeatureCollection\",\"features\":[";
+            for (int ix = 0; ix < cityCount; ix++) {
+                if (ix > 0) {
                     valueBody += ",";
                 }
                 valueBody += $"${{{ix}}}";
@@ -860,14 +861,11 @@ namespace Concurri.Svr.TestHarness
             var valueTemplate = $"{{JSON.parse('{valueBody}')}}";
 
             // Add an Operation to reference the collect Rule and merge all of the results into one GeoJSON
-            if (buildGeoJsonOperation == null)
-            {
+            if (buildGeoJsonOperation == null) {
                 var opKey = values.OperandKey(EntityType.Value);
 
                 buildGeoJsonOperation = collectRuleResult.CreateUpdateOperation(new[] { opKey }, GuidHelpers.NewTimeUuid(), valueTemplate);
-            }
-            else
-            {
+            } else {
                 var opKey = values.OperandKey(EntityType.Value, buildGeoJsonOperation.Operands[0].EntityId);
 
                 buildGeoJsonOperation =
@@ -925,10 +923,9 @@ namespace Concurri.Svr.TestHarness
             return (dupRoadExistsRules, dupRoadExistsRuleResults, dupRoadDeleteOperations, dupRoadRulePrescriptions, dupRoadOpPrescriptions);
         }
 
-        private static void TikTok(int pass, IEnumerable<IRuleProcessing> rulePrescriptions, IEnumerable<IOpReqProcessing> operationPrescriptions)
+        private static void TickTock(int pass, IEnumerable<IRuleProcessing> rulePrescriptions, IEnumerable<IOpReqProcessing> operationPrescriptions)
         {
-            if (rulePrescriptions != null)
-            {
+            if (rulePrescriptions != null) {
                 var startTime = DateTime.UtcNow;
                 Console.WriteLine($"Pass {pass:0000}A Commence : {startTime:yyyy-MMM-dd HH:mm:ss.ff}");
                 foreach (var prescription in rulePrescriptions)
@@ -943,14 +940,11 @@ namespace Concurri.Svr.TestHarness
                 Console.WriteLine($"Pass {pass:0000}A Duration : {duration.Days} {duration.Hours:00}:{duration.Minutes:00}:{duration.Seconds:00}.{duration.Milliseconds:00}");
 
                 File.WriteAllText($"storePass{pass:0000}A.json", RvStore.GetState().ToString());
-            }
-            else
-            {
+            } else {
                 Console.WriteLine($"Pass {pass:0000}A Not Performed, no Rule Prescriptions provided : {DateTime.UtcNow:yyyy-MMM-dd HH:mm:ss.ff}");
             }
 
-            if (operationPrescriptions != null)
-            {
+            if (operationPrescriptions != null) {
                 var startTime = DateTime.UtcNow;
                 Console.WriteLine($"Pass {pass:0000}B Commence : {startTime:yyyy-MMM-dd HH:mm:ss.ff}");
                 foreach (var prescription in operationPrescriptions)
@@ -965,9 +959,7 @@ namespace Concurri.Svr.TestHarness
                 Console.WriteLine($"Pass {pass:0000}A Duration :  {duration.Days} {duration.Hours:00}:{duration.Minutes:00}:{duration.Seconds:00}.{duration.Milliseconds:00}");
 
                 File.WriteAllText($"storePass{pass:0000}B.json", RvStore.GetState().ToString());
-            }
-            else
-            {
+            } else {
                 Console.WriteLine($"Pass {pass:0000}B Not Performed, no Operation Prescriptions provided : {DateTime.UtcNow:yyyy-MMM-dd HH:mm:ss.ff}");
             }
         }

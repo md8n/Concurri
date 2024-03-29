@@ -2,8 +2,11 @@
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
+using System.Text.Json;
+using System.Text.Json.Nodes;
+
 using GraphQL.Types;
-using Newtonsoft.Json.Linq;
+
 using RulEng.ProcessingState;
 using RulEng.States;
 
@@ -54,15 +57,13 @@ namespace RulEng.Helpers
         /// <returns></returns>
         public static Operation RecreateUpdateOperation(this Operation operation, RuleResult ruleResult = null, IEnumerable<OperandKey> operands = null, string template = null)
         {
-            if (ruleResult != null)
-            {
+            if (ruleResult != null) {
                 operation.RuleResultId = ruleResult.EntityId;
             }
 
             operation.Operands = ImmutableArray.Create(operands?.ToArray() ?? new OperandKey[0]);
 
-            if (!string.IsNullOrWhiteSpace(template))
-            {
+            if (!string.IsNullOrWhiteSpace(template)) {
                 operation.OperationTemplate = template.Trim();
             }
 
@@ -95,11 +96,9 @@ namespace RulEng.Helpers
         /// <returns></returns>
         public static Operation SearchOperation(this Guid ruleResultId, IEnumerable<OperandKey> operands, Guid operationId, string template)
         {
-            var ops = operands?.ToArray() ?? new OperandKey[0];
-            foreach (var op in ops)
-            {
-                if (op.SourceEntityIds.IsDefault)
-                {
+            var ops = operands?.ToArray() ?? [];
+            foreach (var op in ops) {
+                if (op.SourceEntityIds.IsDefault) {
                     op.SourceEntityIds = ImmutableArray<Guid>.Empty;
                 }
             }
@@ -153,44 +152,59 @@ namespace RulEng.Helpers
             };
         }
 
-        public static void FromOperationResultAddUpdateRule(this ProcessingRulEngStore newState, JToken result, Guid destEntId)
+        /// <summary>
+        /// Create/Update a rule using destEnt.EntityId and result
+        /// </summary>
+        /// <param name="newState"></param>
+        /// <param name="result"></param>
+        /// <param name="destEntId"></param>
+        public static void FromOperationResultAddUpdateRule(this ProcessingRulEngStore newState, JsonElement result, Guid destEntId)
         {
-            // Create/Update a rule using destEnt.EntityId and result
-            var ruleType = result["RuleType"];
-            var negateResult = result["NegateResult"];
-            var referenceValues = result["ReferenceValues"];
-            var rlType = ruleType?.ToObject<RuleType>() ?? RuleType.Unknown;
-            var refValArray = referenceValues?.ToObject<IRulePrescription>();
-            if (refValArray == null)
-            {
+            RuleType rlType = RuleType.Unknown;
+            bool hasRuleType = result.TryGetProperty("RuleType", out JsonElement ruleType);
+            if (hasRuleType) {
+                if (!Enum.TryParse(ruleType.GetRawText(), out rlType)) {
+                    rlType = RuleType.Unknown;
+                }
+            }
+
+            bool negResult = false;
+            bool hasNegateResult = result.TryGetProperty("NegateResult", out JsonElement negateResult);
+            if (hasNegateResult) {
+                if (!bool.TryParse(ruleType.GetRawText(), out negResult)) {
+                    rlType = RuleType.Unknown;
+                }
+            }
+
+            IRulePrescription refValArray = null;
+            bool hasRefValues = result.TryGetProperty("RuleType", out JsonElement referenceValues);
+            if (hasRefValues) {
+                // TODO: Need to check that the RuleResultId (Guid) and EntityIds (ImmutableList<IEntity>) are deserialized correctly 
+                refValArray = JsonSerializer.Deserialize<IRulePrescription>(referenceValues);
+            }
+            if (!hasRefValues || refValArray == null) {
                 rlType = RuleType.Error;
             }
 
             var rule = newState.Rules.FirstOrDefault(r => r.EntityId == destEntId);
-            if (rule != null)
-            {
-                if (negateResult != null)
-                {
-                    rule.NegateResult = (bool)negateResult;
-                }
-                if (ruleType != null)
-                {
+            if (rule != null) {
+                if (hasRuleType) {
                     rule.RuleType = rlType;
                 }
-                if (referenceValues != null)
-                {
+                if (hasNegateResult) {
+                    rule.NegateResult = negResult;
+                }
+                if (hasRefValues) {
                     rule.ReferenceValues = refValArray;
                 }
                 rule.LastChanged = DateTime.UtcNow;
 
                 // TODO: Confirm the existing entity is updated
-            }
-            else
-            {
+            } else {
                 rule = new Rule
                 {
                     EntityId = destEntId,
-                    NegateResult = negateResult != null && (bool)negateResult,
+                    NegateResult = hasNegateResult && negResult,
                     RuleType = rlType,
                     ReferenceValues = refValArray,
                     LastChanged = DateTime.UtcNow
@@ -207,11 +221,10 @@ namespace RulEng.Helpers
             const RuleType rlType = RuleType.Exists;
             entTags = (entTags == null || entTags.Count == 0) ? sourceEnt.EntTags : entTags;
             var refValArray = sourceEnt.RulePrescription<RuleUnary>();
-            var ruleName = $"Test for existence of {sourceEnt.EntType.ToString()} {(TypeKey)sourceEnt}";
+            var ruleName = $"Test for existence of {sourceEnt.EntType} {(TypeKey)sourceEnt}";
 
             var rule = newState.Rules.FirstOrDefault(r => r.EntityId == destEntId);
-            if (rule != null)
-            {
+            if (rule != null) {
                 rule.RuleName = ruleName;
                 rule.NegateResult = false;
                 rule.RuleType = rlType;
@@ -220,9 +233,7 @@ namespace RulEng.Helpers
                 rule.LastChanged = DateTime.UtcNow;
 
                 // TODO: Confirm the existing entity is updated
-            }
-            else
-            {
+            } else {
                 rule = new Rule
                 {
                     EntityId = destEntId,
@@ -240,50 +251,57 @@ namespace RulEng.Helpers
             return rule;
         }
 
-        public static void FromOperationResultAddUpdateOperation(this ProcessingRulEngStore newState, JToken result,
+        /// <summary>
+        /// Create/Update an Operation using destEnt.EntityId and result
+        /// </summary>
+        /// <param name="newState"></param>
+        /// <param name="result"></param>
+        /// <param name="destEntId"></param>
+        public static void FromOperationResultAddUpdateOperation(this ProcessingRulEngStore newState, JsonElement result,
             Guid destEntId)
         {
-            // Create/Update an Operation using destEnt.EntityId and result
-            var operationType = result["OperationType"];
-            var ruleResultId = result["RuleResultId"];
-            var operationTemplate = result["OperationTemplate"];
-            var operands = result["Operands"];
-            var opType = operationType?.ToObject<OperationType>() ?? OperationType.Unknown;
-            var rlResId = ruleResultId?.ToObject<Guid>() ?? Guid.Empty;
-            var opTempl = operationTemplate == null ? string.Empty : operationTemplate.ToString().Trim();
-            var oprndArray = operands == null
-                ? ImmutableArray<OperandKey>.Empty
-                : ImmutableArray.Create(operands.ToObject<OperandKey[]>());
-            if (ruleResultId == null || string.IsNullOrWhiteSpace(opTempl) || operands == null)
-            {
+            OperationType opType = OperationType.Unknown;
+            bool hasOperationType = result.TryGetProperty("OperationType", out JsonElement operationType);
+            if (hasOperationType) {
+                if (!Enum.TryParse(operationType.GetRawText(), out opType)) {
+                    opType = OperationType.Unknown;
+                }
+            }
+
+            (bool hasRuleResultId, JsonElement? ruleResultId, Guid rlResId) = result.GetRuleResultId();
+
+            bool hasOperationTemplate = result.TryGetProperty("OperationTemplate", out JsonElement operationTemplate);
+            string opTempl = hasOperationTemplate ? operationTemplate.GetRawText().Trim() : string.Empty;
+
+            ImmutableArray<OperandKey> oprndArray = ImmutableArray<OperandKey>.Empty;
+            bool hasOperands = result.TryGetProperty("Operands", out JsonElement operands);
+            if (hasOperands) {
+                // TODO: Need to check that all of the OperandKey values are deserialized correctly 
+                oprndArray = JsonSerializer.Deserialize<ImmutableArray<OperandKey>>(operands);
+            }
+
+            if (!hasRuleResultId || string.IsNullOrWhiteSpace(opTempl) || !hasOperands || oprndArray == null) {
                 opType = OperationType.Error;
             }
 
             var operation = newState.Operations.FirstOrDefault(o => o.EntityId == destEntId);
-            if (operation != null)
-            {
-                if (operationType != null)
-                {
+            if (operation != null) {
+                if (hasOperationType) {
                     operation.OperationType = opType;
                 }
-                if (ruleResultId != null)
-                {
+                if (hasRuleResultId) {
                     operation.RuleResultId = rlResId;
                 }
-                if (operationTemplate != null)
-                {
+                if (hasOperationTemplate) {
                     operation.OperationTemplate = opTempl;
                 }
-                if (operands != null)
-                {
+                if (hasOperands) {
                     operation.Operands = oprndArray;
                 }
                 operation.LastChanged = DateTime.UtcNow;
 
                 // TODO: Confirm the existing entity is updated
-            }
-            else
-            {
+            } else {
                 operation = new Operation
                 {
                     EntityId = destEntId,
@@ -308,8 +326,7 @@ namespace RulEng.Helpers
             var refValArray = sourceEnt.RulePrescription<RuleUnary>();
 
             var operation = newState.Operations.FirstOrDefault(r => r.EntityId == destEntId);
-            if (operation != null)
-            {
+            if (operation != null) {
                 operation.OperationId = destEntId;
                 operation.OperationType = opType;
                 operation.RuleResultId = ruleResultId;
@@ -319,9 +336,7 @@ namespace RulEng.Helpers
                 operation.LastChanged = DateTime.UtcNow;
 
                 // TODO: Confirm the existing entity is updated
-            }
-            else
-            {
+            } else {
                 operation = new Operation
                 {
                     OperationId = destEntId,
@@ -339,48 +354,55 @@ namespace RulEng.Helpers
             return operation;
         }
 
-
-
-        public static void FromOperationResultAddUpdateRequest(this ProcessingRulEngStore newState, JToken result,
+        /// <summary>
+        /// Create/Update a Request using destEnt.EntityId and result
+        /// </summary>
+        /// <param name="newState"></param>
+        /// <param name="result"></param>
+        /// <param name="destEntId"></param>
+        public static void FromOperationResultAddUpdateRequest(this ProcessingRulEngStore newState, JsonElement result,
             Guid destEntId)
         {
-            // Create/Update a Request using destEnt.EntityId and result
-            var valueType = result["ValueType"];
-            var ruleResultId = result["RuleResultId"];
-            var query = result["Query"];
-            var vlType = valueType?.ToObject<JTokenType>() ?? JTokenType.None;
-            var rlResId = ruleResultId?.ToObject<Guid>() ?? Guid.Empty;
-            var qry = query?.ToObject<IObjectGraphType>();
-            if (ruleResultId == null || qry == null)
-            {
-                vlType = JTokenType.Undefined;
+            JsonValueKind vlKind = JsonValueKind.Undefined;
+            bool hasValueKind = result.TryGetProperty("ValueKind", out JsonElement valueKind);
+            if (hasValueKind) {
+                if (!Enum.TryParse(valueKind.GetRawText(), out vlKind)) {
+                    vlKind = JsonValueKind.Undefined;
+                }
+            }
+
+            (bool hasRuleResultId, JsonElement? ruleResultId, Guid rlResId) = result.GetRuleResultId();
+
+            IObjectGraphType qry = null;
+            bool hasQuery = result.TryGetProperty("Query", out JsonElement query);
+            if (hasQuery) {
+                // TODO: Need to check that all of the IObjectGraphType values are deserialized correctly 
+                qry = JsonSerializer.Deserialize<IObjectGraphType>(query);
+            }
+
+            if (!hasRuleResultId || !hasQuery || qry == null) {
+                vlKind = JsonValueKind.Undefined;
             }
 
             var request = newState.Requests.FirstOrDefault(o => o.EntityId == destEntId);
-            if (request != null)
-            {
-                if (valueType != null)
-                {
-                    request.ValueType = vlType;
+            if (request != null) {
+                if (hasValueKind) {
+                    request.ValueKind = vlKind;
                 }
-                if (ruleResultId != null)
-                {
+                if (hasRuleResultId) {
                     request.RuleResultId = rlResId;
                 }
-                if (query != null)
-                {
+                if (hasQuery) {
                     request.Query = qry;
                 }
                 request.LastChanged = DateTime.UtcNow;
 
                 // TODO: Confirm the existing entity is updated
-            }
-            else
-            {
+            } else {
                 request = new Request
                 {
                     EntityId = destEntId,
-                    ValueType = vlType,
+                    ValueKind = vlKind,
                     Query = qry,
                     RuleResultId = rlResId,
                     LastChanged = DateTime.UtcNow
@@ -390,25 +412,21 @@ namespace RulEng.Helpers
             }
         }
 
-        public static void FromOperationResultAddUpdateValue(this ProcessingRulEngStore newState, JToken result,
+        public static void FromOperationResultAddUpdateValue(this ProcessingRulEngStore newState, JsonElement result,
             Guid destEntId)
         {
             // Create/Update a Value using destEnt.EntityId and result
-            var detail = result;
+            JsonNode detail = JsonValue.Create(result);
 
             var value = newState.Values.FirstOrDefault(o => o.EntityId == destEntId);
-            if (value != null)
-            {
-                if (detail != null)
-                {
+            if (value != null) {
+                if (detail != null) {
                     value.Detail = detail;
                 }
                 value.LastChanged = DateTime.UtcNow;
 
                 // TODO: Confirm the existing entity is updated
-            }
-            else
-            {
+            } else {
                 value = new Value
                 {
                     EntityId = destEntId,
@@ -418,6 +436,21 @@ namespace RulEng.Helpers
 
                 newState.Values.Add(value);
             }
+        }
+
+        private static (bool hasRuleResultId, JsonElement? ruleResultId, Guid rlResId) GetRuleResultId(this JsonElement result) {
+            bool hasRuleResultId = result.TryGetProperty("RuleResultId", out JsonElement ruleResultId);
+            Guid rlResId = Guid.Empty;
+            if (hasRuleResultId) {
+                var rrI = JsonHelpers.GetGuid(ruleResultId);
+                if (rrI.HasValue) {
+                    rlResId = rrI.Value;
+                } else {
+                    hasRuleResultId = false;
+                }
+            }
+
+            return (hasRuleResultId, ruleResultId, rlResId);
         }
     }
 }

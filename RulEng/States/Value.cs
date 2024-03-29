@@ -1,137 +1,137 @@
 ﻿using System;
 using System.Collections.Generic;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
+using System.Text.Json;
+using System.Text.Json.Nodes;
+using System.Text.Json.Serialization;
+
 using RulEng.Helpers;
 
-namespace RulEng.States
+namespace RulEng.States;
+
+public class Value : IEquatable<Value>, IEntity, IAltHash
 {
-    public class Value : IEquatable<Value>, IEntity, IAltHash
+    public Guid ValueId { get; set; }
+
+    [JsonIgnore]
+    public Guid EntityId { get => ValueId; set => ValueId = value; }
+
+    public EntityType EntType => EntityType.Value;
+
+    public List<string> EntTags { get; set; }
+
+    public DateTime LastChanged { get; set; } = DefaultHelpers.DefDate();
+
+    public JsonNode Detail { get; set; }
+
+    public Value() : this(null, null)
     {
-        public Guid ValueId { get; set; }
+    }
 
-        [JsonIgnore]
-        public Guid EntityId { get => ValueId; set => ValueId = value; }
+    public Value(List<string> entTags) : this(null, entTags)
+    {
+    }
 
-        public EntityType EntType => EntityType.Value;
+    public Value(JsonNode jToken, List<string> entTags = null) {
+        ValueId = GuidHelpers.NewTimeUuid();
+        EntTags = entTags;
+        Detail = jToken.DeepClone();
+    }
 
-        public List<string> EntTags { get; set; }
+    //public Value(object jToken, List<string> entTags = null)
+    //{
+    //    ValueId = GuidHelpers.NewTimeUuid();
+    //    EntTags = entTags;
+    //    try
+    //    {
+    //        Detail = JsonNode.Parse(jToken.ToString());
+    //    }
+    //    catch
+    //    {
+    //        //Detail = new JsonValue();
+    //    }
+    //}
 
-        public DateTime LastChanged { get; set; } = DefaultHelpers.DefDate();
-
-        public JToken Detail { get; set; }
-
-        public Value() : this(null, null)
+    public Value(bool jToken, List<string> entTags = null)
+    {
+        ValueId = GuidHelpers.NewTimeUuid();
+        EntTags = entTags;
+        try
         {
+            Detail = JsonNode.Parse(jToken.ToString());
         }
-
-        public Value(List<string> entTags) : this(null, entTags)
+        catch
         {
+            //Detail = new JsonValue();
         }
+    }
 
-        public Value(object jToken, List<string> entTags = null)
+    public Value(int jToken, List<string> entTags = null)
+    {
+        ValueId = GuidHelpers.NewTimeUuid();
+        EntTags = entTags;
+        try
         {
-            ValueId = GuidHelpers.NewTimeUuid();
-            EntTags = entTags;
-            try
-            {
-                Detail = JToken.Parse(jToken.ToString());
-            }
-            catch
-            {
-                Detail = new JObject();
-            }
+            Detail = JsonNode.Parse(jToken.ToString());
         }
-
-        public Value(bool jToken, List<string> entTags = null)
+        catch
         {
-            ValueId = GuidHelpers.NewTimeUuid();
-            EntTags = entTags;
-            try
-            {
-                Detail = JToken.Parse(jToken.ToString());
-            }
-            catch
-            {
-                Detail = new JObject();
-            }
+            //Detail = new JsonValue();
         }
+    }
 
-        public Value(int jToken, List<string> entTags = null)
+    public Value(string jToken, List<string> entTags = null)
+    {
+        ValueId = GuidHelpers.NewTimeUuid();
+        EntTags = entTags;
+        try
         {
-            ValueId = GuidHelpers.NewTimeUuid();
-            EntTags = entTags;
-            try
-            {
-                Detail = JToken.Parse(jToken.ToString());
-            }
-            catch
-            {
-                Detail = new JObject();
-            }
+            Detail = JsonNode.Parse(jToken);
         }
-
-        public Value(JToken jToken, List<string> entTags = null)
+        catch
         {
-            ValueId = GuidHelpers.NewTimeUuid();
-            EntTags = entTags;
-            Detail = jToken;
+            //Detail = new JsonValue();
         }
+    }
 
-        public Value(string jToken, List<string> entTags = null)
-        {
-            ValueId = GuidHelpers.NewTimeUuid();
-            EntTags = entTags;
-            try
-            {
-                Detail = JToken.Parse(jToken);
-            }
-            catch
-            {
-                Detail = new JObject();
-            }
-        }
+    [JsonIgnore]
+    public string GetAltHashCode => ValueId.ToString();
 
-        [JsonIgnore]
-        public string GetAltHashCode => ValueId.ToString();
+    public override int GetHashCode()
+    {
+        return ValueId.GetHashCode();
+    }
 
-        public override int GetHashCode()
-        {
-            return ValueId.GetHashCode();
-        }
+    /// <summary>
+    /// Shallow equality - only compares the Id
+    /// </summary>
+    /// <param name="obj"></param>
+    /// <returns></returns>
+    public override bool Equals(object obj)
+    {
+        return obj is Value a && Equals(a);
+    }
 
-        /// <summary>
-        /// Shallow equality - only compares the Id
-        /// </summary>
-        /// <param name="obj"></param>
-        /// <returns></returns>
-        public override bool Equals(object obj)
-        {
-            return obj is Value a && Equals(a);
-        }
+    /// <summary>
+    /// Shallow equality - only compares the Id
+    /// </summary>
+    /// <param name="other"></param>
+    /// <returns></returns>
+    public bool Equals(Value other)
+    {
+        return GetHashCode() == other.GetHashCode();
+    }
 
-        /// <summary>
-        /// Shallow equality - only compares the Id
-        /// </summary>
-        /// <param name="other"></param>
-        /// <returns></returns>
-        public bool Equals(Value other)
-        {
-            return GetHashCode() == other.GetHashCode();
-        }
+    /// <summary>
+    /// Returns a non-indented JSON version of this object
+    /// </summary>
+    /// <returns></returns>
+    public override string ToString()
+    {
+        return JsonSerializer.Serialize(this);
+    }
 
-        /// <summary>
-        /// Returns a non-indented JSON version of this object
-        /// </summary>
-        /// <returns></returns>
-        public override string ToString()
-        {
-            return JObject.FromObject(this).ToString(Formatting.None);
-        }
-
-        public static implicit operator TypeKey (Value value)
-        {
-            return new TypeKey { EntityId = value.ValueId, EntType = EntityType.Value, EntTags = value.EntTags, LastChanged = value.LastChanged };
-        }
+    public static implicit operator TypeKey (Value value)
+    {
+        return new TypeKey { EntityId = value.ValueId, EntType = EntityType.Value, EntTags = value.EntTags, LastChanged = value.LastChanged };
     }
 }

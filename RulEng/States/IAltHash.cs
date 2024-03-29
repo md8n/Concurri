@@ -1,10 +1,9 @@
-﻿using Newtonsoft.Json;
+﻿using System.Text.Json.Serialization;
 
-namespace RulEng.States
+namespace RulEng.States;
+
+public interface IAltHash
 {
-    public interface IAltHash
-    {
-        [JsonIgnore]
-        string GetAltHashCode { get; }
-    }
+    [JsonIgnore]
+    string GetAltHashCode { get; }
 }

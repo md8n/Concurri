@@ -1,27 +1,26 @@
 ﻿using System;
 using System.Collections.Generic;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
+using System.Text.Json;
+
 using RulEng.Helpers;
 
-namespace RulEng.States
+namespace RulEng.States;
+
+/// <summary>
+/// An instantiable implementation of the IEntity interface
+/// </summary>
+public class TypeKey : IEntity
 {
-    /// <summary>
-    /// An instantiable implementation of the IEntity interface
-    /// </summary>
-    public class TypeKey : IEntity
+    public EntityType EntType { get; set; }
+
+    public List<string> EntTags { get; set; }
+
+    public Guid EntityId { get; set; }
+
+    public DateTime LastChanged { get; set; } = DefaultHelpers.DefDate();
+
+    public override string ToString()
     {
-        public EntityType EntType { get; set; }
-
-        public List<string> EntTags { get; set; }
-
-        public Guid EntityId { get; set; }
-
-        public DateTime LastChanged { get; set; } = DefaultHelpers.DefDate();
-
-        public override string ToString()
-        {
-            return JObject.FromObject(this).ToString(Formatting.None);
-        }
+        return JsonSerializer.Serialize(this);
     }
 }

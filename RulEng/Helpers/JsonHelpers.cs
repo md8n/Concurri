@@ -1,116 +1,187 @@
-﻿using Newtonsoft.Json.Linq;
-using System;
+﻿using System;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 
 namespace RulEng.Helpers
 {
     public static class JsonHelpers
     {
-        public static bool IsArray(this JToken token)
-        {
-            return token?.Type.IsArray() ?? false;
+        public static bool IsArray(this JsonElement? token) {
+            return token.HasValue && token.Value.ValueKind.IsArray();
         }
 
-        public static bool IsArray(this JTokenType type)
-        {
-            return type == JTokenType.Array;
+        public static bool IsArray(this JsonNode token) {
+            return token.GetValueKind().IsArray();
         }
 
-        public static bool IsNumeric(this JToken token)
-        {
-            return token?.Type.IsNumeric() ?? false;
+        public static bool IsArray(this JsonValueKind type) {
+            return type == JsonValueKind.Array;
         }
 
-        public static bool IsNumeric(this JTokenType type)
-        {
-            return type == JTokenType.Integer || type == JTokenType.Float;
+        public static bool IsNumeric(this JsonElement? token) {
+            return token.HasValue && token.Value.ValueKind.IsNumeric();
         }
 
-        public static bool IsText(this JToken token)
-        {
-            return token?.Type.IsText() ?? false;
+        public static bool IsNumeric(this JsonNode token) {
+            return token.GetValueKind().IsNumeric();
         }
 
-        public static bool IsText(this JTokenType type)
-        {
-            return type == JTokenType.String;
+        public static bool IsNumeric(this JsonValueKind type) {
+            return type == JsonValueKind.Number;
         }
 
-        public static bool IsGuid(this JToken token)
-        {
-            return token?.Type.IsGuid() ?? false;
+        public static bool IsText(this JsonElement? token) {
+            return token.HasValue && token.Value.ValueKind.IsText();
         }
 
-        public static bool IsGuid(this JTokenType type)
-        {
-            return type == JTokenType.Guid;
+        public static bool IsText(this JsonNode token) {
+            return token.GetValueKind().IsText();
         }
 
-        public static bool IsDate(this JToken token)
-        {
-            return token?.Type.IsDate() ?? false;
+        public static bool IsText(this JsonValueKind type) {
+            return type == JsonValueKind.String;
         }
 
-        public static bool IsDate(this JTokenType type)
+        public static bool IsGuid(this JsonElement? token)
         {
-            return type == JTokenType.Date;
+            return token.GetGuid().HasValue;
         }
 
-        public static bool IsBool(this JToken token)
-        {
-            return token?.Type.IsBool() ?? false;
+        public static bool IsGuid(this JsonNode token) {
+            return token.GetGuid().HasValue;
         }
 
-        public static bool IsBool(this JTokenType type)
-        {
-            return type == JTokenType.Boolean;
+        public static bool IsDate(this JsonElement? token) {
+            return token.GetDate().HasValue;
         }
 
-        public static decimal? GetNumeric(this JToken token)
-        {
-            return token.IsNumeric() ? (decimal?)token : null;
+        public static bool IsDate(this JsonNode token) {
+            return token.GetDate().HasValue;
         }
 
-        public static string GetText(this JToken token)
-        {
-            return token.IsText() ? (string)token : null;
+        public static bool IsBool(this JsonElement? token) {
+            return token.HasValue && token.Value.ValueKind.IsBool();
         }
 
-        public static DateTime? GetDate(this JToken token)
-        {
-            return token.IsDate() ? (DateTime?)token : null;
+        public static bool IsBool(this JsonNode token) {
+            return token.GetValueKind().IsBool();
         }
 
-        public static Guid? GetGuid(this JToken token)
-        {
-            return token.IsGuid() ? (Guid?)token : null;
+        public static bool IsBool(this JsonValueKind type) {
+            return type == JsonValueKind.False || type == JsonValueKind.True;
         }
 
-        public static bool? GetBool(this JToken token)
-        {
-            return token.IsBool() ? (bool?)token : null;
+        public static decimal? GetNumeric(this JsonElement? token) {
+            return token.IsNumeric() ? token.Value.GetDecimal() : null;
         }
 
-        public static string ToTextValue(this JToken token)
-        {
-            if (token.IsText())
-            {
-                return (string)token;
+        public static decimal? GetNumeric(this JsonNode token) {
+            return token.IsNumeric() ? token.GetValue<decimal>() : null;
+        }
+
+        public static string GetText(this JsonElement? token) {
+            return token.IsText() ? token.Value.GetRawText() : null;
+        }
+
+        public static string GetText(this JsonNode token) {
+            return token.IsText() ? token.GetValue<string>() : null;
+        }
+
+        public static DateTime? GetDate(this JsonElement? token) {
+            if (!token.HasValue || !token.IsText()) {
+                return null;
             }
 
-            if (token.IsNumeric())
-            {
-                var decTok = (decimal?)token;
-                return decTok.HasValue ? decTok.ToString() : null;
+            if (token.Value.TryGetDateTime(out DateTime elemDate)) {
+                return elemDate;
+            } else {
+                return null;
             }
-            if (token.IsDate())
-            {
-                var dateTok = (DateTime?)token;
-                return dateTok?.ToString("u");
+        }
+
+        public static DateTime? GetDate(this JsonNode token) {
+            if (token.GetValueKind() != JsonValueKind.String) {
+                return null;
             }
-            if (token.IsGuid())
-            {
-                var guidTok = (Guid?)token;
-                return guidTok?.ToString();
+
+            if (DateTime.TryParse(token.GetText(), out DateTime elemDate)) {
+                return elemDate;
+            } else {
+                return null;
+            }
+        }
+
+        public static Guid? GetGuid(this JsonElement? token) {
+            if (!token.HasValue) {
+                return null;
+            }
+
+            if (token.Value.TryGetGuid(out Guid elemGuid)) {
+                return elemGuid;
+            } else {
+                return null;
+            }
+        }
+
+        public static Guid? GetGuid(this JsonNode token) {
+            if (token.GetValueKind() != JsonValueKind.String) {
+                return null;
+            }
+
+            if (Guid.TryParse(token.GetText(), out Guid elemGuid)) {
+                return elemGuid;
+            } else {
+                return null;
+            }
+        }
+
+        public static bool? GetBool(this JsonElement? token) {
+            return token.IsBool() ? token.Value.GetBoolean() : null;
+        }
+
+        public static bool? GetBool(this JsonNode token) {
+            return token.IsBool() ? token.GetValue<bool>() : null;
+        }
+
+        public static string ToTextValue(this JsonElement? token) {
+            if (token.HasValue) {
+                return null;
+            }
+
+            if (token.IsText()) {
+                return token.Value.GetRawText();
+            }
+
+            if (token.IsNumeric()) {
+                return token.Value.GetDecimal().ToString();
+            }
+            var tokDate = token.GetDate();
+            if (tokDate.HasValue) {
+                return tokDate.Value.ToString("u");
+            }
+            var tokGuid = token.GetGuid();
+            if (tokGuid.HasValue) {
+                return tokGuid.Value.ToString();
+            }
+
+            return null;
+        }
+
+        public static string ToTextValue(this JsonNode token) {
+            if (token.IsText()) {
+                return token.GetText();
+            }
+
+            if (token.IsNumeric()) {
+                return token.GetNumeric().ToString();
+            }
+            var tokDate = token.GetDate();
+            if (tokDate.HasValue) {
+                return tokDate.Value.ToString("u");
+            }
+            var tokGuid = token.GetGuid();
+            if (tokGuid.HasValue) {
+                return tokGuid.Value.ToString();
             }
 
             return null;
